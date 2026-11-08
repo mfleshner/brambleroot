@@ -33,7 +33,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .when{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
 .dayn{font-family:var(--display);font-size:22px;line-height:1;color:var(--text)}
 .of{font-size:12px;color:var(--muted)}
-.clock{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.clock{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:auto;background:none;border:0;font-family:inherit;padding:8px 10px;margin:-8px -10px}
 .wx{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--water);border:1px solid rgba(108,195,239,.45);border-radius:999px;padding:2px 7px;white-space:nowrap}
 .coins{margin-left:auto;display:flex;align-items:center;gap:6px;font-weight:700;font-size:18px;color:var(--gold);font-variant-numeric:tabular-nums}
 .coin{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe39a,#d9952a 70%);box-shadow:0 0 0 1px #7a4d12}
@@ -178,7 +178,7 @@ h4.sec{margin:8px 0 0;font-family:var(--display);font-weight:400;font-size:20px}
 <header id="hud">
   <div class="r1">
     <div class="when"><span class="dayn" id="dayLbl">Spring 1</span><span class="of" id="ofLbl">of 28</span></div>
-    <span class="clock" id="clock">6:00 am</span>
+    <button class="clock" id="clock" type="button" aria-label="Clock speed">6:00 am</button>
     <span class="wx" id="wx" hidden>Rain</span>
     <div class="coins"><i class="coin"></i><span id="coins">150</span></div>
   </div>
@@ -476,7 +476,7 @@ function newState() {
   return { v:2, year:1, season:0, day:1, time:360, coins:150, energy:100, maxEnergy:100, can:20, canMax:20, sel:'mint',
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
-    greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0 };
+    greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -523,6 +523,10 @@ function seedForSale(id) {
 }
 const isGH = i => S.greenhouse && plotRow(i) >= GH_ROW;
 const potionKnown = id => Object.keys(POTIONS[id].need).every(k => CROPS[k] ? cropKnown(k) : ((S.found || {})[k] || 0) > 0);
+const PACES = { brisk:{ name:'Brisk', mul:1, sub:'A day takes about 2½ minutes of busy time. The original speed.' },
+  gentle:{ name:'Gentle', mul:.5, sub:'A day takes about 5 minutes of busy time.' },
+  slow:{ name:'Slow', mul:1 / 3, sub:'A day takes about 7½ minutes of busy time.' } };
+const paceMul = () => (PACES[S.pace] || PACES.brisk).mul;
 const passOut = () => (S.lantern ? 1560 : 1440) + (hasPerk('longday') ? 60 : 0);
 const fmt = n => Math.round(n).toLocaleString();
 
@@ -1073,7 +1077,9 @@ function update(dt) {
   if (S && (S.rain || S.snow || clock < rainFx)) for (const d of drops) { const v = S.snow ? 60 + d.r * 50 : d.v; d.y += v * dt; d.x -= (S.snow ? Math.sin(clock + d.r * 6) * 20 : d.v * .25) * dt; if (d.y > H) { d.y = -12; d.x = Math.random() * (W + 100); } }
   if (mode !== 'play' || !S) return;
   if (!sheetOpen) {
-    S.time += dt * 7.2;
+    // The clock only moves while she's busy: walking, working, or a firebolt is in the air.
+    const busy = queue.length > 0 || witch.walk > 0 || witch.act > 0 || (S.scene === 'hollow' && HV && HV.bolts.length > 0);
+    if (busy) S.time += dt * 7.2 * paceMul();
     for (const x of S.visits || []) if (!x.seen && visitPresent(x)) { x.seen = true; toast(`${VILLAGERS[x.v].name} stopped by the garden. Tap them to say hello.`); }
     if (S.time >= passOut()) { S.time = passOut(); endDay(true); return; }
     if (S.scene === 'hollow') { updateHollow(dt); if (S.scene !== 'hollow' || sheetOpen) return; }
@@ -1106,6 +1112,7 @@ function endDay(passedOut) {
   if (S.giftNote) { for (const t of S.giftNote) lines.push({ t, c:'gift' }); delete S.giftNote; }
   if (passedOut) lines.push({ t:S.fainted ? "You fainted in the Hollow. The cat fetched Old Fen, who carried you home. Everything you found is safe in your basket. You'll start tomorrow tired." : "You dozed off in the garden. The cat dragged a blanket over you. You'll start tomorrow tired.", c:'bad' });
   S.fainted = false;
+  if (!S.clockTip) { S.clockTip = true; lines.push({ t:'New: the clock now waits while you stand still. Tap the clock at the top to make the days slower, too.', c:'gold' }); }
   let grew = 0, thirsty = 0, ripe = 0;
   S.plots.forEach((p, i) => {
     if (!p.c || p.ready) { p.w = false; return; }
@@ -2415,7 +2422,13 @@ function renderSheet(kind, data) {
     }
     if (S.almanac) h += `<li class="gold">The almanac says tomorrow will be ${S.nextRain ? 'rainy' : 'dry'}.</li>`;
     h += `<li>You'll wake at 6:00 am with full energy.</li></ul>`;
-    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button><button class="btn alt" data-act="backup" type="button">Back up my save</button>`;
+    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button><button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>`;
+  } else if (kind === 'clock') {
+    title = 'The clock';
+    h += `<p class="sub">Time only moves while you're walking or working. Stand still, and it waits for you.</p>`;
+    h += `<div class="tabs" role="tablist">${Object.keys(PACES).map(k => `<button class="tab" role="tab" aria-selected="${(S.pace || 'brisk') === k}" data-act="pace" data-id="${k}" type="button">${PACES[k].name}</button>`).join('')}</div>`;
+    h += `<p class="sub">${(PACES[S.pace] || PACES.brisk).sub} You can change this any time.</p>`;
+    h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Done</button></div>`;
   } else if (kind === 'morning') {
     const d = data || { lines:[] };
     title = d.newSeason ? `${SEASONS[S.season]} begins` : `${SEASONS[S.season]} ${S.day}`;
@@ -2509,6 +2522,8 @@ $('shBody').addEventListener('click', e => {
   const act = b.dataset.act, id = b.dataset.id;
   if (act === 'sel') { S.sel = id; closeSheet(); }
   else if (act === 'tab') { marketTab = id; renderSheet('market'); }
+  else if (act === 'pace') { if (PACES[id]) { S.pace = id; save(); } renderSheet('clock'); return; }
+  else if (act === 'clockopen') { sheetOpen = 'clock'; renderSheet('clock'); return; }
   else if (act === 'jtab') { journalTab = id; renderSheet('journal'); }
   else if (act === 'vopen') { sheetOpen = 'villager'; renderSheet('villager', { v:id }); return; }
   else if (act === 'jback') { journalTab = 'village'; sheetOpen = 'journal'; renderSheet('journal'); return; }
@@ -2574,6 +2589,7 @@ $('shBody').addEventListener('click', e => {
 $('shClose').addEventListener('click', closeSheet);
 $('scrim').addEventListener('click', () => { if ((fishing && fishing.phase === 'reel') || sheetOpen === 'festival') return; closeSheet(); });
 const play = fn => () => { if (mode === 'play' && !sheetOpen) fn(); };
+$('clock').addEventListener('click', play(() => openSheet('clock')));
 $('bSeeds').addEventListener('click', play(() => openSheet('seeds')));
 $('bMarket').addEventListener('click', play(() => { marketTab = Object.values(S.inv).some(n => n > 0) ? 'sell' : 'buy'; openSheet('market'); }));
 $('bBoard').addEventListener('click', play(() => openSheet('board')));

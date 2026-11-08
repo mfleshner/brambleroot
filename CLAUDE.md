@@ -33,6 +33,11 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - `POTIONS` (base, wild forage and Hollow potions)
   - `FISH`, `FORAGE`, `MISC`, `ITEMS`
   - `UPGRADES`: watering cans can, can2, can3 (gold can, gated on the Hollow), cauldron upgrades pot2 to pot4, rod, sprinkler
+- **Clock:** `S.time` is minutes since midnight. A day starts at 360 (6 am); `passOut()` is midnight (later with the lantern or the longday perk).
+  - In `update()`, time moves `7.2 × paceMul()` game minutes per real second, and **only while she's busy** (queue, walking, acting, or a firebolt in flight). Standing still and open sheets both stop it.
+  - `S.pace` is 'brisk' (×1, default), 'gentle' (×½) or 'slow' (×⅓), in `PACES`. Change it by tapping the clock in the HUD or "Clock speed" in the sleep sheet.
+  - `S.clockTip` shows a one-time morning line about this.
+  - The econ sims are energy-limited, so the clock pace doesn't change their numbers.
 - **Calendar:** 28-day seasons (`DAYS`), 4 seasons, then a new year.
   - Spring debt is 3,000.
   - ★★★ earning targets: spring 16k, summer 35k, autumn 33k.
@@ -104,7 +109,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - Playwright Chromium is preinstalled (don't reinstall it). Use `devices['iPhone 13']` and `devices['Pixel 7']`.
   - Build a test page with fake keys: `python3 build_site.py brambleroot.html local.html testkey test-proj`.
   - Mock Firestore with `ctx.route('**/firestore.googleapis.com/**', …)`; savesuite.js has a stateful mock.
-  - Tests: `savesuite.js` (32 save checks), `filetest.js`, `pastetest.js`, `fishtest.js`/`spelltest.js` (these need an exposed `__pond`/`__spells` hook; see how fishtest.html was made), `shot-save.json` (a realistic mid-game save, summer day 14).
+  - Tests: `savesuite.js` (32 save checks), `clocktest.js` (12 clock checks on iPhone 13 and Pixel 7), `filetest.js`, `pastetest.js`, `fishtest.js`/`spelltest.js` (these need an exposed `__pond`/`__spells` hook; see how fishtest.html was made), `shot-save.json` (a realistic mid-game save, summer day 14).
   - A failed proxy connection to fonts.googleapis.com during tests is harmless.
 - The sandbox can't reach `*.github.io`. Check a deploy with `gh run list -R mfleshner/brambleroot -L 1`, or with a real browser if one is linked.
 
@@ -125,3 +130,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
    - mana in the Hollow: mana back per kill and per cleared floor, and the lift remembers her deepest floor
    - fishing Cast button
    - restore-box forgiveness
+7. Clock: pauses while she stands still, plus a Brisk/Gentle/Slow pace setting (Nov 8, 2026).
