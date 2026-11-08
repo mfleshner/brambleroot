@@ -9,7 +9,7 @@ Ship it in 3 parts, deploying after each one. Her save must load at every step, 
 | id | Name | Role | Age | Romance |
 |---|---|---|---|---|
 | mara | Mara | Miller (widowed, goat Turnip) | mid | yes |
-| fen | Old Fen | Ferryman | old | yes (see note) |
+| fen | Old Fen | Ferryman | old | **no, friend only** |
 | pip | Pip | Baker's kid | kid | **no, friend only** |
 | odile | Odile | Schoolteacher | mid | yes |
 | wren | Wren | Beekeeper, arrives in summer | young | yes |
@@ -22,13 +22,13 @@ Ship it in 3 parts, deploying after each one. Her save must load at every step, 
 | theo | Theo (M) | Apothecary, rival potion-maker | young | yes | Nerdy. Trades rare potion recipes |
 | isolde | Isolde (W) | Innkeeper, Kettle & Crow | mid | yes | Warm, knows all the gossip |
 | juno | Juno (W) | Fisher and Hollow explorer | young | yes | Adventurous. Fishing and Hollow tips |
-| hettie | Granny Hettie (W) | Old herbwife who knew the aunt | old | yes (see note) | Story reveals the aunt's past |
-| aldous | Mayor Aldous (M) | Runs the Guild charters | old | yes (see note) | Reacts to her charter stars |
+| hettie | Granny Hettie (W) | Old herbwife who knew the aunt | old | **no, friend only** | Story reveals the aunt's past |
+| aldous | Mayor Aldous (M) | Runs the Guild charters | old | **no, friend only** | Reacts to her charter stars |
 | zara | Zara (W) | Traveling merchant, Fridays only | mid | yes | Rare seeds and items stall |
-| bertram | Bertram (M) | Old lighthouse keeper, Fen's friend | old | yes (see note) | Sea stories, storm warnings |
+| bertram | Bertram (M) | Old lighthouse keeper, Fen's friend | old | **no, friend only** | Sea stories, storm warnings |
 | tilly | Tilly | Pip's best friend | kid | **no, friend only** | Mischief duo with Pip |
 
-Note: "all adults romanceable" includes the four elders (Fen, Hettie, Aldous, Bertram). Confirm this is wanted before part 2. It's easy to turn off per person with a `romance:false` flag.
+Decided Nov 8, 2026: the four elders (Fen, Hettie, Aldous, Bertram) are **not** romanceable, and neither are the kids (Pip, Tilly). Romanceable: Mara, Odile, Wren, Rowan, Silas, Theo, Isolde, Juno, Zara (9 people). Give the six friend-only villagers `romance:false`.
 
 Every villager gets:
 - a portrait (`look` for `portrait()`)
@@ -45,7 +45,7 @@ Shipped as planned, with these choices:
 - The winter star "every villager at 5+ hearts" became "6 villagers at 5+ hearts" (+1 per year).
 - The new ten's heart favours are one-off gifts (items, coins, seeds), except Rowan's upgrade discount. All 15 favours together are worth about 7,000 coins once.
 - "Fridays" are Zara's market days: days 5, 12, 19 and 26, plus festivals.
-- Still open: whether the four elders are romanceable (decide before Part 2).
+- Elders decided: friend only (see the note under the village table).
 
 - Add the 10 entries to `VILLAGERS`, in the same shape as mara and the others.
 - New items they reference are allowed, but keep them few. Prefer existing crops, forage, fish, potions and Hollow drops.
@@ -78,10 +78,7 @@ Shipped as planned, with these choices:
     - Mara: flour/bread (energy)
     - Odile: letters/stories, +friendship with others
     - Silas: plays music (+mana)
-    - Hettie: herbs (forage)
-    - Aldous: a small charter bonus (coins)
     - Zara: a rare seed
-    - Fen and Bertram: fish or storm warning (auto-protects crops)
   - Spouse talk tier 4: daily affectionate lines, birthday breakfast, anniversary each year.
   - No jealousy, no divorce. Spouse friendship can't drop.
 - Balance: run the spouse help through the econ sims. Target: marriage worth about 5 to 8% extra per season. It's nice, not required.
