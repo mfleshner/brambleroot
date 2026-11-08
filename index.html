@@ -2006,7 +2006,7 @@ const MOBS = {
   bat:    { name:'Cave Bat',     hp:2, speed:1.15, col:'#9a7ac0', drop:'batwing', p:.85 },
   beetle: { name:'Stone Beetle', hp:3, speed:.5,  col:'#4a6a9a', drop:'shell',   p:1 }
 };
-const HOLLOW_BOTTOM = 15;
+const HOLLOW_BOTTOM = 15, MANA_PER_KILL = 1, SPRING_FRAC = .1;
 const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
 let HV = null;
 function hollowFloor(f) {
@@ -2026,12 +2026,13 @@ function caveVisit() {
   if (!S.spells.includes('firebolt')) {
     learnSpell('firebolt'); SND.gift();
     openSheet('gift', ["Behind a curtain of roots in the grove there's a cave mouth, breathing cold air. Scorched into the stone above it, in your aunt's hand, is a spell: Firebolt. You learned it.",
-      'Inside is the Hollow. Tap a creature to throw a Firebolt (2 mana). Slimes take 1 hit, bats 2, beetles 3. Clear a floor and stairs appear.',
+      'Inside is the Hollow. Tap a creature to throw a Firebolt (2 mana). Slimes take 1 hit, bats 2, beetles 3. Each creature you beat gives back a little mana, and clearing a floor gives back more. Then stairs appear.',
+      'The old rope lift remembers the deepest floor you reach, so you can always start from there next time.',
       'If a creature reaches you, you lose some energy. If your energy runs out, you faint and wake up at home, with everything you found.',
       'Tap the cave again when you are ready to go down.']);
     return;
   }
-  const lifts = [1, 5, 10, HOLLOW_BOTTOM].filter(f => f === 1 || (S.hollowMax || 0) >= f);
+  const deep = S.hollowMax || 1, lifts = [...new Set([1, 5, 10, HOLLOW_BOTTOM, deep])].filter(f => f <= deep).sort((a, b) => a - b);
   if (lifts.length > 1) { openSheet('cave', lifts); return; }
   enterHollow(1);
 }
@@ -2043,13 +2044,16 @@ function killMob(m) {
   HV.mobs.splice(HV.mobs.indexOf(m), 1);
   const M = MOBS[m.k]; burst(m.x, m.y - .2, M.col, 14, 70); blip(700, 200, .18, 'square', .04);
   if (Math.random() < M.p) giveDrop(M.drop, m.x, m.y);
+  if (S.mana < S.manaMax) { S.mana = Math.min(S.manaMax, S.mana + MANA_PER_KILL); floatText(m.x + .3, m.y - 1.1, `+${MANA_PER_KILL} mana`, '#8fb8ff'); }
   if (Math.random() < .06 + .01 * HV.floor) giveDrop('crystal', m.x, m.y - .4);
   if (Math.random() < .07) { const n = 10 * HV.floor + Math.round(Math.random() * 30); earn(n); floatText(m.x, m.y - .8, `+${n} coins`, '#f2b84b'); }
   if (!HV.mobs.length) {
     if (HV.floor >= HOLLOW_BOTTOM) { toast("Floor clear. This is as deep as the Hollow goes. The ladder at the bottom leads home."); return; }
     const free = []; for (let r = 1; r <= 8; r++) for (let c = 0; c < COLS; c++) if (Math.hypot(c - witch.x, r - witch.y) > 2) free.push([c, r]);
     HV.stairs = free[(Math.random() * free.length) | 0] || [4, 2];
-    toast('Floor clear! Stairs lead down. The ladder at the bottom takes you back to the Wood.');
+    const back = Math.min(S.manaMax - S.mana, Math.round(S.manaMax * SPRING_FRAC)); S.mana += back;
+    if (back > 0) floatText(witch.x, witch.y - 1, `+${back} mana`, '#8fb8ff');
+    toast(`Floor clear! A little spring of magic bubbles up${back > 0 ? ` (+${back} mana)` : ''}. Stairs lead down, or take the ladder home.`);
   }
   updateHUD();
 }
