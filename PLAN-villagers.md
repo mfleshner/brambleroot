@@ -92,6 +92,11 @@ Shipped as planned, with these choices:
 - Balance: run the spouse help through the econ sims. Target: marriage worth about 5 to 8% extra per season. It's nice, not required.
 
 ## Part 3: extras (all of them) — items 1 to 4 built Nov 8, 2026; 5 and 6 to do
+Handoff for items 5 and 6 (next session):
+- Nothing for quests or events exists yet. New save fields need defaults (newState plus migrate, or default at use site).
+- Hooks you can reuse: `where(v)`/`canMeet(v)` to need people somewhere, `villageFolk()`, the `place` sheet (add a quest step there), `romanceScene`-style scene sheets, `sendLetter`, `applyLetterGift` (`kind:'spell'` gives a spell page for Hettie's chain), `hollowMilestone` (Juno's floor 15), `endDay` lines for morning notices, the calendar sheet (show group events there).
+- Keep act names unique (`grep -o "act === '[a-z0-9]*'" src/brambleroot.html | sort | uniq -d`).
+- Then run every sim and test (incl. tests/schedsim.js and tests/villagemaptest.js), rebuild index.html with the keys, deploy, and write the Telegram note covering all of Part 3.
 Built so far: schedules (`SCHED`, `where`), the walkable village behind the farm gate, the gift notebook on each page, and the calendar (tap the date). Chat and gifts now need her to be where the person is; every page has a "Go to…" button that walks her there.
 
 1. **Daily schedules:** `where(v, day, time, weather)` returns a place: mill, school, inn, smithy, apothecary, docks, lighthouse, square, garden, or home (unavailable).
