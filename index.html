@@ -2486,7 +2486,7 @@ function renderSheet(kind, data) {
   } else if (kind === 'backup') {
     title = 'Back up your save';
     if (cloudOn() && S.cloud) h += `<h4 class="sec">Cloud save</h4><p class="sub">Your game saves to the cloud by itself every few minutes. Last cloud save: <b>${cloudAgo()}</b>${S.cloud.err ? ` (the last try didn't work: ${S.cloud.err})` : ''}. Your save name:</p><div class="cname">${S.cloud.name}</div><div class="cta-row"><button class="btn alt" data-act="cloudnow" type="button">Save to cloud now</button></div><h4 class="sec">Or save a backup file</h4>`;
-    const fmsg = { saved:'Saved! Find it in the Files app, in Downloads. To load it later, tap "Restore" on the title screen, then "Load a save file".', shared:'Done! Wherever you sent it (Files, Telegram, Notes), you can load it later from "Restore" on the title screen.', declined:'No file was saved.', unavailable:"Saving a file isn't available here. Use the save code below instead." }[data.file];
+    const fmsg = { saved:'Saved! Look in your Downloads (on iPhone: the Files app, then Downloads). To load it later, tap "Restore" on the title screen, then "Load a save file".', shared:'Done! Wherever you sent it (Files, Telegram, Notes), you can load it later from "Restore" on the title screen.', declined:'No file was saved.', unavailable:"Saving a file isn't available here. Use the save code below instead." }[data.file];
     h += `<p class="sub">${fmsg || 'Save a small backup file to your phone. If the game ever forgets you, load it from the title screen.'}</p><div class="cta-row"><button class="btn" data-act="savefile" type="button">Save backup file</button></div>`;
     h += `<h4 class="sec">Or copy a save code</h4>`;
     if (!data.code) h += `<p class="sub">Making your save code…</p>`;
@@ -2621,7 +2621,7 @@ async function readCode(txt) {
   } catch (e) {}
   return null;
 }
-const saveFileName = () => `brambleroot-${SEASONS[S.season].toLowerCase()}-${S.day}-year${S.year}.json`;
+const saveFileName = () => `brambleroot-${SEASONS[S.season].toLowerCase()}-${S.day}-year${S.year}.txt`;
 function saveFile(done) {
   const data = slimSave(), name = saveFileName();
   if (window.claude && typeof window.claude.use === 'function') {
@@ -2631,12 +2631,19 @@ function saveFile(done) {
     }, () => done('unavailable'));
     return;
   }
-  try {
-    const file = new File([data], name, { type:'application/json' });
-    if (navigator.canShare && navigator.canShare({ files:[file] })) { navigator.share({ files:[file], title:'Brambleroot save' }).then(() => done('shared'), e => done(e && e.name === 'AbortError' ? 'declined' : 'unavailable')); return; }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 8000); done('saved');
-  } catch (e) { done('unavailable'); }
+  const download = () => {
+    try {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type:'text/plain' })); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000); done('saved');
+    } catch (e) { done('unavailable'); }
+  };
+  let file = null;
+  try { file = new File([data], name, { type:'text/plain' }); } catch (e) {}
+  if (file && navigator.share && navigator.canShare && navigator.canShare({ files:[file] })) {
+    navigator.share({ files:[file], title:'Brambleroot save' }).then(() => done('shared'), e => (e && e.name === 'AbortError') ? done('declined') : download());
+    return;
+  }
+  download();
 }
 function copyFallback(text) {
   try {
