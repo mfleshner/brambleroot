@@ -2404,7 +2404,7 @@ function renderSheet(kind, data) {
     if (f.phase === 'idle' || f.phase === 'msg') {
       if (f.phase === 'msg') h += `<ul class="lines"><li class="${f.good ? 'gold' : 'bad'}">${f.msg}</li></ul>`;
       else h += `<p class="sub">Each cast costs 3 energy and 20 minutes. When a fish bites, a marker sweeps the bar. Tap Reel while it's inside the green zone.${S.season === 3 ? ' You fish through a hole in the ice.' : ''} Moonfish bite more at night.</p>`;
-      h += `<div class="cta-row"><button class="btn" data-act="cast" type="button">${f.phase === 'msg' ? 'Cast again' : 'Cast'}</button><button class="btn alt" data-act="close" type="button">Done</button></div>`;
+      h += `<div class="cta-row"><button class="btn" data-act="fishcast" type="button">${f.phase === 'msg' ? 'Cast again' : 'Cast'}</button><button class="btn alt" data-act="close" type="button">Done</button></div>`;
     } else if (f.phase === 'wait') {
       h += `<p class="sub">The float bobs on the still water. Waiting for a bite.</p><div class="pond"></div><button class="btn alt reel" type="button" disabled>Waiting</button>`;
     } else if (f.phase === 'reel') {
@@ -2578,7 +2578,7 @@ $('shBody').addEventListener('click', e => {
     return;
   }
   else if (act === 'star') { contributeStar(b.dataset.cid, +b.dataset.i); renderSheet('journal'); }
-  else if (act === 'cast') { cast(); }
+  else if (act === 'fishcast') { cast(); }
   else if (act === 'reel') { reel(); }
   else if (act === 'sleep') { sheetOpen = null; $('scrim').hidden = true; $('sheet').hidden = true; endDay(false); return; }
   else if (act === 'close') { closeSheet(); return; }
