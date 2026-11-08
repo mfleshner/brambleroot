@@ -2560,7 +2560,7 @@ $('shBody').addEventListener('click', e => {
     return;
   }
   else if (act === 'cloudnow') { b.disabled = true; b.textContent = 'Saving…'; cloudPush().then(() => { if (sheetOpen === 'backup') renderSheet('backup', { code:backupCode }); }); return; }
-  else if (act === 'cloudload') { b.disabled = true; b.textContent = 'Loading…'; const v = ($('cloudIn') || {}).value; (looksLikeCode(v) || /bramble[12]:/i.test(v || '') ? loadAny(v) : cloudPull(v)).then(got => applyRestore(got, "Couldn't load that cloud save.")); return; }
+  else if (act === 'cloudload') { b.disabled = true; b.textContent = 'Loading…'; const v = ($('cloudIn') || {}).value; (looksLikeCode(v) ? loadAny(v) : cloudPull(v)).then(got => applyRestore(got, "Couldn't load that cloud save.")); return; }
   else if (act === 'savefile') {
     saveFile(res => { if (sheetOpen === 'backup') renderSheet('backup', { code:backupCode, file:res }); });
     return;
@@ -2616,7 +2616,7 @@ async function saveCode() {
 async function readCode(txt) {
   const raw = (txt || '').trim();
   if (raw[0] === '{') { try { return migrate(JSON.parse(raw)); } catch (e) { return null; } }
-  const t = raw.replace(/\s+/g, '');
+  const t = raw.replace(/\s+/g, '').replace(/bramble([12]):/i, 'BRAMBLE$1:');
   try {
     let i = t.indexOf('BRAMBLE2:');
     if (i >= 0) { if (typeof DecompressionStream === 'undefined') return { err:'This browser is too old to read that code. Try updating iOS.' }; return migrate(JSON.parse(new TextDecoder().decode(await streamBytes(unb64(t.slice(i + 9)), new DecompressionStream('deflate-raw'))))); }
@@ -2677,11 +2677,10 @@ async function cloudPush(keepalive) {
   } catch (e) { if (S && S.cloud) S.cloud.err = 'offline'; }
   cloudBusy = false; return ok;
 }
-const looksLikeCode = t => /BRAMBLE[12]:/.test(t || '') || (t || '').trim()[0] === '{';
+const looksLikeCode = t => /bramble[12]:/i.test(t || '') || (t || '').trim()[0] === '{';
 const looksLikeName = t => { const c = cleanCloudName(t); return c.length >= 12 && c.length <= 60 && /^[a-z]+(-[a-z]+)+-\d+$/.test(c); };
 async function loadAny(txt) {
-  if (looksLikeCode(txt)) return readCode(txt);
-  if (/bramble[12]:/i.test(txt || '')) return { err:"That save code got changed when it was pasted (the letters lost their capitals). Go back to the old game, tap Copy code again, and paste it straight in." };
+  if (looksLikeCode(txt)) { const got = await readCode(txt); if (got || !/^[^A-Z]*$/.test((txt || '').replace(/^\s*bramble[12]:/i, ''))) return got; return { err:"That save code got changed when it was pasted (the letters lost their capitals). Go back to the old game, tap Copy code again, and paste it straight in." }; }
   if (cloudOn() && looksLikeName(txt)) return cloudPull(txt);
   return null;
 }
