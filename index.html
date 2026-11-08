@@ -2560,7 +2560,7 @@ $('shBody').addEventListener('click', e => {
     return;
   }
   else if (act === 'cloudnow') { b.disabled = true; b.textContent = 'Saving…'; cloudPush().then(() => { if (sheetOpen === 'backup') renderSheet('backup', { code:backupCode }); }); return; }
-  else if (act === 'cloudload') { b.disabled = true; b.textContent = 'Loading…'; cloudPull(($('cloudIn') || {}).value).then(got => applyRestore(got, "Couldn't load that cloud save.")); return; }
+  else if (act === 'cloudload') { b.disabled = true; b.textContent = 'Loading…'; const v = ($('cloudIn') || {}).value; (looksLikeCode(v) || /bramble[12]:/i.test(v || '') ? loadAny(v) : cloudPull(v)).then(got => applyRestore(got, "Couldn't load that cloud save.")); return; }
   else if (act === 'savefile') {
     saveFile(res => { if (sheetOpen === 'backup') renderSheet('backup', { code:backupCode, file:res }); });
     return;
@@ -2574,7 +2574,7 @@ $('shBody').addEventListener('click', e => {
   }
   else if (act === 'restore') {
     const btn = b; btn.disabled = true; btn.textContent = 'Restoring…';
-    readCode(($('codeIn') || {}).value).then(got => applyRestore(got, "That code didn't work. Make sure you copied all of it, from BRAMBLE to the very end."));
+    loadAny(($('codeIn') || {}).value).then(got => applyRestore(got, "That code didn't work. Make sure you copied all of it, from BRAMBLE to the very end."));
     return;
   }
   else if (act === 'star') { contributeStar(b.dataset.cid, +b.dataset.i); renderSheet('journal'); }
@@ -2677,12 +2677,20 @@ async function cloudPush(keepalive) {
   } catch (e) { if (S && S.cloud) S.cloud.err = 'offline'; }
   cloudBusy = false; return ok;
 }
+const looksLikeCode = t => /BRAMBLE[12]:/.test(t || '') || (t || '').trim()[0] === '{';
+const looksLikeName = t => { const c = cleanCloudName(t); return c.length >= 12 && c.length <= 60 && /^[a-z]+(-[a-z]+)+-\d+$/.test(c); };
+async function loadAny(txt) {
+  if (looksLikeCode(txt)) return readCode(txt);
+  if (/bramble[12]:/i.test(txt || '')) return { err:"That save code got changed when it was pasted (the letters lost their capitals). Go back to the old game, tap Copy code again, and paste it straight in." };
+  if (cloudOn() && looksLikeName(txt)) return cloudPull(txt);
+  return null;
+}
 async function cloudPull(name) {
   name = cleanCloudName(name);
   if (name.length < 12) return { err:'That save name looks too short. It should look like moss-lantern-owl-42.' };
   try {
     const r = await fetch(cloudUrl(name));
-    if (r.status === 404 || r.status === 403) return { err:`No cloud save called "${name}". Check the spelling.` };
+    if (r.status === 404 || r.status === 403) return { err:`No cloud save called "${name.length > 40 ? name.slice(0, 40) + '…' : name}". Check the spelling.` };
     if (!r.ok) return { err:"Couldn't reach the cloud right now. Check your internet and try again." };
     const j = await r.json(), got = await readCode(j.fields && j.fields.data && j.fields.data.stringValue);
     if (!got) return { err:'That cloud save could not be read.' };
