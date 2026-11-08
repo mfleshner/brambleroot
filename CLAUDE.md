@@ -3,7 +3,7 @@
 A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on her **iPhone** (Safari, added to the Home Screen). Matt tests on **Android**. Read this file fully before changing anything.
 
 - Live site: https://mfleshner.github.io/brambleroot/ (GitHub Pages, deploys from `main` root)
-- Next work: **PLAN-villagers.md**, Part 3 (schedules, village map, notebook, calendar, story quests, group events). Parts 1 and 2 are done.
+- Next work: **PLAN-villagers.md**, Part 3: story quests and group events are left. Parts 1 and 2 are done; Part 3's schedules, village map, gift notebook and calendar are built (not yet deployed as of Nov 8, 2026).
 
 ## Files
 - `src/brambleroot.html`: **the source** (about 250 KB, one file: HTML, CSS and JS in one IIFE). Cloud keys are empty here.
@@ -64,6 +64,11 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
     - `propose` at 10 hearts. `weddingAt()`: the next festival day or 3 days later, whichever is sooner.
     - Wedding: full-screen `#wed` overlay (z-index 14) with `sheetOpen = 'wedding'`; `maybeWedding()` runs when the morning (or gift) sheet closes and on load. `closeSheet` ignores it. Buttons use `data-wact`.
     - Married life: `romanceMorning(lines)` in `endDay` (after sprinklers): greeting every morning (`morn` or `GREET`), birthday breakfast, anniversary (+1 Starshard), and `SPOUSE_HELP[v]` on 60% of mornings. Spouse is in the garden 80% of days (`genVisits`, `spouse:true`, 7 am to 8 pm). Spouse is always `inValley` (Zara included). Spouse friendship can't drop. Energy and mana may go over max for the day; HUD bars clamp.
+  - **Schedules and the village (Part 3):** `SCHED[v]` (day list, optional `rest` for days 7/21/28, optional `wet` rain swaps), `where(v, t, d, wet)` returns a `VPLACES` key, 'garden' (a visit in `S.visits`), 'cottage' (spouse at home), 'home' or 'away'. Rain sends outdoor people indoors (default the inn). Festival evening (from 5 pm): everyone in the square.
+    - `canMeet(v)`: chat, gifts, bouquet, ring and goodbye buttons need her in the village (for village places) or on the farm (garden/cottage). The sims call `talkTo`/`giveGift` directly, so they're unaffected. The villager page shows where someone is, until when, and a "Go to…" button (`seekVillager`) that walks her there.
+    - Village scene `S.scene === 'village'`: `VB` buildings, `VSPOTS` standing spots per place ([villager c, r, her c, r]), `villageFolk()` (extras and rainy indoor places show as a count over the door; tapping a building opens the `place` sheet). The board opens the calendar. Exit signpost at (4,12). The farm gate now opens a `gate` sheet: village or Old Wood.
+    - Gift notebook: `notebook(v)` on each page (from `S.known`), `notebookCount()` on the village list. Calendar sheet `calendar` (`calSeason`), opened by tapping the date in the HUD (`#calBtn`) or the village board.
+    - Tests: `schedsim.js` (headless, ~2,950 checks), `villagemaptest.js` (25 phone checks + screenshots). `romancetest.js`/`villagetest.js` now put Rowan, Fen and Zara in the garden all day so they can be chatted with.
   - The winter "befriend" star is **6 villagers at 5+ hearts** (`req.friends`, +1 per year), not "every villager".
 - **Life:**
   - `LOOKS` and `witchSVG` (the wardrobe)

@@ -10,7 +10,8 @@ async function start(b, dev, patch) {
   const ctx = await b.newContext({ ...devices[dev] }); await ctx.route('**/firestore.googleapis.com/**', r => r.fulfill({ status:200, body:'{}' }));
   const p = await ctx.newPage(); p.errs = []; p.on('pageerror', e => p.errs.push(e.message));
   await p.goto(URL0); await wait(p, 300);
-  const s = JSON.parse(fs.readFileSync('shot-save.json', 'utf8')); Object.assign(s, { day:10, time:600 }); patch(s);
+  const s = JSON.parse(fs.readFileSync('shot-save.json', 'utf8')); Object.assign(s, { day:10, time:600 }); patch(s); // Part 3: chat and gifts need them nearby, so they spend the day in her garden.
+  s.visitKey = `${s.year}.${s.season}.${s.day}`; s.visits = [{ v:'rowan', c:8, r:4, from:360, to:1440, seen:true }, { v:'fen', c:2, r:11, from:360, to:1440, seen:true }, { v:'zara', c:6, r:12, from:360, to:1440, seen:true }]; s.cloud = s.cloud || { name:'moss-fern-owl-42', last:0 };
   await p.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, JSON.stringify(s)]); await p.reload(); await wait(p, 300);
   await p.tap('#tContinue'); await wait(p, 300); await closeSheets(p); return p;
 }

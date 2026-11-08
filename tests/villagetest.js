@@ -5,7 +5,8 @@ let pass = 0, fail = 0; const ok = (n, c) => { c ? pass++ : fail++; console.log(
 async function closeSheets(p) { for (let i = 0; i < 6; i++) { if (await p.isHidden('#sheet')) return; await p.tap('#shClose').catch(() => {}); await p.waitForTimeout(150); } }
 async function start(p, patch) {
   await p.goto(URL0); await p.waitForTimeout(300);
-  const s = JSON.parse(fs.readFileSync('shot-save.json', 'utf8')); Object.assign(s, patch);
+  const s = JSON.parse(fs.readFileSync('shot-save.json', 'utf8')); Object.assign(s, patch); // Part 3: chat needs them nearby, so they spend the day in her garden.
+  s.visitKey = `${s.year}.${s.season}.${s.day}`; s.visits = [{ v:'rowan', c:8, r:4, from:360, to:1440, seen:true }, { v:'fen', c:2, r:11, from:360, to:1440, seen:true }, { v:'zara', c:6, r:12, from:360, to:1440, seen:true }]; s.cloud = s.cloud || { name:'moss-fern-owl-42', last:0 };
   await p.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, JSON.stringify(s)]);
   await p.reload(); await p.waitForTimeout(300); await p.tap('#tContinue'); await p.waitForTimeout(400); await closeSheets(p);
 }

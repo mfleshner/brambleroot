@@ -91,7 +91,9 @@ Shipped as planned, with these choices:
   - No jealousy, no divorce. Spouse friendship can't drop.
 - Balance: run the spouse help through the econ sims. Target: marriage worth about 5 to 8% extra per season. It's nice, not required.
 
-## Part 3: extras (all of them)
+## Part 3: extras (all of them) — items 1 to 4 built Nov 8, 2026; 5 and 6 to do
+Built so far: schedules (`SCHED`, `where`), the walkable village behind the farm gate, the gift notebook on each page, and the calendar (tap the date). Chat and gifts now need her to be where the person is; every page has a "Go to…" button that walks her there.
+
 1. **Daily schedules:** `where(v, day, time, weather)` returns a place: mill, school, inn, smithy, apothecary, docks, lighthouse, square, garden, or home (unavailable).
    - Rain moves people indoors.
    - Talk and gifts only work when you're where they are.
