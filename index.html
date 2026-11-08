@@ -2613,16 +2613,23 @@ async function saveCode() {
   if (typeof CompressionStream !== 'undefined') { try { return 'BRAMBLE2:' + b64(await streamBytes(json, new CompressionStream('deflate-raw'))); } catch (e) {} }
   return 'BRAMBLE1:' + b64(json);
 }
-async function readCode(txt) {
-  const raw = (txt || '').trim();
-  if (raw[0] === '{') { try { return migrate(JSON.parse(raw)); } catch (e) { return null; } }
-  const t = raw.replace(/\s+/g, '').replace(/bramble([12]):/i, 'BRAMBLE$1:');
+async function decodeCode(t) {
   try {
     let i = t.indexOf('BRAMBLE2:');
     if (i >= 0) { if (typeof DecompressionStream === 'undefined') return { err:'This browser is too old to read that code. Try updating iOS.' }; return migrate(JSON.parse(new TextDecoder().decode(await streamBytes(unb64(t.slice(i + 9)), new DecompressionStream('deflate-raw'))))); }
     i = t.indexOf('BRAMBLE1:');
     if (i >= 0) return migrate(JSON.parse(new TextDecoder().decode(unb64(t.slice(i + 9)))));
   } catch (e) {}
+  return null;
+}
+async function readCode(txt) {
+  const raw = (txt || '').trim();
+  if (raw[0] === '{') { try { return migrate(JSON.parse(raw)); } catch (e) { return null; } }
+  const words = raw.replace(/bramble([12]):/i, 'BRAMBLE$1:').split(/\s+/);
+  for (let drop = 0; drop <= 6 && drop < words.length; drop++) {   // forgive a few words typed after the code ("...thanks!")
+    const got = await decodeCode(words.slice(0, words.length - drop).join(''));
+    if (got) return got;
+  }
   return null;
 }
 const saveFileName = () => `brambleroot-${SEASONS[S.season].toLowerCase()}-${S.day}-year${S.year}.txt`;
