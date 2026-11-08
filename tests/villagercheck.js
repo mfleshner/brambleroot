@@ -1,0 +1,30 @@
+const fs=require('fs');
+const src=fs.readFileSync('b.js','utf8').replace("requestAnimationFrame(frame);\n})();","globalThis.__t={VILLAGERS,VIDS,ITEMS,FEST,VISIT_SPOT,VISIT_STAND,VISIT_LINES,BDAY_NOTES,THANKS,HEART_LETTERS,PLACES,portrait,CROPS,POTIONS,FISH,FORAGE};})();");
+const noop=()=>{}; const ctxP=new Proxy({},{get:(t,k)=>k==='createRadialGradient'||k==='createLinearGradient'?()=>({addColorStop:noop}):k==='measureText'?()=>({width:10}):(typeof k==='string'?noop:undefined),set:()=>true});
+const els={}; const el=()=>({style:{},hidden:false,textContent:'',innerHTML:'',dataset:{},scrollTop:0,getBoundingClientRect:()=>({height:60}),addEventListener:noop,querySelector:()=>null,getContext:()=>ctxP,firstChild:{}});
+globalThis.Image=function(){return {complete:false,naturalWidth:0}};
+globalThis.document={getElementById:id=>els[id]||(els[id]=el()),createElement:()=>el(),addEventListener:noop};
+Object.assign(globalThis,{window:globalThis,innerWidth:390,innerHeight:844,devicePixelRatio:2,matchMedia:()=>({matches:false}),addEventListener:noop,requestAnimationFrame:noop,cancelAnimationFrame:noop,performance:{now:()=>0},setTimeout:()=>{},clearTimeout:noop});
+globalThis.localStorage={getItem:()=>null,setItem:()=>{},removeItem:()=>{}};
+eval(src);const T=globalThis.__t;let bad=0;const err=m=>{bad++;console.log('BAD',m)};
+const bd={};
+for(const v of T.VIDS){const V=T.VILLAGERS[v];
+ for(const f of ['name','role','col','bday','place','look','loves','likes','hates','story','odd','talk','scenes','gifts'])if(V[f]===undefined)err(v+' missing '+f);
+ const k=V.bday.join('-');if(bd[k])err('bday clash '+v+' '+bd[k]);bd[k]=v;if(V.bday[1]===14)err('bday on fest '+v);
+ for(const i of [...V.loves,...V.likes,...V.hates])if(!T.ITEMS[i])err(v+' unknown item '+i);
+ if(V.story.length!==4)err(v+' story len');
+ V.story.forEach((st,si)=>st.forEach(x=>{if(!T.ITEMS[x.item])err(v+' story item '+x.item);
+   const I=x.item, ok=T.CROPS[I]?T.CROPS[I].seasons.includes(si):T.FORAGE[I]?T.FORAGE[I].seasons.includes(si)||T.FORAGE[I].seasons.length===4:T.FISH[I]?T.FISH[I].seasons.includes(si):T.POTIONS[I]?Object.keys(T.POTIONS[I].need).every(k=>T.CROPS[k]&&T.CROPS[k].seasons.includes(si)):true;
+   if(!ok)err(`${v} season ${si} out-of-season ${I}`);}));
+ if(V.story.slice(0,V.arrive).some(s=>s.length))err(v+' story before arrival');
+ if(V.talk.length!==3)err(v+' talk tiers');for(const l of [2,4,6,8])if(!V.scenes[l])err(v+' scene '+l);for(const l of [3,6])if(!V.gifts[l])err(v+' gift '+l);
+ if(!T.VISIT_SPOT[v]||!T.VISIT_STAND[v]||!T.VISIT_LINES[v])err(v+' visit');
+ if(!T.BDAY_NOTES[v]||!T.THANKS[v])err(v+' notes');if(!T.HEART_LETTERS[v])err(v+' heart letter');
+ T.FEST.forEach((F,i)=>{if(!F.lines[v])err(v+' fest line '+i)});
+ if(V.look.age!=='kid'&&!T.FEST[0].dance[v])err(v+' dance');
+ if(!T.PLACES.some(p=>p[0]===V.place))err(v+' place');
+ const svg=T.portrait(v,'happy',80);if(/undefined|NaN/.test(svg))err(v+' portrait has undefined/NaN');
+ for(const m of ['neutral','sad','shock','love'])if(/undefined|NaN/.test(T.portrait(v,m,40)))err(v+' portrait '+m);
+}
+const spots={};for(const v of T.VIDS){const k=T.VISIT_SPOT[v].join(',');if(spots[k])err('spot clash '+v+' '+spots[k]);spots[k]=v;}
+console.log(T.VIDS.length,'villagers;',bad?bad+' problems':'all checks passed');

@@ -324,7 +324,7 @@ const PROJECTS = {
 };
 
 const VILLAGERS = {
-  mara: { name:'Mara', role:'Miller', col:'#e9b064', arrive:0, bday:[1, 9],
+  mara: { name:'Mara', role:'Miller', col:'#e9b064', arrive:0, bday:[1, 9], place:'mill',
     look:{ skin:'#c98e62', hair:'#3b2a20', style:'scarf', scarf:'#d9533a', shirt:'#8a5a3a', apron:true, age:'mid' },
     loves:['cordial', 'hearth', 'honey'], likes:['mint', 'ember', 'pepper', 'calming', 'starshard'], hates:['wolf', 'mudcat', 'ward'],
     story:[
@@ -347,7 +347,7 @@ const VILLAGERS = {
              8:"Mara presses a key on a red string into your hand. \"Spare to the mill. Everyone I trust has one. That's you and Turnip, and Turnip ate hers.\"" },
     gifts:{ 3:{ kind:'sprinkler', n:2, text:"Mara's lads built you two brass sprinklers. Place them from your seed pouch. Each waters the four beds around it every morning." },
             6:{ kind:'sprinkler', n:4, text:"Mara sent four more sprinklers, with a note: 'Turnip says thank you.'" } } },
-  fen: { name:'Old Fen', role:'Ferryman', col:'#7fb2d6', arrive:0, bday:[2, 4],
+  fen: { name:'Old Fen', role:'Ferryman', col:'#7fb2d6', arrive:0, bday:[2, 4], place:'river',
     look:{ skin:'#e8b896', hair:'#e9e4dc', style:'cap', cap:'#2f4a66', shirt:'#3c5a6e', beard:true, age:'old' },
     loves:['elixir', 'moonfish', 'amber'], likes:['ember', 'hearth', 'trout', 'perch', 'glow', 'starshard'], hates:['jam', 'melon', 'star'],
     story:[
@@ -370,7 +370,7 @@ const VILLAGERS = {
              8:"Fen gives you his ferryman's coin, worn smooth. \"Means you cross any water in this valley, any hour, free. Only ever gave one other. You can guess who.\"" },
     gifts:{ 3:{ kind:'rod', text:"Old Fen gave you his spare fishing rod. Tap the pond to fish." },
             6:{ kind:'lantern', text:"Fen gave you his old ferry lantern. You can now work until 2 am before dozing off." } } },
-  pip: { name:'Pip', role:"Baker's kid", col:'#f29a9a', arrive:0, bday:[0, 11],
+  pip: { name:'Pip', role:"Baker's kid", col:'#f29a9a', arrive:0, bday:[0, 11], place:'square',
     look:{ skin:'#f3c9a0', hair:'#e07a2a', style:'messy', shirt:'#e86f7a', freckles:true, flour:true, age:'kid' },
     loves:['jam', 'star', 'honey'], likes:['thorn', 'melon', 'gourd', 'sunfish', 'starshard'], hates:['wolf', 'ward', 'frostel'],
     story:[
@@ -393,7 +393,7 @@ const VILLAGERS = {
              8:"Pip bakes you a loaf shaped like a witch's hat, slightly burnt. \"I did it all myself. Ma only helped with the oven. And the dough. And the shape.\"" },
     gifts:{ 3:{ kind:'energy', n:20, text:"Pip brings you a warm bun every morning now. Your energy goes up by 20." },
             6:{ kind:'energy', n:20, text:"Pip's buns got bigger. Your energy goes up by another 20." } } },
-  odile: { name:'Odile', role:'Schoolteacher', col:'#bf98e0', arrive:0, bday:[3, 6],
+  odile: { name:'Odile', role:'Schoolteacher', col:'#bf98e0', arrive:0, bday:[3, 6], place:'mill',
     look:{ skin:'#8d5a3c', hair:'#1e1418', style:'bun', shirt:'#7a58a8', glasses:true, earrings:true, age:'mid' },
     loves:['dream', 'moon', 'starlight'], likes:['glow', 'calming', 'mint', 'honey', 'starshard'], hates:['pepper', 'minnow', 'mudcat'],
     story:[
@@ -416,7 +416,7 @@ const VILLAGERS = {
              8:"Odile gives you the notebook's first page: a moonpetal, pressed thirty-one years ago, from this very garden. \"Your aunt gave it to me the day the Guild said no. I think it should come home.\"" },
     gifts:{ 3:{ kind:'almanac', text:"Odile lent you a weather almanac. You'll see tomorrow's weather when you go to bed." },
             6:{ kind:'bell', text:"Odile tied a little bell to the cat's collar. The cat brings back finds twice as often." } } },
-  wren: { name:'Wren', role:'Beekeeper', col:'#f2d36b', arrive:1, bday:[2, 12],
+  wren: { name:'Wren', role:'Beekeeper', col:'#f2d36b', arrive:1, bday:[2, 12], place:'lanes',
     look:{ skin:'#f0cfae', hair:'#e2b64a', style:'curls', hat:'#d9b46a', shirt:'#8aa64a', freckles:true, age:'young' },
     loves:['cordial', 'mint', 'starshard'], likes:['moon', 'melon', 'calming', 'thorn', 'glow'], hates:['salve', 'ward', 'pepper'],
     story:[
@@ -437,9 +437,224 @@ const VILLAGERS = {
              6:"You find Wren talking to the hives, telling them the village news. \"Old custom. If you don't tell the bees, they leave.\" She told them about you weeks ago.",
              8:"Wren paints a little witch's hat on your hive, and a cat beside it. \"So the bees know whose garden this is,\" she says. \"And that you're family.\"" },
     gifts:{ 3:{ kind:'hive', text:"Wren set up a beehive beside your cottage. It makes honey every few days." },
-            6:{ kind:'hive', text:"Wren brought a second hive. Twice the honey." } } }
+            6:{ kind:'hive', text:"Wren brought a second hive. Twice the honey." } } },
+  rowan: { name:'Rowan', role:'Blacksmith', col:'#d9825a', arrive:0, bday:[0, 4], place:'row',
+    look:{ skin:'#d9a27a', hair:'#8a3a1e', style:'short', shirt:'#5a4a3e', apron:'#6a4028', beard:true, age:'young' },
+    loves:['hearth', 'salve', 'amber'], likes:['ember', 'pepper', 'mudcat', 'trout', 'starshard'], hates:['moon', 'dream', 'jam'],
+    story:[
+      [ { item:'ember', n:4, min:2, text:"Forge won't hold its heat on these cold mornings. Emberroot burns hotter than coal. Bring me some." },
+        { item:'hearth', n:1, min:6, text:"Burned my hand on a horseshoe. Don't fuss. Just... something warm to drink would help." } ],
+      [ { item:'pepper', n:3, min:2, text:"Sunpepper paste keeps the rust off my tongs. Old smith's trick. I need a few." },
+        { item:'salve', n:1, min:6, text:"The forge in summer is like standing inside the sun. Got a salve for burns? Asking for a friend. The friend is me." } ],
+      [ { item:'wolf', n:2, min:3, text:"Quenching blades in wolfsbane water gives them an edge. Bring me a couple. Gloves on." },
+        { item:'amber', n:1, min:7, text:"The mayor wants a new weathervane by the fair. I need something to get me through the night shift. Amber syrup. Please." } ],
+      [ { item:'frost', n:3, min:2, text:"Frostmoss in the cooling trough stops the water freezing solid. Strange but true." },
+        { item:'frostel', n:1, min:6, text:"Snow's coming in through the forge roof. Something to keep my hands working till I patch it?" } ] ],
+    odd:["Need supplies. Smithing's thirsty work.", "Don't make a thing of it. Just bring what's on the list."],
+    talk:[ ["Mm. Mind the sparks.", "Need something mended? No? Then I've work to do."],
+           ["Sharpened your hoe while you weren't looking. You're welcome.", "The cat came by the forge again. Sat on the warm anvil like she owned it."],
+           ["Saved you the stool by the fire. Nobody else gets the stool.", "You make this place less loud. In a good way."] ],
+    scenes:{ 2:"Rowan fixes the squeaky hinge on your gate without being asked. When you thank him he goes red to the ears. \"It squeaked. I could hear it from the forge. Probably.\"",
+             4:"You find Rowan hammering out tiny iron leaves at dusk. \"For the school railings,\" he mutters. \"Odile asked for plain bars. Plain bars are boring.\" There are two hundred of them.",
+             6:"Rowan shows you his father's hammer, too heavy for him to use. \"He wanted me to be a soldier. Said smithing was for people with no ambition.\" He sets it down gently. \"I'd rather make gates than break them.\"",
+             8:"Rowan hands you a little iron key-ring shaped like your cottage, right down to the crooked chimney. \"Took me three weeks,\" he says, then, quickly: \"It was nothing.\"" },
+    gifts:{ 3:{ kind:'discount', pct:10, text:"Rowan says he'll do your tool upgrades at a friend's price from now on. Upgrades in the market cost 10% less." },
+            6:{ kind:'discount', pct:25, text:"Rowan won't hear of you paying full price ever again. Upgrades in the market now cost 25% less." } } },
+  silas: { name:'Silas', role:'Musician at the inn', col:'#7a8ad6', arrive:2, bday:[2, 18], place:'inn',
+    look:{ skin:'#e8c4a8', hair:'#2a2230', style:'long', shirt:'#3e5a7a', age:'young' },
+    loves:['starlight', 'dream', 'raven'], likes:['moon', 'cordial', 'honey', 'chanter', 'starshard'], hates:['wolf', 'mudcat', 'pepper'],
+    story:[ [], [],
+      [ { item:'hazel', n:4, min:2, text:"I'm Silas. I play at the Kettle & Crow for my supper. My voice has gone hoarse, and roasted hazelnuts are an old singer's cure." },
+        { item:'amber', n:1, min:7, text:"I'm writing a song about this valley in autumn. I think it tastes like amber syrup. Strictly for research." } ],
+      [ { item:'holly', n:3, min:2, text:"Isolde wants holly over the hearth for my winter set. She says it adds atmosphere. I say it pricks." },
+        { item:'frostel', n:1, min:6, text:"My fingers are too cold to find the strings. A Frost Elixir, so the music doesn't freeze halfway out." } ] ],
+    odd:["Food for the musician, if you've any to spare.", "Isolde says I owe her for the room. Help a poor poet?"],
+    talk:[ ["Oh. Hello. I was composing. It's not going well.", "Do you think a song can be sad and happy at once? Most of mine are."],
+           ["I wrote a verse about your cat. It doesn't rhyme. Cats don't rhyme.", "The inn's quiet tonight. I prefer it. You can hear the fire."],
+           ["I played your aunt's favourite song last night. Isolde told me which one. Everyone cried. Good crying.", "When you come in, I play a little better. I don't know why."] ],
+    scenes:{ 2:"Silas plays you a tune on the inn steps, and stops halfway. \"That's where it ends. I've never managed the rest.\" He puts the lute away. \"Maybe someday.\"",
+             4:"Silas tells you he used to play in grand halls in the city. \"They clapped. Nobody listened.\" He nods at the inn, where Mara is singing along, badly. \"Here they don't clap. They sing.\"",
+             6:"You find Silas in the empty inn at dawn, staring at a letter. \"My brother. He says come home and get a proper job.\" He folds it small. \"I think I am home. I just haven't told him.\"",
+             8:"Silas plays the tune from the inn steps, and this time it has an ending. \"I finished it,\" he says. \"It's called Brambleroot. It's about a witch who made a valley feel like home.\"" },
+    gifts:{ 3:{ kind:'coins', n:300, text:"Silas split a night's tips with you, \"for inspiration\". 300 coins." },
+            6:{ kind:'items', items:{ starshard:1, raven:1 }, text:"Silas gave you a Starshard he'd carried since the city, and a Raven Feather for luck." } } },
+  theo: { name:'Theo', role:'Apothecary', col:'#6ab88a', arrive:0, bday:[2, 25], place:'row',
+    look:{ skin:'#a8724c', hair:'#3a2618', style:'short', shirt:'#4a7a5a', glasses:true, age:'young' },
+    loves:['elixir', 'ward', 'wyrd'], likes:['glow', 'moon', 'wolf', 'morel', 'calming'], hates:['jam', 'melon', 'honey'],
+    story:[
+      [ { item:'glow', n:3, min:3, text:"I'm Theo, the apothecary. Yes, the other potion-maker. I need glowcaps for an experiment. Strictly scientific. Not because yours are better." },
+        { item:'elixir', n:1, min:8, text:"I've tried to brew a Glow Elixir eleven times. Could I... study one of yours? For comparison." } ],
+      [ { item:'salve', n:1, min:4, text:"Half the village came to me for burn cream this week and I've run out. Don't tell anyone I asked you." },
+        { item:'glimmer', n:4, min:6, text:"Glimmerberries from the Old Wood. I'm testing whether they glow in jars. Hypothesis: yes." } ],
+      [ { item:'wolf', n:3, min:2, text:"Wolfsbane, for a paper on wards. I'll credit you in a footnote. A large footnote." },
+        { item:'ward', n:1, min:7, text:"My ward recipe keeps exploding. Gently. Could I see how yours turns out?" } ],
+      [ { item:'icicle', n:2, min:3, text:"Ice Crystals from the Wood. I want to see if they melt slower in a cold shop. They will. I want to see it anyway." },
+        { item:'frostel', n:1, min:7, text:"A Frost Elixir for my notes. I'll pay. I'll pay twice if you show me your stirring." } ] ],
+    odd:["For the shop. You'd be helping science.", "I'm short of ingredients. Don't look at me like that. It happens to everyone."],
+    talk:[ ["Did you know moonpetals close if you sing to them? I tested it. Badly.", "Oh. You. Hello. Your potions are fine. Fine. Very good, actually."],
+           ["I tried your trick of stirring the other way. It worked. I'm furious.", "Could I borrow your cauldron notes? Joke. Mostly."],
+           ["I've started leaving a spare cup out when I brew. In case you come by.", "Being rivals with you is the most fun I've ever had."] ],
+    scenes:{ 2:"Theo turns up with a notebook full of questions about your cauldron. Forty minutes later he realises he's been talking the whole time. \"Sorry. Nobody else here likes talking about potions.\"",
+             4:"Theo's shop smells of burnt sugar. A potion has bubbled over the whole bench. \"I was trying to make your Dreamwater,\" he admits. \"It made the cat next door sleep for two days. She seemed happy.\"",
+             6:"Theo confesses he came to the valley because of your aunt. \"I read her notes in the Guild library. I wanted to learn from her.\" He looks at his shoes. \"She'd already gone. I stayed anyway. Then you came.\"",
+             8:"Theo gives you a jar labelled in tiny, careful handwriting: \"For the better witch. (Don't tell anyone I said that.)\" Inside is his best brew, and a recipe card with both your names on it." },
+    gifts:{ 3:{ kind:'items', items:{ elixir:1, salve:1 }, text:"Theo traded you two potions off his shop shelf, a Glow Elixir and a Sunfire Salve, \"for science\"." },
+            6:{ kind:'items', items:{ elixir:2, starshard:1 }, text:"Theo gave you two Glow Elixirs and a Starshard from his secret drawer." } } },
+  isolde: { name:'Isolde', role:'Innkeeper', col:'#d86a6a', arrive:0, bday:[3, 10], place:'inn',
+    look:{ skin:'#f0c8a8', hair:'#b8562a', style:'braid', shirt:'#a83a4a', apron:true, earrings:true, age:'mid' },
+    loves:['amber', 'cordial', 'truffle'], likes:['hearth', 'pepper', 'gourd', 'trout', 'perch'], hates:['wolf', 'ward', 'icicle'],
+    story:[
+      [ { item:'mint', n:4, min:1, text:"Welcome to the valley, love. I'm Isolde, I keep the Kettle & Crow. My mint tea is famous, and I'm all out of mint." },
+        { item:'morel', n:4, min:5, text:"Morels from the Old Wood for my spring pie. The regulars riot without it. Politely, but still." } ],
+      [ { item:'thorn', n:5, min:2, text:"Thornberries for the summer punch. Five, and don't let Pip see you bring them." },
+        { item:'cordial', n:1, min:7, text:"A wedding party has booked the whole inn. I need something special for the toast." } ],
+      [ { item:'gourd', n:2, min:3, text:"Hollowgourd soup for the fair crowd. Two of your biggest, if you can spare them." },
+        { item:'chanter', n:4, min:5, text:"Chanterelles for the autumn stew. The Wood's full of them this time of year." } ],
+      [ { item:'truffle', n:1, min:4, text:"A snow truffle for the Star Feast pie. It's the secret ingredient. Don't tell anyone. Well, tell Silas, he'll want to write a song." },
+        { item:'frostel', n:1, min:8, text:"The cellar's frozen solid, and the cider with it. Something to thaw an innkeeper?" } ] ],
+    odd:["Kitchen's short again. Bring what you can, love.", "Busy night ahead. You'd be a lifesaver."],
+    talk:[ ["Come in out of the cold, love. Did you hear about Mara's goat? No? Sit down.", "Don't mind the noise. That's Silas tuning. Or a cat. Hard to tell."],
+           ["Saved you a slice of pie. Don't tell the others.", "Rowan was in here asking after you. Casually. Very casually."],
+           ["You're one of the inn now. That means you get the good mug.", "Your aunt used to sit right there. Same spot. Same laugh."] ],
+    scenes:{ 2:"Isolde sits you down in the inn kitchen and feeds you until you can't move. \"You looked peaky. Witches forget to eat. Your aunt did too.\"",
+             4:"Isolde tells you every secret in the valley in one evening. Then she makes you swear not to tell. \"Except the one about the mayor's wig. Tell everyone that one.\"",
+             6:"The inn's empty at closing time. Isolde polishes the same glass for a long while. \"Everyone tells me their troubles. Nobody asks after mine.\" You ask. She talks until the candles burn down.",
+             8:"Isolde carves your initials into the beam above the corner table, next to a faded B. \"Your aunt's,\" she says. \"Now there's two of you. Regulars get a beam.\"" },
+    gifts:{ 3:{ kind:'items', items:{ hearth:2 }, text:"Isolde sent a hamper up the lane: two Hearth Tonics and a pie. (The pie is already gone.)" },
+            6:{ kind:'coins', n:600, text:"Isolde made you a partner in the inn's winter pie. Your share: 600 coins." } } },
+  juno: { name:'Juno', role:'Fisher and diver', col:'#4ab0b8', arrive:0, bday:[1, 23], place:'river',
+    look:{ skin:'#6e4630', hair:'#1a1414', style:'ponytail', shirt:'#2f6a7a', age:'young' },
+    loves:['moonfish', 'starshard', 'salve'], likes:['trout', 'sunfish', 'perch', 'iceperch', 'pepper'], hates:['moon', 'dream', 'calming'],
+    story:[
+      [ { item:'mint', n:3, min:2, text:"Juno. Fisher. Hollow diver. Hi! I need calm-mint for my bait. Fish love it. I don't know why. Science won't tell me." },
+        { item:'jam', n:1, min:7, text:"Thornberry Jam for a long dive tomorrow. Sugar keeps me going on the deep floors." } ],
+      [ { item:'sunfish', n:2, min:4, text:"Bet you can't catch two sunfish before I do. Winner gets bragging rights. Loser also gets bragging rights. I'm generous." },
+        { item:'salve', n:1, min:7, text:"A bat on floor nine singed my eyebrows. Got anything for that?" } ],
+      [ { item:'perch', n:2, min:3, text:"Copper perch are running. Two for my smoker and I'll tell you the best spot on the river." },
+        { item:'ward', n:1, min:8, text:"Something big's moving on the deep floors of the Hollow. A Wolf's Ward, just in case." } ],
+      [ { item:'iceperch', n:2, min:3, text:"Ice fishing contest with Bertram. I need two Ice Perch to beat him. He's been practising for fifty years. I've been practising for a week." },
+        { item:'frostel', n:1, min:7, text:"The Hollow's colder than ever. A Frost Elixir, and I'll go down and find out why." } ] ],
+    odd:["Gearing up for a dive. Help a friend out?", "Supplies for the river! Or the Hollow. Whichever's more fun today."],
+    talk:[ ["Hi! Been down the Hollow yet? Floor three has a bat that looks just like Old Fen.", "Caught three fish before breakfast. Lost two. Ate one. Good morning!"],
+           ["Tip: when you're tired, take the lift home. Fainting's undignified. I'd know.", "You fish like your aunt did. She always counted to three before reeling."],
+           ["Race you to floor ten sometime? Loser buys pie.", "Best part of any dive is coming home and telling you about it."] ],
+    scenes:{ 2:"Juno takes you night fishing. You catch nothing. She catches a boot, a moonfish and a cold. \"Best night all year,\" she says, sneezing.",
+             4:"Juno shows you a map of the Hollow she's drawn on the back of a pie tin. Floor fifteen is just a question mark. \"Nobody's been. Yet.\"",
+             6:"Juno tells you her mum was a diver too, the best in the valley, who went exploring one spring and never came back. \"I'm not sad about it. Well. A bit. I just want to see what she saw.\"",
+             8:"Juno gives you her lucky lure, a little silver fish worn smooth. \"Mum's. Never lost a fish on it. You keep it. You're my diving partner now.\"" },
+    gifts:{ 3:{ kind:'items', items:{ moonfish:2 }, text:"Juno brought you two Moonfish, \"for practice\"." },
+            6:{ kind:'items', items:{ starshard:2 }, text:"Juno found two Starshards on a deep dive and saved them for you." } } },
+  hettie: { name:'Granny Hettie', role:'Herbwife', col:'#8ab86a', arrive:0, bday:[0, 20], place:'lanes',
+    look:{ skin:'#e0b090', hair:'#d8d4cc', style:'scarf', scarf:'#5a8a4a', shirt:'#6a5a7a', age:'old' },
+    loves:['calming', 'morel', 'chanter'], likes:['violet', 'fern', 'hazel', 'holly', 'mint'], hates:['melon', 'star', 'cordial'],
+    story:[
+      [ { item:'violet', n:4, min:2, text:"So you're Bramble's kin. I'm Hettie. I knew your aunt for seventy years. Fetch me wood violets, dear, and I'll tell you how she won the cottage in a bet." },
+        { item:'calming', n:2, min:6, text:"My old hands shake in the mornings. A Calming Draught or two, and I'll teach you the word your aunt used for weeds." } ],
+      [ { item:'firemoss', n:3, min:3, text:"Firefly moss for my lamp. Your aunt and I used to read by it, the summer we were young and foolish." },
+        { item:'mint', n:5, min:6, text:"Mint for drying. An herbwife never has enough." } ],
+      [ { item:'chanter', n:3, min:2, text:"Chanterelles. For a tea that cures nothing, but tastes of autumn, which is a cure of its own." },
+        { item:'wolf', n:2, min:6, text:"Wolfsbane to hang by my door. Not for wolves. For the mayor, who keeps visiting about my hedge." } ],
+      [ { item:'holly', n:4, min:2, text:"Holly for the windows. Your aunt always did my windows. Somebody ought to." },
+        { item:'frostel', n:1, min:7, text:"The cold's in my knees. A Frost Elixir, dear, and a chair by the fire if you're staying." } ] ],
+    odd:["An herbwife's cupboard is never full. Help an old woman, dear.", "Bring me these and I'll tell you a story about your aunt."],
+    talk:[ ["Mm? Oh, it's Bramble's kin. You have her chin.", "Weeds are only plants nobody's been kind to yet."],
+           ["Your aunt once turned the mayor's hat into a hedgehog. By accident. Mostly.", "Sit, sit. My kettle's slow, but it gets there."],
+           ["You've grown into the cottage, dear. It suits you.", "I've started telling the bees about you. Wren says that's her job. Wren is young."] ],
+    scenes:{ 2:"Hettie shows you a pressed flower from her hatband. \"Bramble gave me this the day we met. We were six. She'd stolen it from the mayor's garden. Not this mayor. His grandmother.\"",
+             4:"Hettie tells you your aunt wasn't always the valley's witch. \"There was a quarrel with the Guild. A big one. She never told me what about.\" She taps her nose. \"But I've got her letters somewhere.\"",
+             6:"Hettie falls asleep mid-story in her chair. When she wakes, she holds your hand tight. \"You'll do,\" she says. \"Bramble worried there'd be nobody. There's you.\"",
+             8:"Hettie gives you a key wrapped in a dried leaf. \"The trunk under my bed. Bramble's letters to me, seventy years of them.\" She smiles. \"Read them slowly. She was a terrible speller.\"" },
+    gifts:{ 3:{ kind:'items', items:{ calming:2, wyrd:1 }, text:"Hettie pressed a Wyrdstone and two Calming Draughts into your hands. \"From Bramble's cupboard. She'd want them used.\"" },
+            6:{ kind:'seeds', n:8, text:"Hettie gave you a twist of seeds from her own garden." } } },
+  aldous: { name:'Mayor Aldous', role:'Mayor', col:'#c8a24a', arrive:0, bday:[0, 26], place:'square',
+    look:{ skin:'#d8a07a', hair:'#dcd8d0', style:'wisps', shirt:'#6a2a3a', glasses:true, moustache:true, age:'old' },
+    loves:['amber', 'elixir', 'gourd'], likes:['star', 'melon', 'honey', 'perch', 'cordial'], hates:['wolf', 'mudcat', 'glimmer'],
+    story:[
+      [ { item:'moon', n:4, min:2, text:"Mayor Aldous. Welcome, welcome! The Guild charters are my department, so we'll be seeing a lot of each other. Moonpetals for the town hall, to start?" },
+        { item:'elixir', n:1, min:8, text:"The town hall clock has stopped glowing at night. A Glow Elixir, poured in the right place, usually sorts it. Usually." } ],
+      [ { item:'star', n:3, min:3, text:"Starfruit for the mayoral luncheon. I'd say it's a tradition, but I started it this year." },
+        { item:'cordial', n:1, min:8, text:"A Melon Cordial for the visiting Guild inspector. I need him in a good mood." } ],
+      [ { item:'gourd', n:2, min:2, text:"Two hollowgourds for the town hall steps. The fair is a matter of civic pride." },
+        { item:'amber', n:1, min:8, text:"Amber Syrup. The Guild sends a judge to the fair, and the judge has a sweet tooth. I didn't tell you that." } ],
+      [ { item:'frost', n:4, min:3, text:"Frostmoss garlands for the town hall. Festive, and cheap. Mostly cheap." },
+        { item:'frostel', n:1, min:8, text:"My office stove broke and the charter papers are frozen to the desk. Help?" } ] ],
+    odd:["On behalf of the town hall. Official business.", "The village thanks you. I'll put it in the minutes."],
+    talk:[ ["Good day, good day. Charters! Exciting. Don't be late.", "Did you know the valley has had a mayor for two hundred years? Mostly my family. Coincidence."],
+           ["Your aunt and I never agreed on anything. I miss arguing with her.", "I've started reading the Guild rules for fun. Don't tell anyone."],
+           ["Between us, you're the best thing to happen to this valley in years. Officially, I'm neutral.", "I've had your name put on the town hall honours board. In pencil, for now. Ink next year."] ],
+    scenes:{ 2:"Mayor Aldous gives you a tour of the town hall. It takes two hours. There are a great many portraits of his family. \"And this,\" he says at last, \"is the only one I like.\" It's your aunt, scowling, holding a frog.",
+             4:"Aldous admits he isn't sure he's a good mayor. \"My mother was. Her mother was. I mostly sign things.\" Then he spends an hour explaining exactly how he saved the bridge fund. He's a good mayor.",
+             6:"You find Aldous in the old charter archive, sneezing. \"Your aunt's charters,\" he says. \"Every one, sixty years. She never missed a star.\" He coughs. \"That's a lie. She missed plenty. She just never gave up.\"",
+             8:"Aldous presents you with the town hall's spare chain of office, slightly tarnished. \"Honorary deputy mayor. It means nothing. It means everything. Mostly it means you skip the queue at the fair.\"" },
+    gifts:{ 3:{ kind:'coins', n:500, text:"Aldous approved a town grant for your garden: 500 coins." },
+            6:{ kind:'coins', n:1000, text:"Aldous found an old Guild fund in your aunt's name: 1,000 coins, with an apology for the delay." } } },
+  zara: { name:'Zara', role:'Travelling merchant', col:'#e89a3a', arrive:1, bday:[1, 19], place:'square', market:true,
+    look:{ skin:'#7a4a2e', hair:'#1e1414', style:'wrap', wrap:'#e8a33a', shirt:'#7a3a8a', earrings:true, age:'mid' },
+    loves:['starshard', 'wyrd', 'starlight'], likes:['glimmer', 'raven', 'elixir', 'moonfish', 'cordial'], hates:['mint', 'minnow', 'calming'],
+    story:[ [],
+      [ { item:'glimmer', n:4, min:3, text:"Zara, travelling merchant, at your service. My cart comes every seventh day, rain or shine. I'm buying glimmerberries. The city pays a fortune for them. Well. Half a fortune." },
+        { item:'starlight', n:1, min:8, text:"A buyer in the capital wants starlight in a bottle. I told them it was impossible. Prove me wrong?" } ],
+      [ { item:'hazel', n:5, min:2, text:"Hazelnuts for the road. It's a long way between market days." },
+        { item:'ward', n:1, min:7, text:"There's a bandit on the north road. One bandit. He's very small. A Wolf's Ward would discourage him." } ],
+      [ { item:'icicle', n:3, min:3, text:"Ice Crystals sell like hot pies down south. Funny, that." },
+        { item:'frostel', n:1, min:6, text:"My cart wheels froze to the road last week. A Frost Elixir for the axle, and one for me." } ] ],
+    odd:["Business is business, darling. Can you supply?", "A buyer's waiting. Name your price. Well. I'll name it, actually."],
+    talk:[ ["Every seventh day, darling. The rest of the week I'm everywhere else.", "Fancy a look at the cart? Everything's rare. Some of it is even real."],
+           ["I sold your jam in three towns. They asked who made it. I said a witch. Prices doubled.", "I've been to forty valleys. This one has the best sunsets. Don't tell the others."],
+           ["Market day is my favourite day now. I wonder why.", "I keep a corner of the cart for things you'd like. It's getting crowded."] ],
+    scenes:{ 2:"Zara lets you sit up on the cart while she sets up. A dozen tiny drawers, each labelled in a different language. \"Half of these I can't read,\" she admits. \"Sells better that way.\"",
+             4:"Zara tells you she was born on the road and has never stayed anywhere longer than a week. \"People think it's lonely. It's not. Well. It's a little lonely.\"",
+             6:"It's raining, and Zara's cart is stuck in the lane. You push. She steers. You both end up covered in mud, laughing so hard the horse looks embarrassed.",
+             8:"Zara gives you one of the tiny drawers from her cart, label and all. \"Means you own part of the business now. It says Wonders. I don't know what goes in it. You'll think of something.\"" },
+    gifts:{ 3:{ kind:'seeds', n:5, rare:true, text:"Zara slipped you seeds from her rare stock, free. \"Don't tell my other customers.\"" },
+            6:{ kind:'items', items:{ starshard:2 }, text:"Zara gave you two Starshards from the Wonders drawer." } } },
+  bertram: { name:'Bertram', role:'Lighthouse keeper', col:'#5a7ab8', arrive:0, bday:[3, 21], place:'river',
+    look:{ skin:'#c8906a', hair:'#eceae6', style:'beanie', hat:'#2e4a6a', shirt:'#d9b43a', beard:true, age:'old' },
+    loves:['moonfish', 'frostel', 'amber'], likes:['mudcat', 'iceperch', 'hearth', 'holly', 'perch'], hates:['honey', 'jam', 'glimmer'],
+    story:[
+      [ { item:'ember', n:3, min:3, text:"Bertram. I kept the lighthouse at the river mouth, before it went dark. Fen says you're good for emberroot. My stove agrees." },
+        { item:'hearth', n:1, min:7, text:"Sea fog's in my chest. A Hearth Tonic, if you would. Fen swears by them. Fen swears by everything." } ],
+      [ { item:'sunfish', n:1, min:4, text:"One sunfish. Fen says I can't tell a sunfish from a perch. I want to prove him wrong." },
+        { item:'starlight', n:1, min:7, text:"A Starlight Tonic. On clear nights I still climb the lighthouse to watch for ships. Old habit." } ],
+      [ { item:'mudcat', n:1, min:3, text:"A mudcat for my supper. Ugly fish. Best fish. Like me." },
+        { item:'glow', n:4, min:6, text:"Glowcaps. I'm testing them in the old lamp. It's daft. I'm daft. Humour me." } ],
+      [ { item:'frost', n:3, min:2, text:"Frostmoss to pack the lighthouse windows. The wind gets in everywhere." },
+        { item:'frostel', n:1, min:6, text:"Storm's coming. I can feel it in my knees, and my knees are never wrong. Something to keep me warm through it?" } ] ],
+    odd:["Supplies for the lighthouse. Fen can't carry the heavy things any more. Don't tell him I said that.", "Keep a lighthouse long enough and you need a lot of odd things."],
+    talk:[ ["Weather's turning. I feel it in my knees.", "Seen Fen? He owes me a fish. Fifty years he's owed me that fish."],
+           ["The lamp's been dark nine years. Sometimes I climb up and polish it anyway.", "Fen and your aunt kept my light burning one winter when I was sick. Did he tell you? He tells it wrong."],
+           ["You'd have made a good keeper. You notice things.", "Sit with me and watch the river. It's better with company."] ],
+    scenes:{ 2:"Bertram takes you up the dark lighthouse. Two hundred steps. At the top, the great lamp is cracked down the middle. \"Nine years,\" he says. \"Ships don't come any more. But you never know.\"",
+             4:"Bertram and Fen argue for an hour about who caught the biggest fish in the great flood year. Halfway through you realise they're enjoying it more than anything else all week.",
+             6:"Bertram tells you about the winter he fell ill and your aunt and Fen kept his light burning. \"Every night for a month. In a gale. Never asked for a thing.\" His voice goes rough. \"I never thanked her properly.\"",
+             8:"Bertram gives you his old brass spyglass. \"For watching for ships,\" he says. \"Or the stars. Or for spotting Fen before he spots you. All good uses.\"" },
+    gifts:{ 3:{ kind:'items', items:{ moonfish:1, hearth:1 }, text:"Bertram gave you a smoked Moonfish and a Hearth Tonic \"for the fog\"." },
+            6:{ kind:'items', items:{ starlight:2, amber:1 }, text:"Bertram cleared out the lighthouse cupboard: two Starlight Tonics and a jar of Amber Syrup, all for you." } } },
+  tilly: { name:'Tilly', role:"Pip's best friend", col:'#7ac0e8', arrive:0, bday:[1, 3], place:'square',
+    look:{ skin:'#c48a5e', hair:'#3a2a1e', style:'pigtails', shirt:'#6aa8d8', freckles:true, age:'kid' },
+    loves:['jam', 'honey', 'glimmer'], likes:['melon', 'star', 'thorn', 'sunberry', 'minnow'], hates:['wolf', 'ward', 'mudcat'],
+    story:[
+      [ { item:'thorn', n:3, min:4, text:"I'm Tilly, Pip's best friend. We're having a picnic and Pip already ate all the berries. Can you help?" },
+        { item:'violet', n:3, min:6, text:"I'm making a crown of wood violets for Turnip the goat. She ate the last one. This one's for wearing. Hopefully." } ],
+      [ { item:'sunberry', n:4, min:2, text:"Sunberries! For a secret project with Pip. It won't be a mess. Probably." },
+        { item:'melon', n:1, min:6, text:"Pip and I want to grow the biggest melon in the world. We need a starter melon. A big one. For inspiration." } ],
+      [ { item:'hazel', n:4, min:2, text:"Hazelnuts for the nut-flicking contest. It's a game. We made it up. Pip's winning." },
+        { item:'gourd', n:1, min:5, text:"We're carving a gourd that looks like Mayor Aldous. Don't tell him. Actually, do. He'll laugh." } ],
+      [ { item:'holly', n:3, min:2, text:"Holly for the school play! I'm a holly bush. It's the main part. Pip says it isn't." },
+        { item:'frost', n:2, min:5, text:"Pip and I are building a snow witch too, bigger than last year's. Green moss for the hair, please!" } ] ],
+    odd:["Pip and I need these. For a reason. A good reason.", "It's for a surprise! Pip's helping, so it'll be twice as good."],
+    talk:[ ["Pip says you're a real witch. Prove it. Do a spell. Any spell!", "I'm Tilly. I'm Pip's best friend. Pip is my best friend. It's a circle."],
+           ["Pip and I found a frog that looks like the mayor. We named it Mayor Frog.", "I practised being a witch. I wore a pot on my head. Ma was cross."],
+           ["You're my second favourite grown-up. Odile is first. It's very close though!", "When Pip and I grow up we're going to have a cottage like yours. With two cats."] ],
+    scenes:{ 2:"Tilly and Pip present you with a magic potion they made in a bucket. It's pond water and daisies. You take a tiny, very serious sip. They cheer like you've won a war.",
+             4:"Tilly asks if you can teach her the stars. You spend the evening pointing at them. She names one after the cat.",
+             6:"Tilly turns up on her own, quiet for once. Pip has a cold and can't come out. She helps you water the garden, and by the end she's humming. She leaves with a jar of mint for Pip's tea.",
+             8:"Tilly and Pip make you a sign for the gate: BRAMBLEROOT, WHERE THE BEST WITCH LIVES. The letters are all different sizes and one is backwards. You hang it at once." },
+    gifts:{ 3:{ kind:'items', items:{ jam:2 }, text:"Tilly and Pip brought you two jars of jam they \"helped\" make. It's mostly jam." },
+            6:{ kind:'items', items:{ glimmer:3, raven:1 }, text:"Tilly gave you her best Wood finds: three Glimmerberries and a Raven Feather." } } }
 };
 
+const PLACES = [['square', 'The square'], ['inn', 'The Kettle & Crow'], ['row', 'Smithy and apothecary'], ['mill', 'The mill and the school'], ['river', 'Down by the river'], ['lanes', 'Up the lanes']];
 for (const V of Object.values(VILLAGERS)) for (const st of V.story) for (const x of st) x.min = x.min === 1 ? 1 : x.min * 2 - 1;
 
 /* ================= map ================= */
@@ -489,7 +704,7 @@ function newState() {
   return { v:2, year:1, season:0, day:1, time:360, coins:150, energy:100, maxEnergy:100, can:20, canMax:20, sel:'mint',
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
-    greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false };
+    greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0 };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -1282,6 +1497,15 @@ function leadTime(item) {
 }
 function dueFor(item) { return Math.min(DAYS, S.day + Math.max(4, leadTime(item))); }
 function rewardFor(item, n) { return Math.round(itemValue(item) * n * 1.6 / 5) * 5 + 25; }
+function giveItems(items) { for (const [k, n] of Object.entries(items)) S.inv[k] = (S.inv[k] || 0) + n; }
+function seedGift(n, rare) {
+  return () => {
+    const ids = Object.keys(CROPS).filter(id => inSeason(id) && seedForSale(id)).sort((a, b) => CROPS[b].sell - CROPS[a].sell);
+    const pick = rare ? ids[0] : ids[(Math.random() * ids.length) | 0];
+    return { kind:'seeds', id:pick || 'mint', n };
+  };
+}
+const upCost = up => Math.round(up.cost * (1 - (S.upDisc || 0) / 100) / 5) * 5;
 function applyGifts(v, lines) {
   const V = VILLAGERS[v];
   for (const lvl of [3, 6]) {
@@ -1295,6 +1519,10 @@ function applyGifts(v, lines) {
       else if (g.kind === 'almanac') S.almanac = true;
       else if (g.kind === 'bell') S.bell = true;
       else if (g.kind === 'hive') S.hives++;
+      else if (g.kind === 'discount') S.upDisc = Math.max(S.upDisc || 0, g.pct);
+      else if (g.kind === 'coins') earn(g.n);
+      else if (g.kind === 'items') giveItems(g.items);
+      else if (g.kind === 'seeds') { const sd = seedGift(g.n, g.rare)(); S.seeds[sd.id] = (S.seeds[sd.id] || 0) + sd.n; lines.push(`${g.text} ${sd.n} ${CROPS[sd.id].name} seeds.`); continue; }
       lines.push(g.text);
     }
   }
@@ -1304,6 +1532,10 @@ function applyGifts(v, lines) {
 const dayKey = () => `${S.year}.${S.season}.${S.day}`;
 const heartsOf = v => Math.min(8, Math.floor((S.fr[v] || 0) / 100));
 const arrived = v => S.year > 1 || VILLAGERS[v].arrive <= S.season;
+// Zara's cart comes every seventh day (days 5, 12, 19, 26) and for festivals.
+const marketDay = () => S.day % 7 === 5;
+const inValley = v => arrived(v) && (!VILLAGERS[v].market || marketDay() || isFestDay());
+function nextMarket() { for (let d = S.day + 1; d <= DAYS; d++) if (d % 7 === 5) return `day ${d}`; return 'next season'; }
 const isBday = v => VILLAGERS[v].bday[0] === S.season && VILLAGERS[v].bday[1] === S.day;
 function addFr(v, pts) { S.fr[v] = Math.max(0, Math.min(850, (S.fr[v] || 0) + pts)); }
 function nextScene(v) {
@@ -1339,6 +1571,8 @@ function talkTo(v) {
   addFr(v, 20);
   const V = VILLAGERS[v], h = heartsOf(v), tier = h < 3 ? 0 : (h < 6 ? 1 : 2);
   let line = V.talk[tier][(Math.random() * V.talk[tier].length) | 0];
+  if (v === 'aldous' && Math.random() < .5) { const st = Object.values(S.charters).filter(c => c.s === S.season && c.y === S.year).reduce((n, c) => n + c.stars.filter(x => x.done).length, 0);
+    line = st >= 3 ? 'Three stars! Three! I have told the whole Guild. Twice. They asked me to stop writing.' : st > 0 ? `${st} star${st === 1 ? '' : 's'} on this season's charter already. The Guild will be pleased. I'm pleased. I've told everyone.` : "No stars on the charter yet this season, but there's time. There's always time. Within reason."; }
   if (isBday(v)) line = "It's my birthday today! " + line;
   blip(500, 650, .08, 'sine', .04);
   celebrate(v, h >= 3 || isBday(v) ? 'happy' : 'neutral', line);
@@ -1377,14 +1611,23 @@ function portrait(v, mood, size) {
   if (L.style === 'curls') { o += `<ellipse cx="40" cy="${hy - 20}" rx="27" ry="6" fill="${L.hat}"/><ellipse cx="40" cy="${hy - 24}" rx="13" ry="7" fill="${shade(L.hat, -18)}"/>`; for (const [x, y, r] of [[22, hy + 2, 7], [58, hy + 2, 7], [24, hy + 12, 6], [56, hy + 12, 6], [26, hy - 8, 7], [54, hy - 8, 7]]) o += `<circle cx="${x}" cy="${y}" r="${r}" fill="${hair}"/>`; }
   if (L.style === 'scarf') o += `<path d="M20 ${hy} Q20 ${hy - 26} 40 ${hy - 26} Q60 ${hy - 26} 60 ${hy} L62 ${hy + 16} L18 ${hy + 16} Z" fill="${shade(L.scarf, -25)}"/>`;
   if (L.style === 'messy') o += `<ellipse cx="40" cy="${hy - 3}" rx="${rx + 3}" ry="${ry + 1}" fill="${hair}"/>`;
+  if (L.style === 'long') o += `<path d="M${40 - rx - 3} ${hy - 6} Q${40 - rx - 7} ${hy + 18} ${40 - rx - 2} ${hy + 30} L${40 + rx + 2} ${hy + 30} Q${40 + rx + 7} ${hy + 18} ${40 + rx + 3} ${hy - 6} Q40 ${hy - ry - 6} ${40 - rx - 3} ${hy - 6} Z" fill="${hair}"/>`;
+  if (L.style === 'ponytail') o += `<path d="M${40 + rx - 5} ${hy - 13} Q${40 + rx + 15} ${hy - 10} ${40 + rx + 9} ${hy + 22} Q${40 + rx + 2} ${hy + 8} ${40 + rx - 7} ${hy - 2} Z" fill="${hair}"/><circle cx="${40 + rx + 1}" cy="${hy - 9}" r="2.4" fill="#e8c35a"/>`;
+  if (L.style === 'wrap') o += `<ellipse cx="40" cy="${hy - 15}" rx="${rx + 4}" ry="15" fill="${shade(L.wrap, -22)}"/>`;
+  if (L.style === 'short') o += `<ellipse cx="40" cy="${hy - 4}" rx="${rx + 2}" ry="${ry}" fill="${hair}"/>`;
   // body
   const shY = kid ? 64 : 62;
   o += `<path d="M${kid ? 14 : 8} 84 Q${kid ? 15 : 10} ${shY} 40 ${shY - 2} Q${kid ? 65 : 70} ${shY} ${kid ? 66 : 72} 84 Z" fill="${L.shirt}"/>`;
-  if (L.apron) o += `<path d="M28 84 L30 ${shY + 2} Q40 ${shY + 5} 50 ${shY + 2} L52 84 Z" fill="#f2ece2"/><path d="M30 ${shY + 2} L26 ${shY - 2} M50 ${shY + 2} L54 ${shY - 2}" stroke="#f2ece2" stroke-width="2"/>`;
+  if (L.apron) { const ac = L.apron === true ? '#f2ece2' : L.apron; o += `<path d="M28 84 L30 ${shY + 2} Q40 ${shY + 5} 50 ${shY + 2} L52 84 Z" fill="${ac}"/><path d="M30 ${shY + 2} L26 ${shY - 2} M50 ${shY + 2} L54 ${shY - 2}" stroke="${ac}" stroke-width="2"/>`; }
   if (v === 'fen') o += `<path d="M28 ${shY} L40 72 L52 ${shY}" fill="none" stroke="${shade(L.shirt, 30)}" stroke-width="2"/>`;
   if (v === 'odile') o += `<path d="M34 ${shY - 1} L40 70 L46 ${shY - 1}" fill="#f2ece2"/>`;
   if (v === 'wren') o += `<path d="M30 84 L31 ${shY + 4} L49 ${shY + 4} L50 84 Z" fill="${shade(L.shirt, -18)}"/><ellipse cx="45" cy="${shY + 8}" rx="2.6" ry="1.8" fill="#f2c94a"/><path d="M44 ${shY + 7} v2 M46 ${shY + 7} v2" stroke="${ink}" stroke-width=".8"/>`;
+  if (v === 'aldous') o += `<path d="M27 ${shY + 1} Q40 ${shY + 15} 53 ${shY + 1}" stroke="#f2c94a" stroke-width="2.2" fill="none"/><circle cx="40" cy="${shY + 11}" r="3.2" fill="#f2c94a"/>`;
+  if (v === 'silas') o += `<path d="M22 ${shY + 3} L58 86" stroke="#7a5230" stroke-width="3.2"/>`;
+  if (v === 'theo') o += `<path d="M33 ${shY - 1} L40 69 L47 ${shY - 1}" fill="#e8e4d8"/>`;
   o += `<rect x="35" y="${hy + ry - 6}" width="10" height="${shY - (hy + ry - 6)}" fill="${skinD}"/>`;
+  if (L.style === 'braid') { for (let i = 0; i < 5; i++) o += `<ellipse cx="${40 + rx - 2 + i * 1.3}" cy="${hy + 8 + i * 6}" rx="4.4" ry="3.8" fill="${i % 2 ? hairD : hair}"/>`; o += `<circle cx="${40 + rx + 4}" cy="${hy + 38}" r="2.2" fill="#f2d36b"/>`; }
+  if (L.style === 'pigtails') for (const sg of [-1, 1]) o += `<circle cx="${40 + sg * (rx + 5)}" cy="${hy + 4}" r="6.5" fill="${hair}"/><circle cx="${40 + sg * (rx + 6)}" cy="${hy + 10}" r="5" fill="${hairD}"/>`;
   // ears & head
   o += `<circle cx="${40 - rx}" cy="${hy + 2}" r="3.4" fill="${skinD}"/><circle cx="${40 + rx}" cy="${hy + 2}" r="3.4" fill="${skinD}"/>`;
   if (L.earrings) o += `<circle cx="${40 - rx}" cy="${hy + 7}" r="1.6" fill="#f2b84b"/><circle cx="${40 + rx}" cy="${hy + 7}" r="1.6" fill="#f2b84b"/>`;
@@ -1396,12 +1639,18 @@ function portrait(v, mood, size) {
   if (L.style === 'cap') o += `<path d="M${40 - rx - 1} ${hy - 4} q-2 6 1 10 M${40 + rx + 1} ${hy - 4} q2 6 -1 10" stroke="${hair}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M${40 - rx - 3} ${hy - 6} Q${40 - rx} ${hy - ry - 6} 40 ${hy - ry - 7} Q${40 + rx + 4} ${hy - ry - 5} ${40 + rx + 3} ${hy - 6} Z" fill="${L.cap}"/><path d="M${40 - rx - 4} ${hy - 6} Q40 ${hy - 2} ${40 + rx + 10} ${hy - 7} Q40 ${hy - 10} ${40 - rx - 4} ${hy - 6} Z" fill="${shade(L.cap, -18)}"/>`;
   if (L.style === 'messy') o += `<path d="M${40 - rx - 2} ${hy - 2} L${40 - rx + 2} ${hy - 12} L${40 - 8} ${hy - 9} L${40 - 6} ${hy - 19} L40 ${hy - 11} L${40 + 5} ${hy - 20} L${40 + 7} ${hy - 9} L${40 + rx - 1} ${hy - 13} L${40 + rx + 2} ${hy - 1} Q${40 + rx} ${hy - ry - 4} 40 ${hy - ry - 4} Q${40 - rx} ${hy - ry - 4} ${40 - rx - 2} ${hy - 2} Z" fill="${hair}"/>`;
   if (L.style === 'bun') o += `<path d="M${40 - rx - 1} ${hy + 2} Q${40 - rx} ${hy - ry - 3} 40 ${hy - ry - 3} Q${40 + rx} ${hy - ry - 3} ${40 + rx + 1} ${hy + 2} Q${40 + rx - 4} ${hy - 10} 40 ${hy - 11} Q${40 - rx + 4} ${hy - 10} ${40 - rx - 1} ${hy + 2} Z" fill="${hair}"/><path d="M38 ${hy - ry - 2} Q40 ${hy - 12} 47 ${hy - 11}" stroke="${shade(hair, 30)}" stroke-width="1" fill="none"/>`;
+  if (L.style === 'long' || L.style === 'braid' || L.style === 'ponytail' || L.style === 'pigtails') o += `<path d="M${40 - rx - 1} ${hy + 2} Q${40 - rx} ${hy - ry - 3} 40 ${hy - ry - 3} Q${40 + rx} ${hy - ry - 3} ${40 + rx + 1} ${hy + 2} Q${40 + rx - 4} ${hy - 10} 40 ${hy - 11} Q${40 - rx + 4} ${hy - 10} ${40 - rx - 1} ${hy + 2} Z" fill="${hair}"/>`;
+  if (L.style === 'pigtails') for (const sg of [-1, 1]) o += `<circle cx="${40 + sg * (rx - 1)}" cy="${hy - 6}" r="2.2" fill="#ef7a8c"/>`;
+  if (L.style === 'short') o += `<path d="M${40 - rx - 1} ${hy} Q${40 - rx - 1} ${hy - ry - 5} 40 ${hy - ry - 5} Q${40 + rx + 1} ${hy - ry - 5} ${40 + rx + 1} ${hy} L${40 + rx - 2} ${hy - 8} Q${40 + 4} ${hy - 15} ${40 - 6} ${hy - 10} Q${40 - rx + 3} ${hy - 9} ${40 - rx - 1} ${hy} Z" fill="${hair}"/>`;
+  if (L.style === 'wisps') o += `<ellipse cx="34" cy="${hy - ry + 5}" rx="5" ry="2" fill="#fff" opacity=".22"/><path d="M${40 - rx} ${hy + 4} Q${40 - rx - 3} ${hy - 7} ${40 - rx + 5} ${hy - 11} M${40 + rx} ${hy + 4} Q${40 + rx + 3} ${hy - 7} ${40 + rx - 5} ${hy - 11}" stroke="${hair}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  if (L.style === 'wrap') o += `<path d="M${40 - rx - 2} ${hy - 4} Q40 ${hy - 13} ${40 + rx + 2} ${hy - 4} L${40 + rx + 3} ${hy - 12} Q40 ${hy - ry - 10} ${40 - rx - 3} ${hy - 12} Z" fill="${L.wrap}"/><path d="M${40 - rx} ${hy - 9} Q40 ${hy - 17} ${40 + rx} ${hy - 9}" stroke="${shade(L.wrap, 25)}" stroke-width="1.5" fill="none"/><circle cx="46" cy="${hy - ry - 5}" r="4.2" fill="${shade(L.wrap, -12)}"/>`;
+  if (L.style === 'beanie') o += `<path d="M${40 - rx} ${hy + 4} q-2 -5 0 -9 M${40 + rx} ${hy + 4} q2 -5 0 -9" stroke="${hair}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M${40 - rx - 2} ${hy - 5} Q${40 - rx - 1} ${hy - ry - 9} 40 ${hy - ry - 9} Q${40 + rx + 1} ${hy - ry - 9} ${40 + rx + 2} ${hy - 5} Z" fill="${L.hat}"/><rect x="${40 - rx - 3}" y="${hy - 10}" width="${2 * rx + 6}" height="6" rx="2" fill="${shade(L.hat, -15)}"/>`;
   if (L.style === 'curls') for (const [x, y, r] of [[28, hy - 12, 6], [36, hy - 16, 6], [44, hy - 16, 6], [52, hy - 12, 6], [24, hy - 5, 4.5], [56, hy - 5, 4.5]]) o += `<circle cx="${x}" cy="${y}" r="${r}" fill="${x % 8 ? hair : hairD}"/>`;
   // face details
   const ey = hy + (kid ? 1 : 0), ex = kid ? 7 : 7.5;
   const browY = ey - 6;
   const brow = { neutral:[0, 0], happy:[-1.5, -1.5], love:[-2, -2], sad:[1.5, -2.5], shock:[-3, -3] }[mood] || [0, 0];
-  const bc = L.style === 'cap' || old ? hair : (L.hair === '#e2b64a' ? hairD : ink);
+  const bc = L.style === 'cap' || old ? (old ? shade(hair, -45) : hair) : (L.hair === '#e2b64a' ? hairD : ink);
   o += `<path d="M${40 - ex - 3.5} ${browY + brow[0]} L${40 - ex + 3} ${browY + brow[1]} M${40 + ex + 3.5} ${browY + brow[0]} L${40 + ex - 3} ${browY + brow[1]}" stroke="${bc}" stroke-width="${old ? 2.6 : 1.8}" stroke-linecap="round"/>`;
   if (mood === 'happy' || mood === 'love') o += `<path d="M${40 - ex - 3} ${ey + 1} Q${40 - ex} ${ey - 3} ${40 - ex + 3} ${ey + 1} M${40 + ex - 3} ${ey + 1} Q${40 + ex} ${ey - 3} ${40 + ex + 3} ${ey + 1}" stroke="${ink}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
   else if (mood === 'shock') o += `<circle cx="${40 - ex}" cy="${ey}" r="3.2" fill="#fff"/><circle cx="${40 + ex}" cy="${ey}" r="3.2" fill="#fff"/><circle cx="${40 - ex}" cy="${ey}" r="1.8" fill="${ink}"/><circle cx="${40 + ex}" cy="${ey}" r="1.8" fill="${ink}"/>`;
@@ -1411,6 +1660,7 @@ function portrait(v, mood, size) {
   o += `<ellipse cx="${40 - ex - 3}" cy="${ey + 7}" rx="3.6" ry="2.2" fill="#ff7a8a" opacity="${mood === 'love' ? .65 : (mood === 'happy' ? .4 : .22)}"/><ellipse cx="${40 + ex + 3}" cy="${ey + 7}" rx="3.6" ry="2.2" fill="#ff7a8a" opacity="${mood === 'love' ? .65 : (mood === 'happy' ? .4 : .22)}"/>`;
   if (L.freckles) for (const [dx, dy] of [[-12, 5], [-9, 7], [-11, 9], [10, 5], [12, 7], [9, 9]]) o += `<circle cx="${40 + dx}" cy="${ey + dy}" r=".7" fill="${skinD}"/>`;
   o += `<path d="M40 ${ey + 2} q-2 5 1 6" stroke="${skinD}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
+  if (L.moustache) o += `<path d="M32 ${ey + 9.5} Q36 ${ey + 6} 40 ${ey + 8} Q44 ${ey + 6} 48 ${ey + 9.5} Q44 ${ey + 11} 40 ${ey + 9.5} Q36 ${ey + 11} 32 ${ey + 9.5} Z" fill="${hair}"/>`;
   if (L.flour) o += `<circle cx="41" cy="${ey + 6}" r="1.4" fill="#fff" opacity=".85"/><circle cx="31" cy="${ey + 9}" r="1" fill="#fff" opacity=".7"/>`;
   const my = ey + 11;
   if (mood === 'happy') o += `<path d="M34 ${my} Q40 ${my + 7} 46 ${my} Z" fill="#7a2a3a"/><path d="M36 ${my + 1} Q40 ${my + 2.5} 44 ${my + 1}" stroke="#fff" stroke-width="1.2" fill="none"/>`;
@@ -1440,7 +1690,7 @@ const CHARTER_Y1 = [
   { name:'The Guild exam', desc:'Prove yourself a full witch of the Guild.', stars:[
     { label:'Pass the practical', req:{ coins:1500, items:{ frostel:6 } }, reward:'broom', rtext:'A Guild broom. You move twice as fast.' },
     { label:'Fill 12 village requests', req:{ reqs:12 }, reward:'c2000', rtext:'A letter of commendation and 2,000 coins.' },
-    { label:'Every villager at 5+ hearts', req:{ hearts:5 }, reward:'c4000', rtext:'The village names you its witch, with 4,000 coins.' } ] }
+    { label:'6 villagers at 5+ hearts', req:{ hearts:5, friends:6 }, reward:'c4000', rtext:'The village names you its witch, with 4,000 coins.' } ] }
 ];
 const LATER_NAMES = ['Guild dues', 'The summer commission', 'The great harvest', 'The winter examination'];
 function reqLabel(r) {
@@ -1450,7 +1700,7 @@ function reqLabel(r) {
   if (r.reqs) p.push(`fill ${r.reqs} village requests`);
   if (r.earn) p.push(`earn ${fmt(r.earn)} coins this season`);
   if (r.variety) p.push(`show ${r.variety} different potions`);
-  if (r.hearts) p.push(`every villager at ${r.hearts}+ hearts`);
+  if (r.hearts) p.push(`${r.friends || 6} villagers at ${r.hearts}+ hearts`);
   const s = p.join(', and ');
   return s[0].toUpperCase() + s.slice(1);
 }
@@ -1465,7 +1715,7 @@ function charterDef(y, s) {
     if (st.req.reqs) r.reqs = st.req.reqs + y - 1;
     if (st.req.earn) r.earn = sc(st.req.earn);
     if (st.req.variety) r.variety = Math.min(11, st.req.variety + y - 1);
-    if (st.req.hearts) r.hearts = Math.min(8, st.req.hearts + y - 1);
+    if (st.req.hearts) { r.hearts = Math.min(8, st.req.hearts + y - 1); r.friends = Math.min(12, (st.req.friends || 6) + y - 1); }
     const c = Math.round((i + 1) * 500 * f / 50) * 50;
     return { label:null, req:r, reward:'c' + c, rtext:`${fmt(c)} coins from the Guild.` };
   }) };
@@ -1490,7 +1740,7 @@ function starMet(c, st) {
   if (r.variety && Object.keys(g.variety).length < r.variety) return false;
   if (r.reqs && c.reqs < r.reqs) return false;
   if (r.earn && c.earn < r.earn) return false;
-  if (r.hearts && VIDS.filter(arrived).some(v => heartsOf(v) < r.hearts)) return false;
+  if (r.hearts && VIDS.filter(arrived).filter(v => heartsOf(v) >= r.hearts).length < (r.friends || 6)) return false;
   return true;
 }
 function grantReward(code) {
@@ -1670,27 +1920,27 @@ const FEST = [
     invite:`The Flower Dance is on spring 14, from dusk in the village square. Wear something nice. The cat is also invited, though historically it has not danced.\n\nOdile`,
     intro:'Lanterns strung between the apple trees, a fiddle tuning up, and the whole village in their best clothes. Pip has flowers in their hair and more in their pockets.',
     ask:'The fiddle strikes up the old reel. Who will you dance with?',
-    lines:{ mara:"I haven't danced since... well. Maybe tonight. Turnip's wearing a garland, look.", fen:"Too old for dancing. I'll hold everyone's drinks and judge harshly.", pip:'I made flower crowns for everybody! Yours has a mint leaf in it, for luck.', odile:'Thirty-one Flower Dances and I still step on toes. Tradition, really.', wren:'The bees are fussy about flowers. So am I. These are lovely.' },
-    dance:{ mara:"Mara laughs the whole way through and only steps on you twice. 'Bramble always danced with me,' she says at the end, a little breathless.", fen:"Fen grumbles, then dances surprisingly well. 'Navy,' is all he'll say about it.", odile:'Odile counts the steps under her breath, then forgets to, and dances better for it.', wren:'Wren spins you so hard your hat flies off. Three villagers catch it at once.' } },
+    lines:{ mara:"I haven't danced since... well. Maybe tonight. Turnip's wearing a garland, look.", fen:"Too old for dancing. I'll hold everyone's drinks and judge harshly.", pip:'I made flower crowns for everybody! Yours has a mint leaf in it, for luck.', odile:'Thirty-one Flower Dances and I still step on toes. Tradition, really.', wren:'The bees are fussy about flowers. So am I. These are lovely.', rowan:"I don't dance. Isolde dragged me here. ...Is that a fiddle? Fine. One dance.", silas:"I'm playing tonight, so I can't dance. Unless you ask. Then I can dance.", theo:"I worked out the best route round the dance floor. It doesn't account for other people.", isolde:"First drink's on the house, love. Second one too. It's a dance, not a business.", juno:"Dancing's just fishing with your feet. You'll see.", hettie:"I danced with your aunt at this very dance, seventy years ago. We were terrible.", aldous:"The mayor traditionally opens the dance. Traditionally, nobody joins him.", zara:"I've danced the Flower Dance in nine valleys. Yours has the best fiddle.", bertram:"Fen and I are judging the dancing. We're very harsh. We give everyone ten.", tilly:"Pip and I made a flower crown for the cat. She's wearing it. Look!" },
+    dance:{ mara:"Mara laughs the whole way through and only steps on you twice. 'Bramble always danced with me,' she says at the end, a little breathless.", fen:"Fen grumbles, then dances surprisingly well. 'Navy,' is all he'll say about it.", odile:'Odile counts the steps under her breath, then forgets to, and dances better for it.', wren:'Wren spins you so hard your hat flies off. Three villagers catch it at once.', rowan:"Rowan dances like he's afraid you'll break, then forgets to be careful and spins you right off your feet. He apologises for a full minute.", silas:"Silas hands his lute to Pip, who plays it terribly, and you dance anyway. He laughs more than you've ever heard him.", theo:"Theo counts the steps under his breath and treads on your foot exactly once. \"Statistically acceptable,\" he says, very pink.", isolde:"Isolde leads, firmly, and steers you round the whole square while catching up on gossip with every couple you pass.", juno:"Juno dances the way she dives: fast, fearless, and slightly too close to the bonfire.", hettie:"Hettie dances one slow, careful turn with you, then sits down, very pleased. \"Seventy years and I've still got it,\" she announces.", aldous:"Aldous bows very formally and dances a stately, old-fashioned step. Half the square claps. The other half joins in.", zara:"Zara teaches you a dance from somewhere far south, all clapping and stamping. By the end the whole square is doing it.", bertram:"Bertram dances like he's on a ship's deck in a gale, rolling with every step. It works surprisingly well." } },
   { name:'Lantern Night', mainTitle:'Make a wish', main:'lantern',
     board:'Paper lanterns on the river, and Fen has the ferry strung with lights.',
     invite:`Lantern Night is on summer 14, down at the ferry after sunset. Bring a wish. Fen says bring two in case the first one sinks.\n\nOdile`,
     intro:'Paper lanterns bob down the river in the warm dark. Fen has strung the ferry with lights, and everyone writes a wish before letting theirs go.',
     ask:'Write your wish on the lantern and let it go.',
-    lines:{ mara:'I wished for rain. Not too much. Just right. You know.', fen:"Every year I wish for the same thing. Not telling. Hasn't come true yet, but it might.", pip:"I wished for a dragon. Ma says that's not how wishes work. Ma doesn't know everything.", odile:"The children's lanterns always sink first. They're heavy with wishes.", wren:'My bees think the lanterns are giant flowers. Poor confused things.' },
+    lines:{ mara:'I wished for rain. Not too much. Just right. You know.', fen:"Every year I wish for the same thing. Not telling. Hasn't come true yet, but it might.", pip:"I wished for a dragon. Ma says that's not how wishes work. Ma doesn't know everything.", odile:"The children's lanterns always sink first. They're heavy with wishes.", wren:'My bees think the lanterns are giant flowers. Poor confused things.', rowan:"I made the lantern hooks on the ferry. They'll hold. Probably.", silas:"Every lantern's a little song. That one's out of tune. It's Fen's.", theo:"I wrote my wish very small, so it fits more wishes.", isolde:"I wish for a full inn and an empty sink. Every year, half of it comes true.", juno:"I wished for floor fifteen. Somebody's got to see it.", hettie:"At my age you stop wishing for things and start wishing for people. I wished for all of you.", aldous:"Officially, the mayor wishes for prosperity. Unofficially, I wished for a new hat.", zara:"In the south the lanterns are cakes, and they eat them. I prefer yours.", bertram:"Lanterns on the water. Reminds me of the old light. Almost.", tilly:"I wished for a pony. Pip wished for a dragon. We're going to share." },
     wishes:{ growth:['A good harvest', 'Every growing crop grows an extra day tonight.'], fortune:['Good fortune', 'A little luck finds its way to you.'], friends:['Good friends', 'Everyone on the riverbank warms to you.'] } },
   { name:'Harvest Fair', mainTitle:'The judging', main:'fair',
     board:'Stalls of gourds and pies fill the square, and the judges look very serious.',
     invite:`The Harvest Fair judging is on autumn 14. Enter your finest thing: a crop, a fish, a potion, anything. I am a judge this year, so I can't be seen to favour you. (Good luck.)\n\nOdile`,
     intro:'Stalls of gourds and pies and jars fill the square, and a very serious panel of judges (the mayor, Odile, and Mara\'s goat) is inspecting everything.',
     ask:'Choose your finest item to put before the judges. You get it back afterwards.',
-    lines:{ mara:"Turnip's a judge this year. She's already eaten two entries.", fen:'Smoked eel, my entry. Same as every year. Lost every year. Tradition.', pip:"I entered a cake shaped like you! It's mostly hat.", odile:"I'm judging, so officially I haven't seen you. Unofficially: good luck.", wren:"Honey cake. If I don't win, I'm blaming the goat." } },
+    lines:{ mara:"Turnip's a judge this year. She's already eaten two entries.", fen:'Smoked eel, my entry. Same as every year. Lost every year. Tradition.', pip:"I entered a cake shaped like you! It's mostly hat.", odile:"I'm judging, so officially I haven't seen you. Unofficially: good luck.", wren:"Honey cake. If I don't win, I'm blaming the goat.", rowan:"I entered a horseshoe. Polished. Nobody said it had to be a vegetable.", silas:"My first night in the valley, and there's a fair. I'm told I'm the entertainment.", theo:"I entered my best potion. Then I saw yours. I'm withdrawing on medical grounds.", isolde:"My pie's in the running again. If the goat eats it, that counts as a win.", juno:"I entered the biggest perch in the valley. It's mostly head, but still.", hettie:"Herb bundles. I've won with them every year since before the mayor was born. Twice.", aldous:"As mayor I am head judge. As head judge I am impartial. Mostly. Good luck.", zara:"I'm buying the losing entries at half price. Everyone wins, darling.", bertram:"I entered a jar of lighthouse sea salt. Fen entered smoked eel. One of us will lose. It'll be Fen.", tilly:"Pip and I entered a cake shaped like the cat. It's mostly ears." } },
   { name:'Star Feast', mainTitle:'The secret gift swap', main:'feast',
     board:'A long table under the star lanterns and a pot of spiced cider the size of your cauldron.',
     invite:`The Star Feast is on winter 14, in the square. Everyone brings a gift for the secret swap. You'll find out whose name you drew when you arrive.\n\nOdile`,
     intro:'Snow on the square, a long table under the star lanterns, and a pot of spiced cider the size of your cauldron. Tonight everyone swaps secret gifts.',
     ask:'You drew a name for the gift swap. Pick something from your basket for them.',
-    lines:{ mara:"Cider's my recipe. Well, Bramble's. I've made it every winter since she showed me.", fen:'Long night is the best night. More stars.', pip:"I know who has me for the gift swap. I'm not supposed to know. I definitely know.", odile:'The children sang for an hour. My ears are still ringing, happily.', wren:'The bees are asleep, so tonight I get to be a person. It is nice.' } }
+    lines:{ mara:"Cider's my recipe. Well, Bramble's. I've made it every winter since she showed me.", fen:'Long night is the best night. More stars.', pip:"I know who has me for the gift swap. I'm not supposed to know. I definitely know.", odile:'The children sang for an hour. My ears are still ringing, happily.', wren:'The bees are asleep, so tonight I get to be a person. It is nice.', rowan:"Made a little iron star for everyone's door. Don't make a fuss. ...You can make a small fuss.", silas:"I'm playing carols. Isolde says no sad ones. All my carols are sad ones.", theo:"I brewed the cider this year. It's very scientific. It's also very strong.", isolde:"Longest night, fullest inn. My favourite night of the year, love.", juno:"Ice fishing at dawn tomorrow. Bertram's challenged me again. He'll lose. Again.", hettie:"Seventy Star Feasts I've seen. This one's got you in it. That's new.", aldous:"A toast! To the village, to the Guild, to the witch. A short toast. Isolde's watching the clock.", zara:"I timed my route to be here tonight. Don't tell anyone I'm sentimental.", bertram:"Clear sky, every star out. Good night to be a lighthouse keeper with no lighthouse.", tilly:"I got Pip for the gift swap! I'm giving Pip a frog. A pretend one. Mostly pretend." } }
 ];
 const festKey = () => `y${S.year}s${S.season}`;
 const isFestDay = () => S.day === FEST_DAY;
@@ -1708,7 +1958,7 @@ function festRender() {
   if (f.main) h += `<div class="bubble">${f.txt}</div>`;
   else {
     h += `<p class="sub">${F.ask}</p>`;
-    if (F.main === 'dance') h += `<div class="cta-row">${who.filter(v => v !== 'pip').map(v => `<button class="btn alt" data-act="dance" data-id="${v}" type="button">${VILLAGERS[v].name}</button>`).join('')}</div>`;
+    if (F.main === 'dance') h += `<div class="cta-row">${who.filter(v => VILLAGERS[v].look.age !== 'kid').map(v => `<button class="btn alt" data-act="dance" data-id="${v}" type="button">${VILLAGERS[v].name}</button>`).join('')}</div>`;
     if (F.main === 'lantern') for (const [id, [n, d]] of Object.entries(F.wishes)) h += row('#f2b84b', n, d, `<button class="btn" data-act="wish" data-id="${id}" type="button">Wish</button>`);
     if (F.main === 'fair' || F.main === 'feast') {
       const items = Object.entries(S.inv).filter(([, n]) => n > 0).sort((a, b) => itemValue(b[0]) - itemValue(a[0])).slice(0, 10);
@@ -1724,7 +1974,7 @@ function festAct(act, id) {
   const F = FEST[S.season], f = festState(), who = VIDS.filter(arrived);
   if (act === 'mingle') { if (f.m[id]) return; f.m[id] = true; addFr(id, 30); const g = festAfter([id]); if (g) toast(g.trim(), 5200); return; }
   if (f.main) return;
-  if (act === 'dance') { addFr(id, 150); f.main = id; f.txt = F.dance[id] + (who.includes('pip') ? ' Afterwards, Pip crowns you with daisies and tells you it is very important to keep it on.' : ''); f.txt += festAfter([id]); }
+  if (act === 'dance') { if (VILLAGERS[id].look.age === 'kid' || !F.dance[id]) return; addFr(id, 150); f.main = id; f.txt = F.dance[id] + (who.includes('pip') ? ' Afterwards, Pip crowns you with daisies and tells you it is very important to keep it on.' : ''); f.txt += festAfter([id]); }
   if (act === 'wish') {
     f.main = id;
     if (id === 'growth') { S.blessing = 'growth'; f.txt = 'Your lantern drifts downriver, glowing gold. Tonight every growing crop in your garden will grow an extra day.'; }
@@ -1758,21 +2008,51 @@ const BDAY_NOTES = {
   fen:`Birthday tomorrow. Stopped counting years ago.\n\nIf a moonfish swims your way, I wouldn't say no.\n\nFen`,
   pip:`MY BIRTHDAY IS TOMORROW!!!\n\nI like jam. And starfruit. And honey. Just so you know. No reason.\n\nPip`,
   odile:`Tomorrow is my birthday. I'm told teachers shouldn't have a favourite flower, but mine is the moonpetal.\n\nOdile`,
-  wren:`It's my birthday tomorrow! The bees made me a cake. (They didn't.)\n\nIf you ever find a Starshard, I collect them.\n\nWren`
+  wren:`It's my birthday tomorrow! The bees made me a cake. (They didn't.)\n\nIf you ever find a Starshard, I collect them.\n\nWren`,
+  rowan:`Birthday tomorrow. Don't tell anyone.\n\nIf you were going to bring something, a Hearth Tonic wouldn't go amiss. But you weren't. So don't.\n\nRowan`,
+  silas:`It's my birthday tomorrow. I'm writing a song about it, which means it will be sad and late.\n\nStarlight Tonic cheers me up, if you were wondering.\n\nSilas`,
+  theo:`My birthday is tomorrow. I'm told people bring presents. My research suggests a Glow Elixir would be appropriate.\n\nTheo`,
+  isolde:`Tomorrow's my birthday, love. The inn's throwing me a party, which means I'm throwing myself a party.\n\nCome by. Amber Syrup gets you in free.\n\nIsolde`,
+  juno:`BIRTHDAY TOMORROW! Celebrating with a deep dive.\n\nMoonfish are the best present. Just saying. Loudly.\n\nJuno`,
+  hettie:`Tomorrow is my birthday, dear. I stopped counting at eighty.\n\nA Calming Draught, or a few morels, would make an old herbwife very happy.\n\nHettie`,
+  aldous:`Official notice: the mayor's birthday falls tomorrow.\n\nGifts are not expected. Amber Syrup is, however, appreciated.\n\nAldous, Mayor`,
+  zara:`My birthday is tomorrow, and by luck it's a market day, so I'll be in the valley.\n\nI've always wanted a Starshard I didn't have to sell.\n\nZara`,
+  bertram:`Birthday tomorrow. Eighty-one. Or eighty-two. Fen will know, he was there.\n\nA Moonfish, if you happen to have one.\n\nBertram`,
+  tilly:`It's my birthday tomorrow!!! I'm going to be a whole year older.\n\nI like jam and honey and glimmerberries. Pip told me to tell you.\n\nTilly`
 };
 const THANKS = {
   mara:`Turnip and I wanted to say thank you properly. A little something for your trouble.\n\nMara`,
   fen:`Didn't say it right at the time. Thank you. Enclosed: ferry money I won't need.\n\nFen`,
   pip:`THANK YOU!!! I drew you. You're the tall one. Ma put some coins in too.\n\nPip`,
   odile:`The children asked me to write and thank you. Several of them drew the cat. Enclosed, a small token from the school fund.\n\nOdile`,
-  wren:`You're a lifesaver. The bees agree. Here's a little honey money.\n\nWren`
+  wren:`You're a lifesaver. The bees agree. Here's a little honey money.\n\nWren`,
+  rowan:`Thanks. That's all. ...Fine. Thank you very much. There's coin in here. Don't argue.\n\nRowan`,
+  silas:`A thank-you, in plain words, because the poem wasn't good enough. A little coin, too.\n\nSilas`,
+  theo:`Thank you. Your delivery was 14% faster than my usual supplier. Payment enclosed, plus a bonus for science.\n\nTheo`,
+  isolde:`You're a treasure, love. A little something from the till.\n\nIsolde`,
+  juno:`You're the best! Here's some coin from the deep floors. Don't ask which floor.\n\nJuno`,
+  hettie:`Thank you, dear. Bramble would be proud. Here's a little from my jar.\n\nHettie`,
+  aldous:`On behalf of the town hall, and myself, thank you. A small civic reward is enclosed.\n\nAldous, Mayor`,
+  zara:`A pleasure doing business, darling. Your cut, as promised.\n\nZara`,
+  bertram:`Obliged to you. Coin's enclosed. Spend it on something daft.\n\nBertram`,
+  tilly:`THANK YOU!!! Pip and I put our pocket money together. It's for you.\n\nTilly`
 };
 const HEART_LETTERS = {
   mara:{ title:'A little warmth', text:`You've done so much for me and Turnip. Bramble taught me one spell, the only one I ever learned: a little warmth for tired bones. I've written it out for you. I never could make it work myself.\n\nMara`, gift:() => ({ kind:'spell', id:'hearth' }) },
   odile:{ title:'Found in a register', text:`I found this copied into the back of an old school register, in your aunt's handwriting. A rain-calling. I think she left it for whoever came next.\n\nThat's you.\n\nOdile`, gift:() => ({ kind:'spell', id:'rain' }) },
   wren:{ title:'What the bees hum', text:`The bees know a charm for making a flower give twice. Don't ask me how I know. I wrote down what they hum.\n\nWren`, gift:() => ({ kind:'spell', id:'bounty' }) },
   fen:{ title:'Words for the Wood', text:`The Wood listens to those who listen back. Your aunt taught me the words for it, the winter we kept the lighthouse. Say them at the gate.\n\nFen`, gift:() => ({ kind:'spell', id:'whisper' }) },
-  pip:{ title:'I drew you a cat', text:`I drew you a picture of the cat. Also I found some seeds in Ma's flour bin. They're yours now. Don't tell Ma.\n\nPip`, gift:() => { const ids = Object.keys(CROPS).filter(id => inSeason(id) && seedForSale(id)); return { kind:'seeds', id:ids[(Math.random() * ids.length) | 0] || 'mint', n:5 }; } }
+  pip:{ title:'I drew you a cat', text:`I drew you a picture of the cat. Also I found some seeds in Ma's flour bin. They're yours now. Don't tell Ma.\n\nPip`, gift:() => { const ids = Object.keys(CROPS).filter(id => inSeason(id) && seedForSale(id)); return { kind:'seeds', id:ids[(Math.random() * ids.length) | 0] || 'mint', n:5 }; } },
+  rowan:{ title:"Something for the garden", text:`I made a thing. It was lying around. Well. I made it so it would be lying around.\n\nIt's a sprinkler. Brass. It's for you. Don't make it a thing.\n\nRowan`, gift:() => ({ kind:'sprinkler', n:1 }) },
+  silas:{ title:"A song for you", text:`I wrote you a song. Come to the inn and I'll play it. Until then, here's what the room paid the first night I played it. Everyone asked who it was about.\n\nSilas`, gift:() => ({ kind:'coins', n:250 }) },
+  theo:{ title:"Notes from my shelf", text:`Enclosed: two potions from my shelf, and my notes on them, which you may find helpful, or at least funny.\n\nTheo`, gift:() => ({ kind:'items', items:{ dream:2 } }) },
+  isolde:{ title:"Leftovers", text:`Too much pie again. Enclosed: pie money, because pie doesn't post well.\n\nCome and eat the rest.\n\nIsolde`, gift:() => ({ kind:'coins', n:200 }) },
+  juno:{ title:"Found on floor seven", text:`Found this on floor seven and thought of you. It's shiny. You like shiny. Everybody likes shiny.\n\nJuno`, gift:() => ({ kind:'items', items:{ starshard:1 } }) },
+  hettie:{ title:"One of Bramble's letters", text:`I found one of your aunt's letters to me. Most of it is about weeds. One line is about the garden: \"If I ever have someone to leave it to, I hope they love it.\"\n\nYou do, dear. Seeds enclosed.\n\nHettie`, gift:seedGift(6) },
+  aldous:{ title:"A matter of record", text:`It is my pleasure to inform you that the town hall has formally recorded your service to the valley.\n\nAlso enclosed: coins. The town hall had a surplus. The surplus was me.\n\nAldous, Mayor`, gift:() => ({ kind:'coins', n:300 }) },
+  zara:{ title:"From the road", text:`Three valleys over and I'm still thinking about your garden. Sending seeds from somewhere you've never been.\n\nZara`, gift:seedGift(6, true) },
+  bertram:{ title:"From the lighthouse", text:`Found a jar of my old sea salt in the lighthouse cupboard and sold it to Zara for a fortune. Half's yours. Fen says it's because I like you. Fen's right, for once.\n\nBertram`, gift:() => ({ kind:'coins', n:250 }) },
+  tilly:{ title:"A drawing", text:`I drew you and the cat and Pip and me. You're the one with the hat. Pip says the cat looks like a potato. It does not.\n\nAlso I found these in the Wood!\n\nTilly`, gift:() => ({ kind:'items', items:{ hazel:3, violet:2 } }) }
 };
 function sendLetter(id, from, title, text, gift) {
   if (S.sent[id]) return null; S.sent[id] = true;
@@ -1797,6 +2077,8 @@ function applyLetterGift(g) {
   if (g.kind === 'spell') { learnSpell(g.id); return `You learned ${SPELLS[g.id].name}. Find it under the new Spells button.`; }
   if (g.kind === 'coins') { earn(g.n); return `${g.n} coins were tucked inside.`; }
   if (g.kind === 'seeds') { S.seeds[g.id] = (S.seeds[g.id] || 0) + g.n; return `${g.n} ${CROPS[g.id].name} seeds were tucked inside.`; }
+  if (g.kind === 'items') { giveItems(g.items); return Object.entries(g.items).map(([k, n]) => `${n} ${itemName(k)}`).join(' and ') + ' came with it.'; }
+  if (g.kind === 'sprinkler') { S.sprinklers += g.n; return `A brass sprinkler came with it. Place it from your seed pouch.`; }
   return null;
 }
 const seal = size => `<svg class="por" viewBox="0 0 80 80" width="${size}" height="${size}" role="img" aria-label="The Witches' Guild"><circle cx="40" cy="40" r="40" fill="#5a3a6c"/><circle cx="40" cy="40" r="27" fill="#7a2a4a"/><path d="M40 21l5 11 12 1.5-9 8 2.6 12L40 48 29.4 53.5 32 41.5l-9-8 12-1.5z" fill="#f2b84b"/></svg>`;
@@ -1804,20 +2086,39 @@ const fromPic = (from, size) => from === 'guild' ? seal(size) : portrait(from, '
 const fromName = from => from === 'guild' ? "The Witches' Guild" : VILLAGERS[from].name;
 
 /* ---------- garden visits ---------- */
-const VISIT_SPOT = { mara:[7,2], fen:[2,11], pip:[5,2], odile:[5,11], wren:[5,1] };
-const VISIT_STAND = { mara:[6,2], fen:[3,11], pip:[4,2], odile:[4,11], wren:[5,2] };
+const VISIT_SPOT = { mara:[7,2], fen:[2,11], pip:[5,2], odile:[5,11], wren:[5,1], rowan:[8, 4], silas:[7, 1], theo:[8, 8], isolde:[4, 12], juno:[3, 12], hettie:[0, 4], aldous:[0, 9], zara:[6, 12], bertram:[8, 10], tilly:[2, 2] };
+const VISIT_STAND = { mara:[6,2], fen:[3,11], pip:[4,2], odile:[4,11], wren:[5,2], rowan:[8, 5], silas:[7, 2], theo:[8, 7], isolde:[4, 11], juno:[3, 11], hettie:[0, 5], aldous:[0, 8], zara:[6, 11], bertram:[8, 9], tilly:[1, 2] };
 const VISIT_LINES = {
   mara:'Just out walking Turnip. She dragged me here. I think she likes your mint.',
   fen:"Came up from the river to stretch my legs. Your pond's got good fish in it, you know.",
   pip:"Can I watch the cauldron? I won't touch it. Much.",
   odile:'Taking the long way home from school. Your garden is the nicest part of it.',
-  wren:'Checking on your flowers for the bees. They send their regards.'
+  wren:'Checking on your flowers for the bees. They send their regards.',
+  rowan:"Passing by with a cart of iron. Your gate hinge was squeaking, so I brought oil.",
+  silas:"Looking for a rhyme for Brambleroot. Your garden seemed the place to find one.",
+  theo:"I was just... passing. Your cauldron smells interesting. What's in it? Don't tell me. Tell me.",
+  isolde:"Brought you a slice of pie, love. Well, I brought two. I ate one on the way.",
+  juno:"Shortcut to the river! Your garden's on the way. Sort of. If you go round a lot.",
+  hettie:"Came to see how Bramble's garden is getting on. Better than she ever kept it, dear. Don't tell her.",
+  aldous:"Official mayoral inspection. Everything is in order. Wonderful. Is that mint? May I?",
+  zara:"Market day rounds, darling. Anything to sell? Anything to buy? Anything to gossip about?",
+  bertram:"Walking off breakfast. Fen says I need the exercise. Fen should talk.",
+  tilly:"Is Pip here? No? Then I came to see the cat. And you! Mostly the cat."
 };
 function genVisits() {
   S.visitKey = dayKey(); S.visits = [];
   if (isFestDay()) return;
-  const pool = VIDS.filter(arrived).sort(() => Math.random() - .5), n = Math.min(pool.length, Math.random() < .5 ? 1 : 2);
-  for (let i = 0; i < n; i++) { const v = pool[i], from = 480 + Math.round(Math.random() * 420); S.visits.push({ v, c:VISIT_SPOT[v][0], r:VISIT_SPOT[v][1], from, to:from + 240 }); }
+  // 1 to 3 visitors a day from everyone in the valley today; no two share a spot or a standing tile
+  const pool = VIDS.filter(inValley), r = Math.random(), n = r < .35 ? 1 : (r < .8 ? 2 : 3);
+  for (let i = pool.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  const used = new Set(), key = p => p[0] + ',' + p[1];
+  for (const v of pool) {
+    if (S.visits.length >= n) break;
+    const sp = VISIT_SPOT[v], st = VISIT_STAND[v];
+    if (!sp || used.has(key(sp)) || used.has(key(st))) continue;
+    used.add(key(sp)); used.add(key(st));
+    const from = 480 + Math.round(Math.random() * 420); S.visits.push({ v, c:sp[0], r:sp[1], from, to:from + 240 });
+  }
 }
 const visitPresent = x => S.scene === 'farm' && S.time >= x.from && S.time < x.to;
 const visitorAt = (c, r) => (S.visits || []).find(x => x.c === c && x.r === r && visitPresent(x));
@@ -2328,8 +2629,8 @@ function renderSheet(kind, data) {
         const lack = up.items && Object.entries(up.items).some(([k, n]) => (S.inv[k] || 0) < n);
         const owned = up.repeat ? false : (up.once ? S[up.once] : S.up[id]);
         const blocked = up.needs && !S.up[up.needs];
-        const meta = owned ? 'Owned' : (blocked ? `Needs the ${UPGRADES[up.needs].name.toLowerCase()} first` : `${up.desc} ${fmt(up.cost)} coins${up.items ? ' and ' + Object.entries(up.items).map(([k, n]) => `${n} ${itemName(k)} (have ${S.inv[k] || 0})`).join(', ') : ''}.${up.repeat ? ` You have ${S.sprinklers + S.plots.filter(p => p.s).length}.` : ''}`);
-        h += row('#f2b84b', up.name, meta, owned ? '' : `<button class="btn" data-act="up" data-id="${id}" type="button" ${blocked || lack || S.coins < up.cost ? 'disabled' : ''}>Buy</button>`, owned ? 'dim' : '');
+        const meta = owned ? 'Owned' : (blocked ? `Needs the ${UPGRADES[up.needs].name.toLowerCase()} first` : `${up.desc} ${fmt(upCost(up))} coins${S.upDisc ? ' (Rowan\'s price)' : ''}${up.items ? ' and ' + Object.entries(up.items).map(([k, n]) => `${n} ${itemName(k)} (have ${S.inv[k] || 0})`).join(', ') : ''}.${up.repeat ? ` You have ${S.sprinklers + S.plots.filter(p => p.s).length}.` : ''}`);
+        h += row('#f2b84b', up.name, meta, owned ? '' : `<button class="btn" data-act="up" data-id="${id}" type="button" ${blocked || lack || S.coins < upCost(up) ? 'disabled' : ''}>Buy</button>`, owned ? 'dim' : '');
       }
     }
   } else if (kind === 'board') {
@@ -2375,7 +2676,7 @@ function renderSheet(kind, data) {
           if (r.variety) rows += bar('Different potions', Object.keys(g.variety).length, r.variety, '#c9b6ff', Object.keys(g.variety).length ? ` · ${Object.keys(g.variety).map(itemName).join(', ')}` : '');
           if (r.reqs) rows += bar('Requests filled', c.reqs, r.reqs, 'var(--moss)');
           if (r.earn) rows += bar('Coins earned', c.earn, r.earn, 'var(--gold)');
-          if (r.hearts) { const vs = VIDS.filter(arrived), ok = vs.filter(v => heartsOf(v) >= r.hearts).length; rows += bar(`Villagers at ${r.hearts}+ hearts`, ok, vs.length, 'var(--rose)'); }
+          if (r.hearts) { const vs = VIDS.filter(arrived), ok = vs.filter(v => heartsOf(v) >= r.hearts).length; rows += bar(`Villagers at ${r.hearts}+ hearts`, Math.min(ok, r.friends || 6), r.friends || 6, 'var(--rose)'); }
           const give = r.coins || r.items || r.variety;
           h += `<div class="prog">${rows}</div><div class="foot"><span class="due">Reward: ${ds.rtext}</span>${give ? `<button class="btn" data-act="star" data-cid="${c.id}" data-i="${i}" type="button" style="margin-left:auto">Contribute</button>` : ''}</div></div>`;
         });
@@ -2388,12 +2689,14 @@ function renderSheet(kind, data) {
       S.mail.forEach((m, i) => { h += `<button class="vrow ${m.read ? '' : 'unread'}" type="button" data-act="letter" data-i="${i}">${fromPic(m.from, 44)}<div class="info"><span class="name">${m.title}</span><span class="meta">${fromName(m.from)} · ${m.day}${m.read ? '' : ' · new'}</span></div><span class="chev" aria-hidden="true">›</span></button>`; });
     } else if (journalTab === 'village') {
       h += `<p class="sub">Chat with each neighbour once a day and bring them a gift they like. Friendship grows into heart scenes and favours.</p>`;
-      for (const v of VIDS) {
+      for (const [pl, plName] of PLACES) for (const v of VIDS.filter(x => VILLAGERS[x].place === pl)) {
         const V = VILLAGERS[v];
+        if (v === VIDS.find(x => VILLAGERS[x].place === pl)) h += `<h4 class="sec">${plName}</h4>`;
         if (!arrived(v)) { h += `<div class="vrow dim"><span class="por q">?</span><div class="info"><span class="name">Someone new</span><span class="meta">Arrives in ${SEASONS[V.arrive].toLowerCase()}</span></div></div>`; continue; }
         const chips = [];
         if (S.talked[v] === dayKey()) chips.push('Chatted'); if (S.gifted[v] === dayKey()) chips.push('Gift given');
         if (isBday(v)) chips.unshift('Birthday today!');
+        if (!inValley(v)) chips.unshift(`On the road. Back ${nextMarket()}`);
         h += `<button class="vrow" type="button" data-act="vopen" data-id="${v}">${portrait(v, isBday(v) ? 'happy' : 'neutral', 52)}<div class="info"><span class="name">${V.name} <span class="role">· ${V.role}</span></span>${hearts(heartsOf(v))}<span class="meta">${chips.length ? chips.join(' · ') : 'Hasn\'t seen you today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
       }
     } else {
@@ -2454,7 +2757,8 @@ function renderSheet(kind, data) {
     if (data.line) h += `<div class="bubble">${data.line}</div>`;
     if (data.gifts && data.gifts.length) h += `<ul class="lines">${data.gifts.map(t => `<li class="gift">${t}</li>`).join('')}</ul>`;
     const talked = S.talked[v] === dayKey(), gifted = S.gifted[v] === dayKey(), anyItem = Object.values(S.inv).some(n => n > 0);
-    h += `<div class="cta-row"><button class="btn" data-act="talk" data-id="${v}" type="button" ${talked ? 'disabled' : ''}>${talked ? 'Chatted today' : 'Chat'}</button><button class="btn alt" data-act="vgift" data-id="${v}" type="button" ${gifted || !anyItem ? 'disabled' : ''}>${gifted ? 'Gift given today' : (anyItem ? 'Give a gift' : 'Nothing to give')}</button></div>`;
+    if (!inValley(v)) h += `<p class="sub">${V.name}'s cart is out on the road. It comes back ${nextMarket()}. Her cart comes every seventh day: days 5, 12, 19 and 26.</p>`;
+    else h += `<div class="cta-row"><button class="btn" data-act="talk" data-id="${v}" type="button" ${talked ? 'disabled' : ''}>${talked ? 'Chatted today' : 'Chat'}</button><button class="btn alt" data-act="vgift" data-id="${v}" type="button" ${gifted || !anyItem ? 'disabled' : ''}>${gifted ? 'Gift given today' : (anyItem ? 'Give a gift' : 'Nothing to give')}</button></div>`;
     const known = S.known[v] || {};
     const byR = r => Object.keys(known).filter(k => known[k] === r).map(itemName);
     const lines = ['love', 'like', 'hate'].filter(r => byR(r).length).map(r => `<li class="${r === 'hate' ? 'bad' : (r === 'love' ? 'gift' : '')}">${REACT_LABEL[r]}: ${byR(r).join(', ')}</li>`);
@@ -2540,14 +2844,14 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'jtab') { journalTab = id; renderSheet('journal'); }
   else if (act === 'vopen') { sheetOpen = 'villager'; renderSheet('villager', { v:id }); return; }
   else if (act === 'jback') { journalTab = 'village'; sheetOpen = 'journal'; renderSheet('journal'); return; }
-  else if (act === 'talk') { talkTo(id); return; }
-  else if (act === 'vgift') { sheetOpen = 'vgift'; renderSheet('vgift', { v:id }); return; }
+  else if (act === 'talk') { if (inValley(id)) talkTo(id); return; }
+  else if (act === 'vgift') { if (!inValley(id)) return; sheetOpen = 'vgift'; renderSheet('vgift', { v:id }); return; }
   else if (act === 'givegift') { giveGift(id, b.dataset.item); return; }
   else if (act === 'buy') { const n = +b.dataset.n, cost = seedPrice(id) * n; if (S.coins >= cost) { S.coins -= cost; S.seeds[id] = (S.seeds[id] || 0) + n; if (S.sel !== 'sprinkler' && !S.sel.startsWith('spell:') && !(S.seeds[S.sel] > 0)) S.sel = id; blip(700, 500, .05); } renderSheet('market'); }
   else if (act === 'sell') { const n = Math.min(+b.dataset.n, S.inv[id] || 0); S.inv[id] -= n; SND.coin(); earn(itemValue(id) * n); renderSheet('market'); }
   else if (act === 'up') {
-    const up = UPGRADES[id]; if (S.coins >= up.cost && !(up.items && Object.entries(up.items).some(([k, n]) => (S.inv[k] || 0) < n))) {
-      S.coins -= up.cost; SND.coin(); if (up.items) for (const [k, n] of Object.entries(up.items)) S.inv[k] -= n;
+    const up = UPGRADES[id]; if (S.coins >= upCost(up) && !(up.items && Object.entries(up.items).some(([k, n]) => (S.inv[k] || 0) < n))) {
+      S.coins -= upCost(up); SND.coin(); if (up.items) for (const [k, n] of Object.entries(up.items)) S.inv[k] -= n;
       if (id === 'sprinkler') { S.sprinklers++; toast('Sprinkler added to your seed pouch. Select it there to place it.'); }
       else if (id === 'rod') S.rod = true;
       else { S.up[id] = true; if (id === 'can') { S.canMax = 40; S.can = 40; } if (id === 'can2') { S.canMax = 70; S.can = 70; } if (id === 'can3') { S.canMax = 120; S.can = 120; } if (id === 'pot2') S.slots = 2; if (id === 'pot3') S.slots = 3; if (id === 'pot4') S.slots = 4; }

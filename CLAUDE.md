@@ -42,16 +42,25 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - Spring debt is 3,000.
   - ★★★ earning targets: spring 16k, summer 35k, autumn 33k.
   - `CHARTER_Y1`, `charterDef`, `checkStars`, `seasonReview`, `headStart`
-- **Villagers:** `VILLAGERS`
-  - Ids: mara, fen, pip, odile, wren.
-  - Fields: look, loves/likes/hates, bday, story per season, odd jobs, talk tiers, heart scenes at 2/4/6/8, heart gifts at 3/6, `arrive` season.
+- **Villagers:** `VILLAGERS` (15 since Part 1 of the villager plan)
+  - Ids: mara, fen, pip, odile, wren, rowan, silas, theo, isolde, juno, hettie, aldous, zara, bertram, tilly. Pip and Tilly are kids: friend only, never dance partners.
+  - Fields: look, loves/likes/hates, bday (no two share one, none on day 14), `place`, story per season, odd jobs, talk tiers, heart scenes at 2/4/6/8, heart gifts at 3/6, `arrive` season. Story requests only post in year 1.
+  - `place` groups the village list under `PLACES` (square, inn, row, mill, river, lanes). Part 3's schedules can reuse these.
+  - `arrive`: Silas autumn, Zara and Wren summer, everyone else spring.
+  - Zara has `market:true`. Her cart comes on days 5, 12, 19 and 26 (`marketDay()`), plus festivals. `inValley(v)` is true only when someone is around; it gates garden visits, chat and gifts. `nextMarket()` names her next day.
+  - Heart gift kinds: sprinkler, rod, lantern, energy, almanac, bell, hive (the original five), plus `discount` (Rowan: `S.upDisc`, 10% then 25% off upgrades through `upCost(up)`), `coins`, `items`, `seeds` (`seedGift(n, rare)`). The new ten give one-off items or coins, not permanent perks, to protect the economy.
+  - Heart letters at 4 hearts (`HEART_LETTERS`) can also give `items` and `sprinkler`.
+  - Aldous has a special talk line about this season's charter stars (in `talkTo`).
+  - Portrait styles: scarf, cap, messy, bun, curls, plus short, long, braid, ponytail, pigtails, wisps, wrap, beanie. Options: beard, moustache, glasses, earrings, freckles, flour, apron (true or a colour).
+  - Festivals: every villager needs a line in all four `FEST[i].lines`, and every adult needs a `dance` line.
   - Functions: `heartsOf` (cap 8), `addFr` (cap 850), `talkTo`, `giveGift`, `portrait(v, mood, size)` (an SVG generator).
+  - The winter "befriend" star is **6 villagers at 5+ hearts** (`req.friends`, +1 per year), not "every villager".
 - **Life:**
   - `LOOKS` and `witchSVG` (the wardrobe)
   - `SPELLS` and `ONCE` (once-a-day spells), `castToday`/`markCast`. `manaMaxFor = 20 + 5 × spells`.
   - `FEST` and `FEST_DAY = 14` (festivals)
   - Letters: `LETTERS`, `BDAY_NOTES`, `THANKS`, `HEART_LETTERS`, `mailMorning`
-  - Garden visits: `VISIT_SPOT`, `genVisits`
+  - Garden visits: `VISIT_SPOT`, `VISIT_STAND`, `VISIT_LINES`, `genVisits` (1 to 3 visitors a day, a proper shuffle, and no two sharing a spot or standing tile)
 - **Old Wood:** `genWood`, `collectForage` (3 energy).
   - The grove opens after 12 finds.
   - The shrine refills mana once a day.
@@ -109,6 +118,11 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - Playwright Chromium is preinstalled (don't reinstall it). Use `devices['iPhone 13']` and `devices['Pixel 7']`.
   - Build a test page with fake keys: `python3 build_site.py brambleroot.html local.html testkey test-proj`.
   - Mock Firestore with `ctx.route('**/firestore.googleapis.com/**', …)`; savesuite.js has a stateful mock.
+  - Village checks:
+    - `villagercheck.js` (headless): every villager has all fields, valid items, in-season story items, unique birthdays, portraits in every mood, and festival, letter and visit lines.
+    - `yearsim.js` (headless): 2 years of sleeping, visits, Zara's days, festival renders and every villager page.
+    - `villagetest.js` (18 phone checks, grouped list, Zara's days).
+    - `gallery.js` writes gallery.html with every portrait in every mood; screenshot it to eyeball new faces.
   - Tests: `savesuite.js` (32 save checks), `clocktest.js` (12 clock checks on iPhone 13 and Pixel 7), `filetest.js`, `pastetest.js`, `fishtest.js`/`spelltest.js` (these need an exposed `__pond`/`__spells` hook; see how fishtest.html was made), `shot-save.json` (a realistic mid-game save, summer day 14).
   - A failed proxy connection to fonts.googleapis.com during tests is harmless.
 - The sandbox can't reach `*.github.io`. Check a deploy with `gh run list -R mfleshner/brambleroot -L 1`, or with a real browser if one is linked.
@@ -131,3 +145,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
    - fishing Cast button
    - restore-box forgiveness
 7. Clock: pauses while she stands still, plus a Brisk/Gentle/Slow pace setting (Nov 8, 2026).
+8. Villager plan, Part 1: ten new villagers, a village list grouped by place, 1 to 3 garden visits a day, Zara's market days (Nov 8, 2026).

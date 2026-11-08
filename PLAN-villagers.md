@@ -40,7 +40,13 @@ Every villager gets:
 - heart gifts (3 and 6)
 - a garden visit spot
 
-## Part 1: 10 new villagers (the base)
+## Part 1: 10 new villagers (the base) — DONE Nov 8, 2026
+Shipped as planned, with these choices:
+- The winter star "every villager at 5+ hearts" became "6 villagers at 5+ hearts" (+1 per year).
+- The new ten's heart favours are one-off gifts (items, coins, seeds), except Rowan's upgrade discount. All 15 favours together are worth about 7,000 coins once.
+- "Fridays" are Zara's market days: days 5, 12, 19 and 26, plus festivals.
+- Still open: whether the four elders are romanceable (decide before Part 2).
+
 - Add the 10 entries to `VILLAGERS`, in the same shape as mara and the others.
 - New items they reference are allowed, but keep them few. Prefer existing crops, forage, fish, potions and Hollow drops.
 - `arrive`: most from spring year 1. Zara from summer, and only on Fridays (day % 7 === 5). Silas from autumn, arriving for the Harvest Fair.
