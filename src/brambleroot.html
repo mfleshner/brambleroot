@@ -74,6 +74,17 @@ h4.sec{margin:8px 0 0;font-family:var(--display);font-weight:400;font-size:20px}
 #toast{position:fixed;left:50%;transform:translateX(-50%);z-index:13;max-width:min(88vw,440px);background:rgba(28,19,36,.94);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.35;text-align:center;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 
 #scrim{position:fixed;inset:0;z-index:11;background:rgba(10,6,14,.45)}
+#wed{position:fixed;inset:0;z-index:14;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:radial-gradient(circle at 50% 18%,#5a3a5c 0%,#2a1d36 55%,#140d1a 100%)}
+#wed[hidden]{display:none}
+.wed{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:calc(28px + env(safe-area-inset-top)) 18px calc(36px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
+.wed h2{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(34px,10vw,52px);line-height:1;text-align:center;color:var(--text);text-shadow:0 0 24px rgba(242,184,75,.3)}
+.wed .kicker{text-align:center;color:#f2c6d0}
+.couple{display:flex;align-items:flex-end;justify-content:center;gap:6px}
+.couple .hrt{font-size:30px;color:var(--rose);align-self:center;padding:0 4px}
+.wed .lines li{background:rgba(255,255,255,.05);border-radius:10px;padding:10px 12px}
+.petals{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.petals i{position:absolute;top:-24px;width:11px;height:9px;border-radius:70% 0 70% 0;opacity:.9;animation:petal linear infinite}
+@keyframes petal{to{transform:translate(var(--dx),112vh) rotate(600deg)}}
 #sheet{position:fixed;left:0;right:0;bottom:0;z-index:12;display:flex;justify-content:center}
 .sheet{width:100%;max-width:560px;max-height:min(80vh, 700px);display:flex;flex-direction:column;background:var(--ink);border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.45)}
 .sh-head{display:flex;align-items:center;gap:12px;padding:16px 16px 10px}
@@ -108,7 +119,9 @@ h4.sec{margin:8px 0 0;font-family:var(--display);font-weight:400;font-size:20px}
 .due{font-size:12px;color:var(--muted)}
 .due.hot{color:var(--rose)}
 .rw{margin-left:auto;font-size:13px;color:var(--gold);font-weight:700;white-space:nowrap}
-.hearts{display:flex;gap:3px}
+.hearts{display:flex;gap:3px;align-items:center}
+.hearts .lock{flex:none;margin-left:1px}
+.sub.rom{color:#f2c6d0}
 .hearts i{width:9px;height:9px;border-radius:2px;background:#3a2b46;transform:rotate(45deg)}
 .hearts i.on{background:var(--rose)}
 .prog{display:flex;flex-direction:column;gap:6px}
@@ -204,6 +217,8 @@ h4.sec{margin:8px 0 0;font-family:var(--display);font-weight:400;font-size:20px}
 <div id="scrim" hidden></div>
 <div id="sheet" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle"><div class="sh-head"><h3 id="shTitle"></h3><button class="x" id="shClose" type="button">Close</button></div><div class="sh-body" id="shBody"></div></div></div>
 
+<div id="wed" hidden></div>
+
 <section id="title">
   <div class="tw">
     <p class="kicker">A witch's year, twenty-eight days a season</p>
@@ -290,6 +305,9 @@ Object.assign(POTIONS, {
   truffleel:  { name:'Truffle Elixir',    need:{ truffle:1, holly:1 },  sell:180, col:'#e8e0d0', wild:true }
 });
 const ITEMS = Object.assign({}, CROPS, POTIONS, FISH, MISC, FORAGE);
+// Romance items. They're for one purpose each, so they never show up as ordinary gifts, fair entries or swap gifts.
+Object.assign(ITEMS, { bouquet:{ name:'Moonpetal Bouquet', sell:100, col:'#cdbbff' }, ring:{ name:"Witch's Ring", sell:300, col:'#f2b84b' } });
+const NOGIFT = { bouquet:1, ring:1 }, BOUQUET_COST = 200, RING_NEED = { crystal:1, starshard:1 };
 const itemName = id => ITEMS[id] ? ITEMS[id].name : id;
 const itemValue = id => ITEMS[id] ? ITEMS[id].sell : 0;
 const itemCol = id => ITEMS[id] ? ITEMS[id].col : '#888';
@@ -334,7 +352,7 @@ const VILLAGERS = {
              8:"Mara presses a key on a red string into your hand. \"Spare to the mill. Everyone I trust has one. That's you and Turnip, and Turnip ate hers.\"" },
     gifts:{ 3:{ kind:'sprinkler', n:2, text:"Mara's lads built you two brass sprinklers. Place them from your seed pouch. Each waters the four beds around it every morning." },
             6:{ kind:'sprinkler', n:4, text:"Mara sent four more sprinklers, with a note: 'Turnip says thank you.'" } } },
-  fen: { name:'Old Fen', role:'Ferryman', col:'#7fb2d6', arrive:0, bday:[2, 4], place:'river',
+  fen: { name:'Old Fen', role:'Ferryman', col:'#7fb2d6', arrive:0, bday:[2, 4], place:'river', romance:false,
     look:{ skin:'#e8b896', hair:'#e9e4dc', style:'cap', cap:'#2f4a66', shirt:'#3c5a6e', beard:true, age:'old' },
     loves:['elixir', 'moonfish', 'amber'], likes:['ember', 'hearth', 'trout', 'perch', 'glow', 'starshard'], hates:['jam', 'melon', 'star'],
     story:[
@@ -357,7 +375,7 @@ const VILLAGERS = {
              8:"Fen gives you his ferryman's coin, worn smooth. \"Means you cross any water in this valley, any hour, free. Only ever gave one other. You can guess who.\"" },
     gifts:{ 3:{ kind:'rod', text:"Old Fen gave you his spare fishing rod. Tap the pond to fish." },
             6:{ kind:'lantern', text:"Fen gave you his old ferry lantern. You can now work until 2 am before dozing off." } } },
-  pip: { name:'Pip', role:"Baker's kid", col:'#f29a9a', arrive:0, bday:[0, 11], place:'square',
+  pip: { name:'Pip', role:"Baker's kid", col:'#f29a9a', arrive:0, bday:[0, 11], place:'square', romance:false,
     look:{ skin:'#f3c9a0', hair:'#e07a2a', style:'messy', shirt:'#e86f7a', freckles:true, flour:true, age:'kid' },
     loves:['jam', 'star', 'honey'], likes:['thorn', 'melon', 'gourd', 'sunfish', 'starshard'], hates:['wolf', 'ward', 'frostel'],
     story:[
@@ -531,7 +549,7 @@ const VILLAGERS = {
              8:"Juno gives you her lucky lure, a little silver fish worn smooth. \"Mum's. Never lost a fish on it. You keep it. You're my diving partner now.\"" },
     gifts:{ 3:{ kind:'items', items:{ moonfish:2 }, text:"Juno brought you two Moonfish, \"for practice\"." },
             6:{ kind:'items', items:{ starshard:2 }, text:"Juno found two Starshards on a deep dive and saved them for you." } } },
-  hettie: { name:'Granny Hettie', role:'Herbwife', col:'#8ab86a', arrive:0, bday:[0, 20], place:'lanes',
+  hettie: { name:'Granny Hettie', role:'Herbwife', col:'#8ab86a', arrive:0, bday:[0, 20], place:'lanes', romance:false,
     look:{ skin:'#e0b090', hair:'#d8d4cc', style:'scarf', scarf:'#5a8a4a', shirt:'#6a5a7a', age:'old' },
     loves:['calming', 'morel', 'chanter'], likes:['violet', 'fern', 'hazel', 'holly', 'mint'], hates:['melon', 'star', 'cordial'],
     story:[
@@ -553,7 +571,7 @@ const VILLAGERS = {
              8:"Hettie gives you a key wrapped in a dried leaf. \"The trunk under my bed. Bramble's letters to me, seventy years of them.\" She smiles. \"Read them slowly. She was a terrible speller.\"" },
     gifts:{ 3:{ kind:'items', items:{ calming:2, wyrd:1 }, text:"Hettie pressed a Wyrdstone and two Calming Draughts into your hands. \"From Bramble's cupboard. She'd want them used.\"" },
             6:{ kind:'seeds', n:8, text:"Hettie gave you a twist of seeds from her own garden." } } },
-  aldous: { name:'Mayor Aldous', role:'Mayor', col:'#c8a24a', arrive:0, bday:[0, 26], place:'square',
+  aldous: { name:'Mayor Aldous', role:'Mayor', col:'#c8a24a', arrive:0, bday:[0, 26], place:'square', romance:false,
     look:{ skin:'#d8a07a', hair:'#dcd8d0', style:'wisps', shirt:'#6a2a3a', glasses:true, moustache:true, age:'old' },
     loves:['amber', 'elixir', 'gourd'], likes:['star', 'melon', 'honey', 'perch', 'cordial'], hates:['wolf', 'mudcat', 'glimmer'],
     story:[
@@ -595,7 +613,7 @@ const VILLAGERS = {
              8:"Zara gives you one of the tiny drawers from her cart, label and all. \"Means you own part of the business now. It says Wonders. I don't know what goes in it. You'll think of something.\"" },
     gifts:{ 3:{ kind:'seeds', n:5, rare:true, text:"Zara slipped you seeds from her rare stock, free. \"Don't tell my other customers.\"" },
             6:{ kind:'items', items:{ starshard:2 }, text:"Zara gave you two Starshards from the Wonders drawer." } } },
-  bertram: { name:'Bertram', role:'Lighthouse keeper', col:'#5a7ab8', arrive:0, bday:[3, 21], place:'river',
+  bertram: { name:'Bertram', role:'Lighthouse keeper', col:'#5a7ab8', arrive:0, bday:[3, 21], place:'river', romance:false,
     look:{ skin:'#c8906a', hair:'#eceae6', style:'beanie', hat:'#2e4a6a', shirt:'#d9b43a', beard:true, age:'old' },
     loves:['moonfish', 'frostel', 'amber'], likes:['mudcat', 'iceperch', 'hearth', 'holly', 'perch'], hates:['honey', 'jam', 'glimmer'],
     story:[
@@ -617,7 +635,7 @@ const VILLAGERS = {
              8:"Bertram gives you his old brass spyglass. \"For watching for ships,\" he says. \"Or the stars. Or for spotting Fen before he spots you. All good uses.\"" },
     gifts:{ 3:{ kind:'items', items:{ moonfish:1, hearth:1 }, text:"Bertram gave you a smoked Moonfish and a Hearth Tonic \"for the fog\"." },
             6:{ kind:'items', items:{ starlight:2, amber:1 }, text:"Bertram cleared out the lighthouse cupboard: two Starlight Tonics and a jar of Amber Syrup, all for you." } } },
-  tilly: { name:'Tilly', role:"Pip's best friend", col:'#7ac0e8', arrive:0, bday:[1, 3], place:'square',
+  tilly: { name:'Tilly', role:"Pip's best friend", col:'#7ac0e8', arrive:0, bday:[1, 3], place:'square', romance:false,
     look:{ skin:'#c48a5e', hair:'#3a2a1e', style:'pigtails', shirt:'#6aa8d8', freckles:true, age:'kid' },
     loves:['jam', 'honey', 'glimmer'], likes:['melon', 'star', 'thorn', 'sunberry', 'minnow'], hates:['wolf', 'ward', 'mudcat'],
     story:[
@@ -643,6 +661,126 @@ const VILLAGERS = {
 
 const PLACES = [['square', 'The square'], ['inn', 'The Kettle & Crow'], ['row', 'Smithy and apothecary'], ['mill', 'The mill and the school'], ['river', 'Down by the river'], ['lanes', 'Up the lanes']];
 for (const V of Object.values(VILLAGERS)) for (const st of V.story) for (const x of st) x.min = x.min === 1 ? 1 : x.min * 2 - 1;
+
+/* ---------- romance (villager plan, part 2) ---------- */
+// Nine adults can be romanced. Everyone else stays a friend (romance:false) and tops out at 8 hearts.
+// yes: takes the bouquet. s9/s10: dating scenes. bye: the kind goodbye. propose/vow: the ring and the wedding.
+// date/wed: talk lines while dating / married. morn: morning greetings. bday: birthday breakfast. help: see SPOUSE_HELP.
+const ROMANCE = {
+  mara: { yes:"Mara turns the bouquet over in her floury hands for a long moment. \"I didn't think I'd do this again,\" she says. Then she laughs, and tucks a moonpetal behind your ear. \"Turnip will be unbearable about it.\"",
+    s9:"Mara takes you up to the top of the mill at sunset, where the sails creak and the whole valley glows. \"He used to bring me up here,\" she says. \"I haven't been since. I wanted the first time back to be with you.\"",
+    s10:"Mara has baked a loaf with a heart cut into the crust. It is lopsided. \"Turnip helped,\" she says, and then, all in a rush: \"I'm happy. I'd forgotten what that felt like. Thank you for reminding me.\"",
+    bye:"Mara squeezes your hand. \"I understand. Truly. You'll always have the spare key, and a seat by the mill stove.\"",
+    propose:"Mara looks at the ring for a long time, then at you. \"Yes,\" she says. \"Yes. Turnip, did you hear? Stop eating the flowers, we're getting married.\"",
+    vow:"\"I thought the mill was too big for one. It turns out this valley is just the right size for two. I'm yours, and so is the goat.\"",
+    date:["Turnip's taken to following you home. I think she's chosen you. So have I.", "I saved you the first loaf from the morning batch. Don't tell the lads."],
+    wed:["Morning, love. The mill can wait an hour. Sit with me.", "Turnip ate one of your socks. I've decided it means she loves you.", "Some nights I can't believe how full the house feels now."],
+    morn:["Mara is already up, flour on her sleeves, with warm bread on the table.", "Mara hums an old millers' song while the kettle boils, and Turnip bleats along from the yard."],
+    bday:"It's Mara's birthday. You make breakfast for once, and she pretends not to notice you burned the toast." },
+  odile: { yes:"Odile takes the bouquet and goes very quiet. Then she presses one moonpetal flat between the pages of her notebook. \"For the newest page,\" she says. \"I hoped. I didn't quite dare to.\"",
+    s9:"Odile reads to you by the schoolhouse stove after the children have gone home. Halfway through she stops and just looks at you. \"Sorry,\" she says. \"I lost my place. I don't mind at all.\"",
+    s10:"Odile shows you the notebook again. Every page since you met has something from your garden pressed into it. \"Thirty-one years of flowers,\" she says, \"and this year is my favourite.\"",
+    bye:"Odile nods slowly and straightens her glasses. \"Thank you for telling me kindly. That's rarer than you'd think. My cup's still kept aside for you.\"",
+    propose:"Odile has to sit down. \"I asked the Guild for something once and they said no,\" she says, laughing and crying at once. \"This is a much better yes.\"",
+    vow:"\"I've spent my life teaching children what things are called. I never had a word for this. I'll keep learning it, with you, every day.\"",
+    date:["The children have noticed. Pip asked if witches can marry teachers. I said 'see me after class'.", "I've kept a cup aside for you. I've also kept the whole afternoon."],
+    wed:["Good morning. I marked the spelling tests early, so the evening is ours.", "The children drew our wedding. In every picture the cat is the bride.", "You make this little valley feel like the whole world."],
+    morn:["Odile is reading at the kitchen table, tea going cold, and smiles when you come down.", "Odile has left a note on the kettle in her neat teacher's hand: \"Good morning, my favourite pupil.\""],
+    bday:"It's Odile's birthday. You bring breakfast in bed with a moonpetal on the tray, and she presses it in the notebook before eating a bite." },
+  wren: { yes:"Wren goes pink right up to her curls. \"The bees said you would,\" she blurts. \"I mean. Bees don't talk. They hummed it. Yes. Yes please.\"",
+    s9:"Wren takes you to the hives at dusk and lays your hand flat on the warm wood. The whole hive hums one low note. \"That's them saying you're one of us,\" she whispers. \"I asked.\"",
+    s10:"Wren gives you a jar of honey with a label in her messy writing: \"The summer I fell for a witch.\" \"It's the best batch I've ever made,\" she says. \"Obviously.\"",
+    bye:"Wren nods hard, curls bouncing. \"That's all right. Honestly. The bees still like you. I still like you. Just... the other way.\"",
+    propose:"Wren drops her smoker. The bees pour out in a golden cloud and settle all over you both. \"That's a yes from them,\" she says, laughing. \"And from me. Mostly me.\"",
+    vow:"\"Bees choose one home and they stay. They work and they sing and they keep it warm all winter. That's what I want to do. With you.\"",
+    date:["I named the new queen after you. It's a compliment. She's very important.", "Hold still. You've got a bee in your hair. No, it's fine. She likes you."],
+    wed:["Morning! The bees hum louder since we married. I think they're showing off.", "I put honey in your tea. And on your toast. And now there's some on your nose.", "Home smells like wax and herbs. Best smell in the world."],
+    morn:["Wren is already out at the hives, waving at the window with a smoker in her hand.", "Wren brings in a dripping honeycomb and breaks off a piece for you before you're properly awake."],
+    bday:"It's Wren's birthday. The bees get extra sugar water, and Wren gets pancakes. She insists that's fair." },
+  rowan: { yes:"Rowan stares at the bouquet as if it might go off. \"For me?\" He takes it very carefully, like hot iron. \"I'll need a vase. I'll make one. Tonight.\" He's red to the ears, and smiling.",
+    s9:"Rowan lets you work the bellows while he shapes something small at the anvil. He won't show you until it's done: a little iron charm with your initials and his, twisted together. \"For luck,\" he mutters.",
+    s10:"Rowan walks you home after dark and stops at your gate. \"I'm not good with words,\" he says. \"So I fixed your hinge, and your fence, and your cauldron hook. That's what they mean. All of it means this.\"",
+    bye:"Rowan nods once and looks at the ground. \"Right. That's fair.\" Then he looks up. \"Gate squeaks, I'll still fix it. That doesn't change.\"",
+    propose:"Rowan turns the ring in his big careful fingers. \"Good work. Fine work,\" he says, hoarsely. \"Yes. Obviously yes. I've had a ring half-made for you for a month. I was waiting for the nerve.\"",
+    vow:"\"I don't say much. So I'll say it once, properly. Whatever breaks, I'll mend it. Whatever's heavy, I'll carry it. I'm yours.\"",
+    date:["Made you a new trowel. Don't make a fuss. ...You can make a small fuss.", "Isolde says I smile now. I don't. ...Maybe at you."],
+    wed:["Morning. Kettle's on. Fixed it while I was at it.", "Don't lift that. I've got it. No, I know you can. Let me anyway.", "Never thought I'd have a home that wasn't a forge. This is better."],
+    morn:["Rowan is up before you, banking the stove and quietly mending something at the table.", "Rowan hands you a mug without a word, then kisses the top of your head on his way out to the forge."],
+    bday:"It's Rowan's birthday. You make an enormous breakfast. He says \"you shouldn't have\" four times and eats every crumb." },
+  silas: { yes:"Silas takes the bouquet and says nothing for so long that you start to worry. Then he picks up his lute and plays a single bright chord. \"Sorry,\" he says. \"There wasn't a word for it. That was the word.\"",
+    s9:"Silas is playing at the inn when he stops halfway through his set and starts a song you've never heard. Every verse is about a garden. Isolde has to dab her eyes with a bar towel.",
+    s10:"Silas walks you home under the stars. \"All my songs are sad,\" he says. \"I've tried to write a happy one for years.\" He hums it for you. It's very short, and very happy, and it's about you.",
+    bye:"Silas smiles, a little sad, which is his usual kind of smile. \"Some songs are only one verse long,\" he says gently. \"They're still good songs. Thank you.\"",
+    propose:"Silas laughs out loud, harder than you've ever heard him laugh. \"Yes. Of course yes. I'll have to write a wedding song,\" he says. \"It might be the first song I ever finish on time.\"",
+    vow:"\"I came to this valley to be sad somewhere quiet. Then you happened. I'll spend the rest of my life writing the happy songs I owe you.\"",
+    date:["I wrote three songs this week. They're all about you. Isolde says it's getting out of hand.", "Stay for one more song? It's short. Well. It's long. Stay anyway."],
+    wed:["Morning. I wrote you a song while you slept. It's mostly snoring noises. Affectionate ones.", "The inn wants me every night. I told them Tuesdays. The rest are yours.", "Funny. I can't remember what I used to write about."],
+    morn:["Silas is sitting on the windowsill with his lute, playing something soft to wake you gently.", "Silas has written \"good morning\" in pencil on the bedside table, with a little row of musical notes."],
+    bday:"It's Silas's birthday. You hum him a song over breakfast, badly. He says it's the best one anyone has ever written for him." },
+  theo: { yes:"Theo takes the bouquet and immediately starts identifying it. \"Moonpetal, grown in your soil, picked at, um, peak bloom.\" He stops. \"Sorry. Yes. I mean yes. I rehearsed this and I've forgotten all of it.\"",
+    s9:"Theo shows you a page of his notebook headed Hypothesis. Underneath, crossed out several times, is \"I like the witch.\" Then \"I like the witch a lot.\" At the bottom, underlined twice: \"Confirmed.\"",
+    s10:"Theo brews something with you late into the night. It goes wrong, beautifully: the whole shop fills with floating violet bubbles. He doesn't try to fix it. He just holds your hand and watches them drift.",
+    bye:"Theo adjusts his glasses several times. \"Understood. Thank you for being clear. That's very kind, actually. Still friends? Good. I'd be terrible at not being friends.\"",
+    propose:"Theo stares at the ring. \"Crystal and starshard,\" he whispers. \"Brewed, not forged. That's extraordinary.\" Then: \"Oh! Yes! Sorry. Obviously yes. That was the important part.\"",
+    vow:"\"I've tested a lot of things. I've never been as sure of a result as I am of you. I'd like to spend my life repeating the experiment.\"",
+    date:["I brought you a sample. It's a tea. It's untested. Well, I tested it a bit.", "Your potions are the second-best thing about you. I've decided not to say the first. Out loud. Today."],
+    wed:["Good morning. I reorganised the spice rack. Alphabetically, then by colour, then back again.", "I used to read about your aunt. Now I live in her kitchen, with you. It's a lot. It's good.", "I left a note in your basket. It's a recipe. The recipe is for one witch, very loved."],
+    morn:["Theo is at the kitchen table taking notes on the weather, with a steaming mug for each of you.", "Theo has labelled the jam jars while you slept. One label just says \"Hello, love.\""],
+    bday:"It's Theo's birthday. You make breakfast from a precise recipe card. He's so pleased about the recipe card that he forgets to eat." },
+  isolde: { yes:"Isolde laughs, a big warm laugh that turns heads across the inn. \"Moonpetals! Oh, love. I've been waiting all season for you to work up the nerve.\" She tucks one into her apron string. \"Drinks are on the house. Don't argue.\"",
+    s9:"Isolde closes the inn early, which she has never once done, and cooks you supper in the empty kitchen. \"Everyone talks to me,\" she says, \"but nobody asks me anything. Ask me something.\" You do, and she talks until the candles burn down.",
+    s10:"Isolde carves a little heart into the beam above the corner table, right between your initials and her own. \"There,\" she says. \"Now the whole valley will know. I'll make sure of it. I know all the gossips.\"",
+    bye:"Isolde pats your hand. \"Oh, love. It's all right. Hearts wander. You'll still eat at my table, and I'll still tell you everybody's business.\"",
+    propose:"Isolde claps both hands over her mouth, then shouts \"YES\" loudly enough for the whole inn to cheer. Somebody orders a round for the house. It's Isolde. It's on the house.",
+    vow:"\"I've kept a warm room and a full table for half my life, for everyone who came through my door. Now I want to keep them for you. For good.\"",
+    date:["Rowan asked if we're courting. I said ask the witch. He went bright red. Good.", "I saved you the corner seat. And the last slice. And the whole evening, love."],
+    wed:["Morning, love. There's a pot of porridge and a pot of gossip. Which first?", "The inn's never been busier, and I've never been happier to come home from it.", "You've got crumbs on your chin. No, leave them. It's sweet."],
+    morn:["Isolde is humming at the stove, frying something that smells like heaven.", "Isolde has already been to the inn and back, and brought the morning's gossip with the bread."],
+    bday:"It's Isolde's birthday. For once, somebody cooks for her. She criticises every step and loves every bite." },
+  juno: { yes:"Juno whoops loudly enough to scare the ducks off the river. \"Yes! Obviously! I was going to ask you, but I couldn't find a flower you hadn't grown yourself.\" She stuffs the bouquet in her diving bag. \"For luck.\"",
+    s9:"Juno takes you out on the river at dawn in her little boat and lets you steer. You steer into the reeds. She laughs so hard she falls in, then pulls you in after her. Neither of you minds.",
+    s10:"Juno shows you the map she's drawn of the Hollow, every floor marked in her scruffy hand. On the last page she's drawn you. \"Best thing I ever found,\" she says, \"and you were up here the whole time.\"",
+    bye:"Juno shrugs and grins, a little wobbly. \"All right. Still my diving partner? Good. That's the important bit.\"",
+    propose:"Juno stares at the ring, then hugs you so hard your feet leave the ground. \"A crystal from the Hollow and a starshard? You made this?\" she says. \"Yes. A thousand times yes.\"",
+    vow:"\"I've been to the bottom of the river and the bottom of the Hollow, looking for something worth keeping. Turns out it was up here all along. I'm yours.\"",
+    date:["I caught a fish shaped like a heart. It's not, really. Squint.", "Race you to the river later? Loser cooks. I'll lose on purpose. Don't tell."],
+    wed:["Morning! Caught breakfast. It's a minnow. We're sharing.", "My wet boots are by your fire again. Sorry. Not sorry. Love you.", "Home. I never had a word I liked for it before."],
+    morn:["Juno comes in damp from an early swim, shaking river water out of her hair.", "Juno is already at the door with two rods. \"One for you, if you're quick.\""],
+    bday:"It's Juno's birthday. You pack her breakfast to eat on the riverbank, and she eats it standing up in the boat." },
+  zara: { yes:"Zara holds the bouquet at arm's length and examines it like she's pricing it. \"Moonpetal. Local. Excellent condition.\" Then her face softens. \"Priceless, darling. Not for sale. Yes.\"",
+    s9:"Zara shuts her cart early, which costs her a fortune, and takes you up the lanes to watch the sun go down. \"Nine valleys,\" she says. \"Nine valleys, and I never once wanted to stay. Until this one.\"",
+    s10:"Zara hands you a small empty drawer from her cart. The new label, in her careful hand, reads Home. \"I know what goes in it now,\" she says.",
+    bye:"Zara inclines her head, gracious as a queen. \"No hard feelings, darling. The road teaches you that hearts move. You'll still get my best price.\"",
+    propose:"Zara turns the ring to catch the light, the way she checks a gem, then laughs at herself. \"I don't need to check. Yes. I'll keep the cart, and come home every night instead.\"",
+    vow:"\"I've sold wonders in nine valleys and kept none of them. This one I'm keeping. You're not for sale, darling, and neither am I. Not any more.\"",
+    date:["I've routed the cart through this valley twice as often. Purely for business.", "I brought you something from the road. No, it's not for sale. It's for you."],
+    wed:["Morning, darling. The cart can wait. It's waited nine valleys for me to be happy.", "I still go out with the cart, but now I come home. Strange new habit. I like it.", "You're the only rare thing I've never wanted to sell."],
+    morn:["Zara is counting yesterday's takings at the kitchen table, and stops the moment you come in.", "Zara has brought back a strange fruit from the road and insists you both try it before breakfast."],
+    bday:"It's Zara's birthday. You give her breakfast and no receipt. She says it's the most extravagant gift she's ever had." }
+};
+// Shared morning greetings for whoever she married ({n} is their name), by weather and season.
+const GREET = { rain:["{n} is watching the rain from the window. \"No watering today. Stay a bit?\"", "Rain on the roof, and {n} has made two cups of tea."],
+  snow:["{n} has lit the fire and wrapped you both in the big quilt. \"Five more minutes. It's snowing.\""],
+  0:["{n} has put a sprig of blossom in a cup on the windowsill."], 1:["{n} has opened every window to let the warm morning in."],
+  2:["{n} comes in from the garden with leaves stuck to everything."], 3:["{n} has warmed your boots by the stove."] };
+// Wedding guests: one line each. Aldous officiates.
+const WED_LINES = {
+  mara:"Mara blows her nose very loudly. \"I'm not crying. It's flour. Turnip, stop eating the bouquet.\"",
+  fen:"Old Fen raises a cup. \"Your aunt would've cried. Then sworn at me for noticing.\"",
+  pip:"Pip throws petals at everyone, mostly at the cat. \"Is there cake? There's cake. I checked.\"",
+  odile:"Odile dabs her eyes behind her glasses. \"Thirty years of weddings in this valley, and this one's my favourite.\"",
+  wren:"Wren brought a few of the bees. They're wearing tiny ribbons, and they behave beautifully.",
+  rowan:"Rowan made a little iron star for every table. \"Don't make a fuss,\" he says, and then makes one himself.",
+  silas:"Silas plays the only song he's ever written that ends happily.",
+  theo:"Theo hands you both a tiny vial. \"For luck. It's scientifically meaningless. I brewed it anyway.\"",
+  isolde:"Isolde catered the whole thing and is crying into the cake. \"Happy tears, love. Salted cake is a delicacy.\"",
+  juno:"Juno whistles so loudly the ducks leave the river. \"Best day in the valley! I'm calling it!\"",
+  hettie:"Granny Hettie pats your cheek. \"Bramble always said the cottage wanted filling. She'd be glad, dear.\"",
+  zara:"Zara has shut her cart for the day, which she says has never happened before. \"Worth every coin, darling.\"",
+  bertram:"Bertram and Fen both stand up to make the toast, and make it together, slightly out of time.",
+  tilly:"Tilly and Pip throw handfuls of petals into the air and dance in them. \"You look like a story,\" Tilly announces."
+};
+const WED_PLACE = ['under the apple blossom in the square', 'on the riverbank at golden hour, under Fen\'s ferry lights', 'in the square, among the falling leaves', 'in the square under the star lanterns, with snow falling softly'];
 
 /* ================= map ================= */
 const COLS = 9, ROWS = 13;
@@ -691,7 +829,8 @@ function newState() {
   return { v:2, year:1, season:0, day:1, time:360, coins:150, energy:100, maxEnergy:100, can:20, canMax:20, sel:'mint',
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
-    greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0 };
+    greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
+    dating:null, wedding:null, spouse:null, weddingDay:null };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -998,7 +1137,7 @@ function drawDynamicBuildings(night) {
   R(ctx, x + w * .215, y + h * .65, u * .8, h * .18, '#3a2a1c'); R(ctx, x + w * .795, y + h * .65, u * .8, h * .18, '#3a2a1c');
   const b = BUILD.cauldron, cx = ox + (b.c + .5) * T, cy = oy + (b.r + .62) * T;
   const brewing = S.brewing.length > 0;
-  const liq = brewing ? POTIONS[S.brewing[0]].col : '#3d6b4a';
+  const liq = brewing ? itemCol(S.brewing[0]) : '#3d6b4a';
   ctx.fillStyle = liq; ctx.beginPath(); ctx.ellipse(cx, cy - 3 * u, 5.3 * u, 1.2 * u, 0, 0, 7); ctx.fill();
   if (brewing && !reduceMotion && Math.random() < .08) parts.push({ x:cx + (Math.random() - .5) * 8 * u, y:cy - 4 * u, vx:0, vy:-18, life:1.2, max:1.2, col:liq, s:u * 1.2, g:-5 });
   const bb = BUILD.board, bx = ox + bb.c * T, by = oy + bb.r * T;
@@ -1202,7 +1341,7 @@ function autoSelect() {
 }
 function tired() { toast('Too tired to keep working. Sleep to get your energy back.'); queue = []; return false; }
 function visit(k, q) {
-  if (k === 'villager') { const x = (S.visits || []).find(z => z.v === q.v); if (x && visitPresent(x)) openSheet('villager', { v:q.v, from:'garden', line:S.talked[q.v] === dayKey() ? null : VISIT_LINES[q.v] }); else toast(`${VILLAGERS[q.v].name} has already headed home.`); return; }
+  if (k === 'villager') { const x = (S.visits || []).find(z => z.v === q.v); if (x && visitPresent(x)) openSheet('villager', { v:q.v, from:'garden', mood:isPartner(q.v) ? 'love' : undefined, line:S.talked[q.v] === dayKey() ? null : (x.spouse ? ROMANCE[q.v].wed[(Math.random() * ROMANCE[q.v].wed.length) | 0] : VISIT_LINES[q.v]) }); else toast(`${VILLAGERS[q.v].name} has already headed home.`); return; }
   if (k === 'gate') { enterWood(); return; }
   if (k === 'exit') { leaveWood(); return; }
   if (k === 'shrine') { shrineVisit(); return; }
@@ -1295,7 +1434,7 @@ function update(dt) {
     // The clock only moves while she's busy: walking, working, or a firebolt is in the air.
     const busy = queue.length > 0 || witch.walk > 0 || witch.act > 0 || (S.scene === 'hollow' && HV && HV.bolts.length > 0);
     if (busy) S.time += dt * 7.2 * paceMul();
-    for (const x of S.visits || []) if (!x.seen && visitPresent(x)) { x.seen = true; toast(`${VILLAGERS[x.v].name} stopped by the garden. Tap them to say hello.`); }
+    for (const x of S.visits || []) if (!x.seen && visitPresent(x)) { x.seen = true; toast(x.spouse ? `${VILLAGERS[x.v].name} is out in the garden.` : `${VILLAGERS[x.v].name} stopped by the garden. Tap them to say hello.`); }
     if (S.time >= passOut()) { S.time = passOut(); endDay(true); return; }
     if (S.scene === 'hollow') { updateHollow(dt); if (S.scene !== 'hollow' || sheetOpen) return; }
     if (witch.act > 0) witch.act -= dt;
@@ -1341,7 +1480,7 @@ function endDay(passedOut) {
   S.blessing = null;
   if (S.brewing.length) {
     const made = {}; for (const id of S.brewing) { S.inv[id] = (S.inv[id] || 0) + 1; made[id] = (made[id] || 0) + 1; }
-    lines.push({ t:'The cauldron finished: ' + Object.entries(made).map(([id, n]) => `${n} ${POTIONS[id].name}`).join(', ') + '.', c:'gold' });
+    lines.push({ t:'The cauldron finished: ' + Object.entries(made).map(([id, n]) => `${n} ${itemName(id)}`).join(', ') + '.', c:'gold' });
     S.brewing = [];
   }
   for (const q of S.reqs.slice()) {
@@ -1369,6 +1508,7 @@ function endDay(passedOut) {
     }
   });
   if (sprinkled && !S.rain) lines.push({ t:`Your sprinklers watered ${sprinkled} bed${sprinkled === 1 ? '' : 's'}.` });
+  romanceMorning(lines);
   // honey
   if (S.hives > 0 && S.season !== 3 && S.day % 3 === 0) { S.inv.honey = (S.inv.honey || 0) + S.hives; lines.push({ t:`The hive${S.hives > 1 ? 's' : ''} made ${S.hives} jar${S.hives > 1 ? 's' : ''} of honey.`, c:'gold' }); }
   // cat
@@ -1517,17 +1657,111 @@ function applyGifts(v, lines) {
 
 /* ================= friendship ================= */
 const dayKey = () => `${S.year}.${S.season}.${S.day}`;
-const heartsOf = v => Math.min(8, Math.floor((S.fr[v] || 0) / 100));
-const arrived = v => S.year > 1 || VILLAGERS[v].arrive <= S.season;
-// Zara's cart comes every seventh day (days 5, 12, 19, 26) and for festivals.
+// Romance: nine adults can go to 10 hearts, but hearts 9 and 10 only open for the one she's dating (or married to).
+const canRomance = v => VILLAGERS[v].romance !== false;
+const isPartner = v => !!v && (v === S.spouse || v === S.dating);
+const heartMax = v => isPartner(v) ? 10 : 8;
+const heartsOf = v => Math.min(heartMax(v), Math.floor((S.fr[v] || 0) / 100));
+const arrived = v => S.year > 1 || VILLAGERS[v].arrive <= S.season || v === S.spouse;
+// Zara's cart comes every seventh day (days 5, 12, 19, 26) and for festivals. Once married, she lives here.
 const marketDay = () => S.day % 7 === 5;
-const inValley = v => arrived(v) && (!VILLAGERS[v].market || marketDay() || isFestDay());
+const inValley = v => v === S.spouse || (arrived(v) && (!VILLAGERS[v].market || marketDay() || isFestDay()));
 function nextMarket() { for (let d = S.day + 1; d <= DAYS; d++) if (d % 7 === 5) return `day ${d}`; return 'next season'; }
 const isBday = v => VILLAGERS[v].bday[0] === S.season && VILLAGERS[v].bday[1] === S.day;
-function addFr(v, pts) { S.fr[v] = Math.max(0, Math.min(850, (S.fr[v] || 0) + pts)); }
+// Friendship never drops because of romance: points above a cap are kept (they come back if she dates them again),
+// and her spouse's friendship can't go down at all.
+function addFr(v, pts) {
+  const cur = S.fr[v] || 0, cap = isPartner(v) ? 1050 : 850;
+  if (v === S.spouse && pts < 0) pts = 0;
+  S.fr[v] = Math.max(0, Math.min(Math.max(cap, cur), cur + pts));
+}
 function nextScene(v) {
   for (const lvl of [2, 4, 6, 8]) if (heartsOf(v) >= lvl && !S.scenes[v + lvl]) { S.scenes[v + lvl] = true; return { lvl, text:VILLAGERS[v].scenes[lvl] }; }
+  if (isPartner(v) && ROMANCE[v]) for (const lvl of [9, 10]) if (heartsOf(v) >= lvl && !S.scenes[v + lvl]) { S.scenes[v + lvl] = true; return { lvl, text:ROMANCE[v]['s' + lvl] }; }
   return null;
+}
+// Days counted from the very first morning, so a wedding date survives season and year changes.
+const absDay = () => (S.year - 1) * 4 * DAYS + S.season * DAYS + S.day;
+function dateOf(n) { n -= 1; return { y:Math.floor(n / (4 * DAYS)) + 1, s:Math.floor(n % (4 * DAYS) / DAYS), d:n % DAYS + 1 }; }
+function dateLabel(n) { const t = dateOf(n); return `${SEASONS[t.s]} ${t.d}${t.y !== S.year ? `, year ${t.y}` : ''}`; }
+// The wedding is at the next festival, or 3 days after the proposal if that's sooner.
+function weddingAt() { const today = absDay(), fest = today - S.day + FEST_DAY + (S.day < FEST_DAY ? 0 : DAYS); return Math.min(fest, today + 3); }
+// The bouquet shows at the Market once someone she could date is at 6+ hearts.
+const bouquetOnSale = () => !S.spouse && ((S.inv.bouquet || 0) > 0 || VIDS.some(v => canRomance(v) && arrived(v) && heartsOf(v) >= 6));
+const partnerName = () => S.spouse ? VILLAGERS[S.spouse].name : (S.dating ? VILLAGERS[S.dating].name : '');
+// What the romance part of a villager's page says and offers. Returns { note, acts } (HTML).
+function romanceBox(v) {
+  const V = VILLAGERS[v], h = heartsOf(v), has = k => (S.inv[k] || 0) > 0;
+  if (!canRomance(v)) return { note:'', acts:'' };
+  if (v === S.spouse) { const w = S.weddingDay; return { note:`You're married${w ? `, since ${SEASONS[w.s]} ${w.d}${w.y !== S.year ? ` of year ${w.y}` : ''}` : ''}. ${V.name} lives at Brambleroot with you now.`, acts:'' }; }
+  if (S.spouse) return { note:'', acts:'' };
+  if (S.wedding && S.wedding.v === v) return { note:`You're engaged! The wedding is on ${dateLabel(S.wedding.at)}${S.wedding.at === absDay() ? ' (today)' : ''}.`, acts:'' };
+  if (S.wedding) return { note:'', acts:'' };
+  if (v === S.dating) {
+    let note = `You're dating ${V.name}. `, acts = '';
+    if (h < 10) note += `Hearts 9 and 10 are open now. ${V.name} gets closer with every chat and gift.`;
+    else if (has('ring')) { note += `${V.name} is at 10 hearts, and you have the Witch's Ring.`; acts += `<button class="btn" data-act="propose" data-id="${v}" type="button" ${inValley(v) ? '' : 'disabled'}>Propose with the ring</button>`; }
+    else note += `${V.name} is at 10 hearts. Brew a Witch's Ring at the cauldron (1 Glowing Crystal and 1 Starshard) and give it to propose.`;
+    acts += `<button class="btn alt" data-act="goodbye" data-id="${v}" type="button">Have a kind word</button>`;
+    return { note, acts };
+  }
+  if (S.dating) return { note:h >= 8 ? `You're seeing ${partnerName()}. If your heart has moved on, have a kind word with them first.` : '', acts:'' };
+  if (h < 8) return { note:`${V.name} could be more than a friend. At 8 hearts, a Moonpetal Bouquet from the Market asks them out.`, acts:'' };
+  if (!has('bouquet')) return { note:`${V.name} is at 8 hearts. Buy a Moonpetal Bouquet at the Market (${BOUQUET_COST} coins) and give it to ask them out.`, acts:'' };
+  return { note:`${V.name} is at 8 hearts, and you have a Moonpetal Bouquet.`, acts:`<button class="btn" data-act="bouquet" data-id="${v}" type="button" ${inValley(v) ? '' : 'disabled'}>Give the bouquet</button>` };
+}
+// Married life: about 60% of mornings the spouse helps, each in their own way.
+const SPOUSE_HELP_P = .6;
+const aN = w => (/^[AEIOU]/.test(w) ? 'an ' : 'a ') + w;
+const SPOUSE_HELP = {
+  rowan:() => { S.can = S.canMax; S.energy += 20; let n = 0; for (const p of S.plots) if (n < 8 && p.t && p.c && !p.ready && !p.w && !CROPS[p.c].noWater) { p.w = true; n++; }
+    return `Rowan was out before dawn. He sharpened your tools (+20 energy today)${n ? `, watered ${n} bed${n === 1 ? '' : 's'}` : ''} and filled your watering can.`; },
+  juno:() => { const a = pickFish(), b = pickFish(); giveItems(a === b ? { [a]:2 } : { [a]:1, [b]:1 });
+    return `Juno went out on the river at dawn and came back with two fish for your basket: ${a === b ? `both ${FISH[a].name}` : `${aN(FISH[a].name)} and ${aN(FISH[b].name)}`}.`; },
+  isolde:() => { S.energy += 40; return 'Isolde cooked you a proper breakfast before she left for the inn: +40 energy today.'; },
+  theo:() => { const ids = Object.keys(POTIONS).filter(id => !POTIONS[id].wild && potionKnown(id) && POTIONS[id].sell <= 200), id = ids[(Math.random() * ids.length) | 0] || 'calming'; giveItems({ [id]:1 });
+    return `Theo brewed something in his shop overnight and left it by the door: ${aN(POTIONS[id].name)}.`; },
+  wren:() => { giveItems({ honey:2 }); return 'Wren brought in two jars of Wildflower Honey from the hives.'; },
+  mara:() => { S.energy += 35; return 'Mara baked before dawn. Fresh bread and honey for breakfast: +35 energy today.'; },
+  odile:() => { const pool = VIDS.filter(x => x !== 'odile' && arrived(x)); const got = [];
+    while (got.length < 3 && pool.length) got.push(pool.splice((Math.random() * pool.length) | 0, 1)[0]);
+    for (const x of got) addFr(x, 25);
+    return `Odile spent the evening writing letters to the village from you both. ${got.map(x => VILLAGERS[x].name).join(', ').replace(/, ([^,]*)$/, ' and $1')} are a little fonder of you.`; },
+  silas:() => { if (S.spells.length) { S.mana += 20; return 'Silas played for you over breakfast, and the music fizzes in your fingers: +20 mana today.'; } S.energy += 30; return 'Silas played for you over breakfast, and you feel light on your feet: +30 energy today.'; },
+  zara:() => { const sd = seedGift(1, true)(); S.seeds[sd.id] = (S.seeds[sd.id] || 0) + sd.n; return `Zara found something rare on the road for you: a ${CROPS[sd.id].name} seed, the best of the season.`; }
+};
+function romanceMorning(lines) {
+  if (S.wedding && !S.spouse && absDay() >= S.wedding.at) lines.unshift({ t:'Today is your wedding day! The whole village will be waiting when you step outside.', c:'gold', v:S.wedding.v, mood:'love' });
+  const v = S.spouse; if (!v || !ROMANCE[v]) return;
+  const V = VILLAGERS[v], R = ROMANCE[v], w = S.weddingDay, pick = a => a[(Math.random() * a.length) | 0];
+  let t;
+  if (w && w.s === S.season && w.d === S.day && S.year > w.y) { const yrs = S.year - w.y; giveItems({ starshard:1 }); t = `It's your anniversary: ${yrs} year${yrs === 1 ? '' : 's'} married. ${V.name} gives you a Starshard tied with a ribbon. "One star for every year, starting now."`; }
+  else if (isBday(v)) t = R.bday;
+  else t = Math.random() < .6 ? pick(R.morn) : pick(S.rain ? GREET.rain : (S.snow ? GREET.snow : GREET[S.season])).replace('{n}', V.name);
+  const help = Math.random() < SPOUSE_HELP_P ? SPOUSE_HELP[v]() : null;
+  if (help) lines.unshift({ t:help, c:'gold' });
+  lines.unshift({ t, c:'gift', v, mood:'love' });
+}
+function romanceScene(v, title, text, extra) {
+  updateHUD(); save(); SND.gift();
+  sheetOpen = 'scene'; renderSheet('scene', { v, title, text, gifts:extra || [] });
+}
+function giveBouquet(v) {
+  if (!canRomance(v) || S.dating || S.spouse || S.wedding || heartsOf(v) < 8 || !(S.inv.bouquet > 0) || !inValley(v)) return;
+  S.inv.bouquet--; S.dating = v;
+  romanceScene(v, `${VILLAGERS[v].name} · dating`, ROMANCE[v].yes, [`You're dating ${VILLAGERS[v].name}. Hearts 9 and 10 are open now.`]);
+}
+function kindGoodbye(v) {
+  if (S.dating !== v || S.wedding) return;
+  S.dating = null; // friendship points are kept; hearts 9 and 10 simply lock again
+  romanceScene(v, `${VILLAGERS[v].name} · a kind word`, ROMANCE[v].bye, ['You part as friends. No friendship lost.']);
+}
+function propose(v) {
+  if (S.dating !== v || S.wedding || heartsOf(v) < 10 || !(S.inv.ring > 0) || !inValley(v)) return;
+  S.inv.ring--; S.wedding = { v, at:weddingAt() };
+  const when = S.wedding.at - absDay(), F = FEST[dateOf(S.wedding.at).s];
+  const note = dateOf(S.wedding.at).d === FEST_DAY ? `The wedding will be on ${dateLabel(S.wedding.at)}, the morning of the ${F.name}, while the whole village is gathered.` : `The wedding will be in ${when} day${when === 1 ? '' : 's'}, on ${dateLabel(S.wedding.at)}.`;
+  romanceScene(v, `${VILLAGERS[v].name} · engaged`, ROMANCE[v].propose, [note]);
 }
 function reactionTo(v, item) {
   const V = VILLAGERS[v];
@@ -1560,12 +1794,13 @@ function talkTo(v) {
   let line = V.talk[tier][(Math.random() * V.talk[tier].length) | 0];
   if (v === 'aldous' && Math.random() < .5) { const st = Object.values(S.charters).filter(c => c.s === S.season && c.y === S.year).reduce((n, c) => n + c.stars.filter(x => x.done).length, 0);
     line = st >= 3 ? 'Three stars! Three! I have told the whole Guild. Twice. They asked me to stop writing.' : st > 0 ? `${st} star${st === 1 ? '' : 's'} on this season's charter already. The Guild will be pleased. I'm pleased. I've told everyone.` : "No stars on the charter yet this season, but there's time. There's always time. Within reason."; }
+  if (isPartner(v) && ROMANCE[v] && Math.random() < .7) { const pool = v === S.spouse ? ROMANCE[v].wed : ROMANCE[v].date; line = pool[(Math.random() * pool.length) | 0]; }
   if (isBday(v)) line = "It's my birthday today! " + line;
   blip(500, 650, .08, 'sine', .04);
-  celebrate(v, h >= 3 || isBday(v) ? 'happy' : 'neutral', line);
+  celebrate(v, isPartner(v) ? 'love' : (h >= 3 || isBday(v) ? 'happy' : 'neutral'), line);
 }
 function giveGift(v, item) {
-  if (S.gifted[v] === dayKey() || !(S.inv[item] > 0)) return;
+  if (S.gifted[v] === dayKey() || !(S.inv[item] > 0) || NOGIFT[item]) return;
   S.inv[item]--; S.gifted[v] = dayKey();
   const r = reactionTo(v, item), R0 = REACT[r];
   const bday = isBday(v);
@@ -1948,7 +2183,7 @@ function festRender() {
     if (F.main === 'dance') h += `<div class="cta-row">${who.filter(v => VILLAGERS[v].look.age !== 'kid').map(v => `<button class="btn alt" data-act="dance" data-id="${v}" type="button">${VILLAGERS[v].name}</button>`).join('')}</div>`;
     if (F.main === 'lantern') for (const [id, [n, d]] of Object.entries(F.wishes)) h += row('#f2b84b', n, d, `<button class="btn" data-act="wish" data-id="${id}" type="button">Wish</button>`);
     if (F.main === 'fair' || F.main === 'feast') {
-      const items = Object.entries(S.inv).filter(([, n]) => n > 0).sort((a, b) => itemValue(b[0]) - itemValue(a[0])).slice(0, 10);
+      const items = Object.entries(S.inv).filter(([k, n]) => n > 0 && !NOGIFT[k]).sort((a, b) => itemValue(b[0]) - itemValue(a[0])).slice(0, 10);
       if (F.main === 'feast') h += `<p class="sub">You drew <b>${VILLAGERS[feastTo()].name}</b>.</p>`;
       if (!items.length) h += `<p class="sub">Your basket is empty. Harvest something and come back before 10 pm.</p>`;
       for (const [id] of items) h += row(itemCol(id), itemName(id), F.main === 'fair' ? `Worth ${itemValue(id)} points to the judges` : (((S.known[feastTo()] || {})[id] && REACT_LABEL[(S.known[feastTo()] || {})[id]]) || 'Not given before'), `<button class="btn" data-act="${F.main === 'fair' ? 'fairenter' : 'feastgive'}" data-id="${id}" type="button">${F.main === 'fair' ? 'Enter' : 'Give'}</button>`);
@@ -1961,7 +2196,7 @@ function festAct(act, id) {
   const F = FEST[S.season], f = festState(), who = VIDS.filter(arrived);
   if (act === 'mingle') { if (f.m[id]) return; f.m[id] = true; addFr(id, 30); const g = festAfter([id]); if (g) toast(g.trim(), 5200); return; }
   if (f.main) return;
-  if (act === 'dance') { if (VILLAGERS[id].look.age === 'kid' || !F.dance[id]) return; addFr(id, 150); f.main = id; f.txt = F.dance[id] + (who.includes('pip') ? ' Afterwards, Pip crowns you with daisies and tells you it is very important to keep it on.' : ''); f.txt += festAfter([id]); }
+  if (act === 'dance') { if (VILLAGERS[id].look.age === 'kid' || !F.dance[id]) return; addFr(id, 150); f.main = id; f.txt = F.dance[id] + (isPartner(id) ? ` ${VILLAGERS[id].name} doesn't let go of your hand for the rest of the night.` : '') + (who.includes('pip') ? ' Afterwards, Pip crowns you with daisies and tells you it is very important to keep it on.' : ''); f.txt += festAfter([id]); }
   if (act === 'wish') {
     f.main = id;
     if (id === 'growth') { S.blessing = 'growth'; f.txt = 'Your lantern drifts downriver, glowing gold. Tonight every growing crop in your garden will grow an extra day.'; }
@@ -2099,8 +2334,11 @@ function genVisits() {
   const pool = VIDS.filter(inValley), r = Math.random(), n = r < .35 ? 1 : (r < .8 ? 2 : 3);
   for (let i = pool.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
   const used = new Set(), key = p => p[0] + ',' + p[1];
+  // Her spouse is out in the garden most days, from breakfast to supper, on top of the usual visitors.
+  if (S.spouse && VISIT_SPOT[S.spouse] && Math.random() < .8) { const v = S.spouse, sp = VISIT_SPOT[v], st = VISIT_STAND[v]; used.add(key(sp)); used.add(key(st)); S.visits.push({ v, c:sp[0], r:sp[1], from:420, to:1200, spouse:true }); }
+  const si = pool.indexOf(S.spouse); if (si >= 0) pool.splice(si, 1);
   for (const v of pool) {
-    if (S.visits.length >= n) break;
+    if (S.visits.filter(x => !x.spouse).length >= n) break;
     const sp = VISIT_SPOT[v], st = VISIT_STAND[v];
     if (!sp || used.has(key(sp)) || used.has(key(st))) continue;
     used.add(key(sp)); used.add(key(st));
@@ -2530,7 +2768,7 @@ function updateHUD() {
   $('dayLbl').textContent = `${SEASONS[S.season]} ${S.day}`;
   $('ofLbl').textContent = S.year > 1 ? `year ${S.year}` : `of ${DAYS}`;
   $('coins').textContent = fmt(S.coins);
-  $('enBar').style.width = Math.max(0, S.energy / S.maxEnergy * 100) + '%';
+  $('enBar').style.width = Math.max(0, Math.min(100, S.energy / S.maxEnergy * 100)) + '%';
   $('enBar').style.background = S.energy < S.maxEnergy * .2 ? 'var(--rose)' : '';
   $('canBar').style.width = (S.can / S.canMax * 100) + '%';
   const wx = $('wx'); wx.hidden = !(S.rain || S.snow); wx.textContent = S.rain ? 'Rain' : 'Snow';
@@ -2546,7 +2784,7 @@ function updateHUD() {
   const rb = $('reqBadge'); const ready = S.reqs.filter(q => (S.inv[q.item] || 0) >= q.n).length;
   rb.hidden = !S.reqs.length; rb.textContent = S.reqs.length; rb.style.background = ready ? 'var(--moss)' : '';
   const pb = $('potBadge'); pb.hidden = !S.brewing.length; pb.textContent = S.brewing.length;
-  $('manaM').hidden = !S.spells.length; if (S.manaMax) $('manaBar').style.width = (S.mana / S.manaMax * 100) + '%';
+  $('manaM').hidden = !S.spells.length; if (S.manaMax) $('manaBar').style.width = Math.min(100, S.mana / S.manaMax * 100) + '%';
   $('bSpells').hidden = !S.spells.length;
   const um = S.mail.filter(m => !m.read).length; $('mailBadge').hidden = !um; $('mailBadge').textContent = um;
   updateClock();
@@ -2561,15 +2799,25 @@ function openSheet(kind, data) {
   setTimeout(() => { const b = $('sheet').querySelector('.btn:not(:disabled), .x'); if (b && matchMedia('(hover:hover)').matches) b.focus(); }, 30);
 }
 function closeSheet() {
+  if (sheetOpen === 'wedding') return;
+  const was = sheetOpen;
   if (sheetOpen === 'festival') endFestival();
   if (sheetOpen === 'board') S.reqs.forEach(q => q.fresh = false);
   if (sheetOpen === 'fish') stopFishing();
   sheetOpen = null; lastSheetKey = ''; $('scrim').hidden = true; $('sheet').hidden = true; if (mode === 'play') { updateHUD(); save(); }
+  if (was === 'morning' || was === 'gift') maybeWedding();
 }
 function row(dot, name, meta, acts, cls) {
   return `<div class="row ${cls || ''}"><span class="dot" style="background:${dot}"></span><div class="info"><span class="name">${name}</span><span class="meta">${meta}</span></div><div class="acts">${acts}</div></div>`;
 }
-function hearts(n) { let h = '<span class="hearts" aria-label="' + n + ' of 8 hearts">'; for (let i = 0; i < 8; i++) h += `<i class="${i < n ? 'on' : ''}"></i>`; return h + '</span>'; }
+const LOCK = '<svg class="lock" viewBox="0 0 10 12" width="10" height="12" aria-hidden="true"><path d="M2.6 5.2V3.6a2.4 2.4 0 0 1 4.8 0v1.6" fill="none" stroke="#9a88b0" stroke-width="1.4"/><rect x="1" y="5" width="8" height="6.5" rx="1.6" fill="#9a88b0"/></svg>';
+// Romanceable people show 10 hearts; 9 and 10 wear a padlock until she's dating them.
+function hearts(n, v) {
+  const max = v && canRomance(v) ? 10 : 8, open = v && isPartner(v);
+  let h = `<span class="hearts" aria-label="${n} of ${max} hearts${max > 8 && !open ? ', 9 and 10 locked' : ''}">`;
+  for (let i = 0; i < max; i++) h += i >= 8 && !open ? LOCK : `<i class="${i < n ? 'on' : ''}"></i>`;
+  return h + '</span>';
+}
 function seasonsTxt(id) { return CROPS[id].seasons.map(s => SEASONS[s]).join(' & '); }
 function renderSheet(kind, data) {
   const body = $('shBody'); let h = '', title = '';
@@ -2591,6 +2839,7 @@ function renderSheet(kind, data) {
     title = 'Market stall';
     h += `<div class="tabs" role="tablist">${['buy', 'sell', 'upgrades'].map(t => `<button class="tab" role="tab" aria-selected="${marketTab === t}" data-act="tab" data-id="${t}" type="button">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>`;
     if (marketTab === 'buy') {
+      if (bouquetOnSale()) h += row(ITEMS.bouquet.col, 'Moonpetal Bouquet', `${BOUQUET_COST} coins · have ${S.inv.bouquet || 0} · give it to someone at 8 hearts to ask them out`, `<button class="btn" data-act="bouq" type="button" ${S.coins < BOUQUET_COST ? 'disabled' : ''}>Buy · ${BOUQUET_COST}</button>`);
       for (const [id, cr] of Object.entries(CROPS)) {
         if (!cropKnown(id)) continue;
         if (cropLockedToday(id)) { h += row(cr.col, cr.name + ' seeds', `Arrives on ${SEASONS[S.season].toLowerCase()} ${cr.unlock}`, '', 'dim'); continue; }
@@ -2635,12 +2884,16 @@ function renderSheet(kind, data) {
   } else if (kind === 'cauldron') {
     title = 'Cauldron';
     const free = S.slots - S.brewing.length;
-    h += `<p class="sub">${S.brewing.length ? `Brewing ${S.brewing.map(id => POTIONS[id].name).join(', ')}. ` : ''}${free > 0 ? `${free} free pot${free === 1 ? '' : 's'}. Potions are ready tomorrow morning.` : 'All pots are busy until morning.'}</p>`;
+    h += `<p class="sub">${S.brewing.length ? `Brewing ${S.brewing.map(itemName).join(', ')}. ` : ''}${free > 0 ? `${free} free pot${free === 1 ? '' : 's'}. Potions are ready tomorrow morning.` : 'All pots are busy until morning.'}</p>`;
     for (const [id, po] of Object.entries(POTIONS)) {
       if (!potionKnown(id)) continue;
       const can = free > 0 && Object.entries(po.need).every(([k, n]) => (S.inv[k] || 0) >= n);
       const need = Object.entries(po.need).map(([k, n]) => `${n} ${itemName(k)} (${S.inv[k] || 0})`).join(' + ');
       h += row(po.col, po.name, `${need} · sells for ${po.sell}`, `<button class="btn" data-act="brew" data-id="${id}" type="button" ${can ? '' : 'disabled'}>Brew</button>`, can ? '' : 'dim');
+    }
+    if (S.dating && !S.spouse && !S.wedding) {
+      const can = free > 0 && Object.entries(RING_NEED).every(([k, n]) => (S.inv[k] || 0) >= n);
+      h += row(ITEMS.ring.col, "Witch's Ring", `${Object.entries(RING_NEED).map(([k, n]) => `${n} ${itemName(k)} (${S.inv[k] || 0})`).join(' + ')} · give it to ${VILLAGERS[S.dating].name} at 10 hearts to propose`, `<button class="btn" data-act="brewring" type="button" ${can ? '' : 'disabled'}>Brew</button>`, can ? '' : 'dim');
     }
     const hidden = Object.keys(POTIONS).filter(id => !potionKnown(id)).length;
     if (hidden) h += `<p class="sub">${hidden} more recipe${hidden === 1 ? '' : 's'} will appear as new seasons bring new herbs.</p>`;
@@ -2683,8 +2936,9 @@ function renderSheet(kind, data) {
         const chips = [];
         if (S.talked[v] === dayKey()) chips.push('Chatted'); if (S.gifted[v] === dayKey()) chips.push('Gift given');
         if (isBday(v)) chips.unshift('Birthday today!');
+        if (v === S.spouse) chips.unshift('Married'); else if (S.wedding && S.wedding.v === v) chips.unshift('Engaged'); else if (v === S.dating) chips.unshift('Dating');
         if (!inValley(v)) chips.unshift(`On the road. Back ${nextMarket()}`);
-        h += `<button class="vrow" type="button" data-act="vopen" data-id="${v}">${portrait(v, isBday(v) ? 'happy' : 'neutral', 52)}<div class="info"><span class="name">${V.name} <span class="role">· ${V.role}</span></span>${hearts(heartsOf(v))}<span class="meta">${chips.length ? chips.join(' · ') : 'Hasn\'t seen you today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+        h += `<button class="vrow" type="button" data-act="vopen" data-id="${v}">${portrait(v, isBday(v) ? 'happy' : 'neutral', 52)}<div class="info"><span class="name">${V.name} <span class="role">· ${V.role}</span></span>${hearts(heartsOf(v), v)}<span class="meta">${chips.length ? chips.join(' · ') : 'Hasn\'t seen you today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
       }
     } else {
       h += `<p class="sub">Year ${S.year}. Each season lasts ${DAYS} days. Crops still in the ground when their season ends will wither, unless they grow in the next season too or sit under the greenhouse glass.</p><div class="cal">`;
@@ -2724,6 +2978,8 @@ function renderSheet(kind, data) {
       }
     }
     if (S.almanac) h += `<li class="gold">The almanac says tomorrow will be ${S.nextRain ? 'rainy' : 'dry'}.</li>`;
+    if (S.spouse) h += `<li>${VILLAGERS[S.spouse].name} has left the lamp on for you.</li>`;
+    if (S.wedding && !S.spouse && S.wedding.at === absDay() + 1) h += `<li class="gold">Tomorrow is your wedding day.</li>`;
     h += `<li>You'll wake at 6:00 am with full energy.</li></ul>`;
     h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button><button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>`;
   } else if (kind === 'clock') {
@@ -2740,10 +2996,10 @@ function renderSheet(kind, data) {
   } else if (kind === 'villager') {
     const v = data.v, V = VILLAGERS[v], bd = V.bday, hs = heartsOf(v);
     title = V.name;
-    h += `<div class="vhead">${portrait(v, data.mood || (isBday(v) ? 'happy' : 'neutral'), 96)}<div class="info"><span class="role">${V.role}</span>${hearts(hs)}<span class="meta">Birthday: ${SEASONS[bd[0]]} ${bd[1]}${isBday(v) ? ' (today!)' : ''}</span></div></div>`;
+    h += `<div class="vhead">${portrait(v, data.mood || (isBday(v) ? 'happy' : 'neutral'), 96)}<div class="info"><span class="role">${V.role}</span>${hearts(hs, v)}<span class="meta">Birthday: ${SEASONS[bd[0]]} ${bd[1]}${isBday(v) ? ' (today!)' : ''}</span></div></div>`;
     if (data.line) h += `<div class="bubble">${data.line}</div>`;
     if (data.gifts && data.gifts.length) h += `<ul class="lines">${data.gifts.map(t => `<li class="gift">${t}</li>`).join('')}</ul>`;
-    const talked = S.talked[v] === dayKey(), gifted = S.gifted[v] === dayKey(), anyItem = Object.values(S.inv).some(n => n > 0);
+    const talked = S.talked[v] === dayKey(), gifted = S.gifted[v] === dayKey(), anyItem = Object.entries(S.inv).some(([k, n]) => n > 0 && !NOGIFT[k]);
     if (!inValley(v)) h += `<p class="sub">${V.name}'s cart is out on the road. It comes back ${nextMarket()}. Her cart comes every seventh day: days 5, 12, 19 and 26.</p>`;
     else h += `<div class="cta-row"><button class="btn" data-act="talk" data-id="${v}" type="button" ${talked ? 'disabled' : ''}>${talked ? 'Chatted today' : 'Chat'}</button><button class="btn alt" data-act="vgift" data-id="${v}" type="button" ${gifted || !anyItem ? 'disabled' : ''}>${gifted ? 'Gift given today' : (anyItem ? 'Give a gift' : 'Nothing to give')}</button></div>`;
     const known = S.known[v] || {};
@@ -2751,25 +3007,28 @@ function renderSheet(kind, data) {
     const lines = ['love', 'like', 'hate'].filter(r => byR(r).length).map(r => `<li class="${r === 'hate' ? 'bad' : (r === 'love' ? 'gift' : '')}">${REACT_LABEL[r]}: ${byR(r).join(', ')}</li>`);
     h += `<p class="sub">${lines.length ? 'What you\'ve learned about their tastes:' : 'Give gifts to learn what ' + V.name + ' likes. A birthday gift counts three times over.'}</p>`;
     if (lines.length) h += `<ul class="lines">${lines.join('')}</ul>`;
-    const nextGift = hs < 3 ? 3 : (hs < 6 ? 6 : 0), nextScene = [2, 4, 6, 8].find(l => !S.scenes[v + l]);
+    const rb = romanceBox(v);
+    if (rb.note) h += `<p class="sub rom">${rb.note}</p>`;
+    if (rb.acts) h += `<div class="cta-row">${rb.acts}</div>`;
+    const nextGift = hs < 3 ? 3 : (hs < 6 ? 6 : 0), nextScene = [2, 4, 6, 8].concat(isPartner(v) && ROMANCE[v] ? [9, 10] : []).find(l => !S.scenes[v + l]);
     h += `<p class="sub">${nextScene ? `Something happens at ${nextScene} hearts.` : 'You\'ve shared every story with them.'}${nextGift ? ` A favour waits at ${nextGift} hearts.` : ''}</p>`;
     h += data.from === 'garden' ? `<button class="btn alt" data-act="close" type="button">Close</button>` : `<button class="btn alt" data-act="jback" type="button">Back to village</button>`;
   } else if (kind === 'vgift') {
     const v = data.v, V = VILLAGERS[v], known = S.known[v] || {};
     title = `A gift for ${V.name}`;
     h += `<p class="sub">One gift a day.${isBday(v) ? ' It\'s their birthday, so it counts three times over!' : ''}</p>`;
-    const items = Object.entries(S.inv).filter(([, n]) => n > 0);
+    const items = Object.entries(S.inv).filter(([k, n]) => n > 0 && !NOGIFT[k]);
     for (const [id, n] of items) { const r = known[id]; h += row(itemCol(id), `${itemName(id)} ×${n}`, r ? REACT_LABEL[r] : 'Not given before', `<button class="btn" data-act="givegift" data-id="${v}" data-item="${id}" type="button">Give</button>`); }
     h += `<button class="btn alt" data-act="vopen" data-id="${v}" type="button">Back</button>`;
   } else if (kind === 'scene') {
     const V = VILLAGERS[data.v];
-    title = `${V.name} · ${data.lvl} hearts`;
-    h += `<div class="vhead">${portrait(data.v, 'love', 96)}<div class="info">${hearts(heartsOf(data.v))}</div></div><p class="scene">${data.text}</p>`;
+    title = data.title || `${V.name} · ${data.lvl} hearts`;
+    h += `<div class="vhead">${portrait(data.v, 'love', 96)}<div class="info">${hearts(heartsOf(data.v), data.v)}</div></div><p class="scene">${data.text}</p>`;
     if (data.gifts && data.gifts.length) h += `<ul class="lines">${data.gifts.map(t => `<li class="gift">${t}</li>`).join('')}</ul>`;
     h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Close</button></div>`;
   } else if (kind === 'spells') {
     title = 'Spellbook';
-    h += `<div class="pl"><span>Mana</span><span class="bar mana"><i style="width:${S.manaMax ? S.mana / S.manaMax * 100 : 0}%"></i></span><span class="n">${S.mana} / ${S.manaMax}</span></div><p class="sub">Mana refills each night while you sleep.${S.grove ? ' The shrine in the grove refills it once a day.' : ''}</p>`;
+    h += `<div class="pl"><span>Mana</span><span class="bar mana"><i style="width:${S.manaMax ? Math.min(100, S.mana / S.manaMax * 100) : 0}%"></i></span><span class="n">${S.mana} / ${S.manaMax}</span></div><p class="sub">Mana refills each night while you sleep.${S.grove ? ' The shrine in the grove refills it once a day.' : ''}</p>`;
     for (const [id, sp] of Object.entries(SPELLS)) {
       if (!S.spells.includes(id)) { h += row('#3a2b46', 'An unwritten page', SPELL_HINT[id], '', 'dim'); continue; }
       const sel = S.sel === 'spell:' + id;
@@ -2812,6 +3071,11 @@ function renderSheet(kind, data) {
   } else if (kind === 'cloudname') {
     title = 'Your cloud save';
     h += `<p class="sub">Your game now saves to the cloud by itself. If you ever lose it, on a new phone or if your browser forgets it, tap "Restore a backup" on the title screen and type this save name:</p><div class="cname">${S.cloud.name}</div><p class="sub">Take a screenshot or write it down somewhere safe. You can always find it again under Sleep, then "Back up my save".</p><div class="cta-row"><button class="btn" data-act="close" type="button">Got it</button></div>`;
+  } else if (kind === 'goodbye') {
+    const V = VILLAGERS[data.v]; title = 'A kind word';
+    h += `<div class="vhead">${portrait(data.v, 'neutral', 72)}<div class="info"><span class="name">${V.name}</span>${hearts(heartsOf(data.v), data.v)}</div></div>`;
+    h += `<p class="sub">Tell ${V.name} gently that you'd like to stay friends? You'll keep all your friendship, and hearts 9 and 10 will lock again. Afterwards you can give a bouquet to someone else, or to ${V.name} again one day.</p>`;
+    h += `<div class="cta-row"><button class="btn" data-act="byeyes" data-id="${data.v}" type="button">Have the talk</button><button class="btn alt" data-act="vopen" data-id="${data.v}" type="button">Not now</button></div>`;
   } else if (kind === 'gift') {
     title = 'A gift!';
     h += `<ul class="lines">${data.map(t => `<li class="gift">${t}</li>`).join('')}</ul><div class="cta-row"><button class="btn" data-act="close" type="button">Lovely</button></div>`;
@@ -2820,6 +3084,53 @@ function renderSheet(kind, data) {
   const keep = key === lastSheetKey ? body.scrollTop : 0;
   $('shTitle').textContent = title; body.innerHTML = h; body.scrollTop = keep; lastSheetKey = key;
 }
+/* ---------- the wedding ---------- */
+// Shows on the morning of the wedding day, after the morning sheet. Full screen, above every sheet.
+const weddingDue = () => S.wedding && !S.spouse && absDay() >= S.wedding.at;
+function maybeWedding() { if (mode === 'play' && !sheetOpen && weddingDue()) showWedding(1); }
+function petals(n) {
+  const cols = ['#f7d6e0', '#ffffff', '#cdbbff', '#f2b84b', '#ef9aac'];
+  let h = '<div class="petals" aria-hidden="true">';
+  for (let i = 0; i < n; i++) { const r = hash(i, 7, 3), q = hash(i, 11, 5); h += `<i style="left:${(r * 100).toFixed(1)}%;background:${cols[i % cols.length]};--dx:${((q - .5) * 120).toFixed(0)}px;animation-duration:${(6 + q * 7).toFixed(1)}s;animation-delay:-${(r * 12).toFixed(1)}s${reduceMotion ? ';animation:none;top:' + (q * 90).toFixed(0) + '%' : ''}"></i>`; }
+  return h + '</div>';
+}
+function wedGuests(v) {
+  const pool = VIDS.filter(x => x !== v && x !== 'aldous' && arrived(x) && WED_LINES[x]);
+  for (let i = pool.length - 1; i > 0; i--) { const j = (hash(S.year, i, S.season + 3) * (i + 1)) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return pool.slice(0, 3);
+}
+function showWedding(step) {
+  const v = S.wedding.v, V = VILLAGERS[v], R = ROMANCE[v], fest = S.day === FEST_DAY;
+  sheetOpen = 'wedding'; queue = [];
+  let h = petals(step === 1 ? 26 : 60) + `<div class="wed"><p class="kicker">${SEASONS[S.season]} ${S.day} · Brambleroot</p><h2>${step === 1 ? 'A wedding' : 'Married!'}</h2>`;
+  h += `<div class="couple">${witchSVG(84)}<span class="hrt" aria-hidden="true">♥</span>${portrait(v, 'love', 96)}</div>`;
+  if (step === 1) {
+    h += `<p class="scene">The whole village gathers ${WED_PLACE[S.season]}${fest ? `, already dressed up for the ${FEST[S.season].name}` : ''}. ${V.name} is waiting at the front in their very best. The cat sits in the front row, wearing a ribbon and a serious expression.</p>`;
+    h += `<div class="crowd">${VIDS.filter(x => x !== v && arrived(x)).map(x => portrait(x, 'happy', 40)).join('')}</div>`;
+    h += `<ul class="lines"><li>Mayor Aldous clears his throat and gives the shortest speech of his career. It is still eleven minutes long.</li>${wedGuests(v).map(x => `<li class="withpor">${portrait(x, 'happy', 30)}<span>${WED_LINES[x]}</span></li>`).join('')}</ul>`;
+    h += `<p class="sub">${V.name} takes your hands.</p><div class="bubble">${R.vow}</div>`;
+    h += `<div class="cta-row"><button class="btn" data-wact="ido" type="button">I do</button></div>`;
+  } else {
+    h += `<p class="scene">Everyone cheers. Petals fly everywhere, and Pip and Tilly throw so many that the cat vanishes under them for a moment. Then there's cake, and dancing, and music until the lanterns burn low.</p>`;
+    h += `<p class="sub">From now on ${V.name} lives at Brambleroot with you. Most days you'll find ${V.name} in the garden, and most mornings bring a little help around the house.</p>`;
+    h += `<div class="cta-row"><button class="btn" data-wact="wedhome" type="button">Walk home together</button></div>`;
+  }
+  const el = $('wed'); el.innerHTML = h + '</div>'; el.hidden = false; el.scrollTop = 0;
+}
+function finishWedding() {
+  const v = S.wedding.v, at = S.wedding.at, t = dateOf(at);
+  S.spouse = v; S.dating = null; S.wedding = null; S.weddingDay = { y:t.y, s:t.s, d:t.d, at };
+  S.fr[v] = Math.max(S.fr[v] || 0, 1050);
+  for (const x of VIDS) if (x !== v && arrived(x)) addFr(x, 20);
+  $('wed').hidden = true; $('wed').innerHTML = ''; sheetOpen = null;
+  genVisits(); updateHUD(); save(); cloudPush();
+  toast(`You and ${VILLAGERS[v].name} are married. Welcome home, both of you.`, 5200);
+}
+$('wed').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !S || !S.wedding) return;
+  if (b.dataset.wact === 'ido') { SND.gift(); showWedding(2); }
+  else if (b.dataset.wact === 'wedhome') finishWedding();
+});
 function giftName(g) { return { sprinkler:`${g.n} sprinklers`, rod:'a fishing rod', lantern:'a ferry lantern', energy:'daily buns', almanac:'an almanac', bell:'a cat bell', hive:'a beehive' }[g.kind]; }
 $('shBody').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
@@ -2850,6 +3161,12 @@ $('shBody').addEventListener('click', e => {
     celebrate(q.v, 'happy', `Thank you, witch! Here's the ${fmt(q.reward)} coins I promised.`);
     return;
   }
+  else if (act === 'bouq') { if (S.coins >= BOUQUET_COST) { S.coins -= BOUQUET_COST; S.inv.bouquet = (S.inv.bouquet || 0) + 1; SND.coin(); } renderSheet('market'); }
+  else if (act === 'brewring') { if (S.slots - S.brewing.length > 0 && Object.entries(RING_NEED).every(([k, n]) => (S.inv[k] || 0) >= n)) { for (const [k, n] of Object.entries(RING_NEED)) S.inv[k] -= n; S.brewing.push('ring'); blip(300, 900, .35, 'sine', .05); } renderSheet('cauldron'); }
+  else if (act === 'bouquet') { giveBouquet(id); return; }
+  else if (act === 'propose') { propose(id); return; }
+  else if (act === 'goodbye') { sheetOpen = 'goodbye'; renderSheet('goodbye', { v:id }); return; }
+  else if (act === 'byeyes') { kindGoodbye(id); return; }
   else if (act === 'brew') { const po = POTIONS[id]; for (const [k, n] of Object.entries(po.need)) S.inv[k] -= n; S.brewing.push(id); blip(300, 600, .25, 'sine', .05); renderSheet('cauldron'); }
   else if (act === 'spellsel') { S.sel = 'spell:' + id; closeSheet(); toast(`Tap a bed to cast ${SPELLS[id].name}. Pick seeds again to go back to planting.`); return; }
   else if (act === 'cast') { castSpell(id); renderSheet('spells'); }
@@ -3076,6 +3393,7 @@ function startGame(fresh) {
     updateHUD(); save();
     openSheet('gift', gifts);
   }
+  maybeWedding();
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); cloudPush(true); } });
 window.addEventListener('pagehide', save);

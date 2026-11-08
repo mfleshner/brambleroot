@@ -56,7 +56,15 @@ Shipped as planned, with these choices:
 - Letters: add BDAY_NOTES, THANKS and HEART_LETTERS for the new people.
 - **Migration:** `S.fr` is keyed by id, so new ids start at 0. Nothing else is needed. Add a test that a pre-update save still loads.
 
-## Part 2: hearts, stories, marriage
+## Part 2: hearts, stories, marriage — DONE Nov 8, 2026
+Shipped as planned, with these choices:
+- Hearts 9 and 10 stay locked (padlocks) for everyone she isn't dating. Friendship points above the cap are kept, so a kind goodbye costs nothing and re-dating brings the hearts straight back.
+- The bouquet shows at the Market once someone romanceable is at 6+ hearts, and disappears once she's married.
+- The ring is brewed overnight (it takes a cauldron pot) and only appears while she's dating.
+- Wedding date: the next festival day or 3 days after the proposal, whichever is sooner. The wedding plays after the morning sheet that day.
+- "Birthday breakfast" is on the spouse's birthday. The anniversary gives a Starshard.
+- Spouse help, tuned with `tests/spousesim.js`: about 5 to 6% of a year-1 summer or autumn earning goal for most spouses (about 4% in year 2). Rowan: +20 energy, waters up to 8 beds, fills the can. Silas: +20 mana (+30 energy without spells), about 3%. Theo: a potion worth 200 or less. Zara: 1 seed of the season's best crop. Odile's help is friendship only (+25 with 3 villagers), worth 0 coins.
+
 - Hearts: romanceable people go to **10** hearts (`heartsOf` cap 8 becomes 10, and `addFr` cap 850 becomes 1050 for them). Everyone else stays at 8.
   - Hearts 9 and 10 are locked until dating starts. Show a padlock on hearts 9 and 10.
   - Heart scenes at 2, 4, 6 and 8 for everyone. Dating scenes at 9 and 10 for the person she's dating.

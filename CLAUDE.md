@@ -3,7 +3,7 @@
 A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on her **iPhone** (Safari, added to the Home Screen). Matt tests on **Android**. Read this file fully before changing anything.
 
 - Live site: https://mfleshner.github.io/brambleroot/ (GitHub Pages, deploys from `main` root)
-- Next work: **PLAN-villagers.md** (15 villagers plus marriage, in 3 parts)
+- Next work: **PLAN-villagers.md**, Part 3 (schedules, village map, notebook, calendar, story quests, group events). Parts 1 and 2 are done.
 
 ## Files
 - `src/brambleroot.html`: **the source** (about 250 KB, one file: HTML, CSS and JS in one IIFE). Cloud keys are empty here.
@@ -44,6 +44,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - `CHARTER_Y1`, `charterDef`, `checkStars`, `seasonReview`, `headStart`
 - **Villagers:** `VILLAGERS` (15 since Part 1 of the villager plan)
   - Ids: mara, fen, pip, odile, wren, rowan, silas, theo, isolde, juno, hettie, aldous, zara, bertram, tilly. Pip and Tilly are kids: friend only, never dance partners.
+  - Friend only (`romance:false`): fen, pip, hettie, aldous, bertram, tilly. `canRomance(v)`.
   - Fields: look, loves/likes/hates, bday (no two share one, none on day 14), `place`, story per season, odd jobs, talk tiers, heart scenes at 2/4/6/8, heart gifts at 3/6, `arrive` season. Story requests only post in year 1.
   - `place` groups the village list under `PLACES` (square, inn, row, mill, river, lanes). Part 3's schedules can reuse these.
   - `arrive`: Silas autumn, Zara and Wren summer, everyone else spring.
@@ -53,7 +54,16 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - Aldous has a special talk line about this season's charter stars (in `talkTo`).
   - Portrait styles: scarf, cap, messy, bun, curls, plus short, long, braid, ponytail, pigtails, wisps, wrap, beanie. Options: beard, moustache, glasses, earrings, freckles, flour, apron (true or a colour).
   - Festivals: every villager needs a line in all four `FEST[i].lines`, and every adult needs a `dance` line.
-  - Functions: `heartsOf` (cap 8), `addFr` (cap 850), `talkTo`, `giveGift`, `portrait(v, mood, size)` (an SVG generator).
+  - Functions: `heartsOf` (cap 8, or 10 for her partner), `addFr` (cap 850, or 1050 for her partner; points above a cap are kept, never trimmed), `talkTo`, `giveGift`, `portrait(v, mood, size)` (an SVG generator).
+  - **Romance (Part 2):** `ROMANCE[v]` holds every romance line (yes, s9, s10, bye, propose, vow, date, wed, morn, bday). `isPartner(v)` = dating or spouse.
+    - State: `S.dating` (one at a time), `S.wedding = { v, at }` (engaged; `at` is an `absDay()`), `S.spouse`, `S.weddingDay = { y, s, d, at }`. Migrate needs nothing: newState defaults are null.
+    - Hearts 9 and 10 show padlocks (`hearts(n, v)`) until dating. Scenes 9/10 come through `nextScene` for the partner.
+    - Moonpetal Bouquet: Market buy tab, 200 coins, shows once anyone romanceable is at 6+ hearts (`bouquetOnSale`). Give at 8 hearts (`giveBouquet`).
+    - Kind goodbye (`kindGoodbye`, act `goodbye` → confirm sheet → `byeyes`): ends dating, keeps all points. Not allowed once engaged.
+    - Witch's Ring: brewed overnight at the cauldron from `RING_NEED` (1 crystal + 1 starshard), only while dating. It's in `ITEMS` but not `POTIONS` (so it never counts for potion variety or head starts). `NOGIFT` keeps bouquet and ring out of gift, fair and swap lists.
+    - `propose` at 10 hearts. `weddingAt()`: the next festival day or 3 days later, whichever is sooner.
+    - Wedding: full-screen `#wed` overlay (z-index 14) with `sheetOpen = 'wedding'`; `maybeWedding()` runs when the morning (or gift) sheet closes and on load. `closeSheet` ignores it. Buttons use `data-wact`.
+    - Married life: `romanceMorning(lines)` in `endDay` (after sprinklers): greeting every morning (`morn` or `GREET`), birthday breakfast, anniversary (+1 Starshard), and `SPOUSE_HELP[v]` on 60% of mornings. Spouse is in the garden 80% of days (`genVisits`, `spouse:true`, 7 am to 8 pm). Spouse is always `inValley` (Zara included). Spouse friendship can't drop. Energy and mana may go over max for the day; HUD bars clamp.
   - The winter "befriend" star is **6 villagers at 5+ hearts** (`req.friends`, +1 per year), not "every villager".
 - **Life:**
   - `LOOKS` and `witchSVG` (the wardrobe)
@@ -122,6 +132,9 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
     - `villagercheck.js` (headless): every villager has all fields, valid items, in-season story items, unique birthdays, portraits in every mood, and festival, letter and visit lines.
     - `yearsim.js` (headless): 2 years of sleeping, visits, Zara's days, festival renders and every villager page.
     - `villagetest.js` (18 phone checks, grouped list, Zara's days).
+    - `romancesim.js` (headless, 144 checks): hearts and padlocks, bouquet rules, goodbye, ring, wedding dates, wedding overlay, 2 years married, every spouse's help, saves.
+    - `spousesim.js` (headless): value of each spouse's help per season against the charter earning goals.
+    - `romancetest.js` (36 phone checks, iPhone 13 and Pixel 7): bouquet → dating → ring → proposal → wedding → married morning. Pass a folder for screenshots.
     - `gallery.js` writes gallery.html with every portrait in every mood; screenshot it to eyeball new faces.
   - Tests: `savesuite.js` (32 save checks), `clocktest.js` (12 clock checks on iPhone 13 and Pixel 7), `filetest.js`, `pastetest.js`, `fishtest.js`/`spelltest.js` (these need an exposed `__pond`/`__spells` hook; see how fishtest.html was made), `shot-save.json` (a realistic mid-game save, summer day 14).
   - A failed proxy connection to fonts.googleapis.com during tests is harmless.
@@ -146,3 +159,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
    - restore-box forgiveness
 7. Clock: pauses while she stands still, plus a Brisk/Gentle/Slow pace setting (Nov 8, 2026).
 8. Villager plan, Part 1: ten new villagers, a village list grouped by place, 1 to 3 garden visits a day, Zara's market days (Nov 8, 2026).
+9. Villager plan, Part 2: 10 hearts, dating, the kind goodbye, the Witch's Ring, weddings and married life (Nov 8, 2026).
