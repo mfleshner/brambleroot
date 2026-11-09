@@ -5162,7 +5162,7 @@ function renderTitle() {
   btns.innerHTML += `<button class="btn alt" id="tRestore" type="button">Restore a backup</button>`;
   $('tRestore').onclick = () => openSheet('restore');
   const c = $('tContinue');
-  if (c) c.onclick = () => { ensureAudio(); S = saved; startGame(false); };
+  if (c) c.onclick = () => { try { ensureAudio(); } catch (e) {} S = saved; try { startGame(false); } catch (e) { $('title').hidden = true; mode = 'play'; try { buildStatic(); updateHUD(); save(); } catch (_) {} oops('continue', e); } };
   let armed = false;
   $('tNew').onclick = () => {
     if (saved && !armed) { armed = true; $('tNew').textContent = 'Tap again to erase your save'; return; }
@@ -5213,11 +5213,19 @@ function trackPlay() {
   const P = playLog(), k = localDate(); P.days[k] = (P.days[k] || 0) + Math.round(playAcc); playAcc = 0;
   const keys = Object.keys(P.days).sort(); while (keys.length > 120) delete P.days[keys.shift()];
 }
+// One bad frame must never stop the game: the loop always reschedules, and an error is reported once (oops).
+let oopsSeen = '';
+function oops(where, e) {
+  const msg = `${where}: ${(e && e.message) || e}`; try { console.error(msg, e); } catch (_) {}
+  if (oopsSeen === msg) return; oopsSeen = msg; S.lastErr = msg.slice(0, 300);
+  try { toast(`Something hiccuped (${msg.slice(0, 120)}). The game carries on; tell Matt if it keeps happening.`, 6000); } catch (_) {}
+}
 function frame(now) {
-  trackPlay();
-  const dt = Math.min(.05, (now - last) / 1000); last = now;
-  update(dt); draw();
   requestAnimationFrame(frame);
+  const dt = Math.min(.05, Math.max(0, (now - last) / 1000)); last = now;
+  try { trackPlay(); } catch (e) {}
+  try { update(dt); } catch (e) { oops('update', e); }
+  try { draw(); } catch (e) { oops('draw', e); }
 }
 S = load() || newState();
 resize(); updateHUD(); renderTitle();
