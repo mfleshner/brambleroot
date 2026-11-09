@@ -34,5 +34,6 @@ for(const [s,st] of rows){
   const f=run(s,st,{...base}), fr=run(s,st,{...base,eff:.6});
   const all=run(s,st,{...cfg,eff:1,forage:true,spells:s!=='spring'}), allr=run(s,st,{...cfg,eff:.6,forage:true,spells:s!=='spring'});
   const spF=s==='spring'?run(s,st,{...cfg,eff:1,forage:true,spells:false}):all;
+  if(cfg.cookE){ const ck=run(s,st,{...cfg,eff:1+cfg.cookE/100,forage:true,spells:s!=='spring'})-28*cfg.cookK; console.log(s.padEnd(7),`  cooking (+${cfg.cookE} energy/day for ${cfg.cookK} coins/day):`,String(ck).padStart(6),' (+'+Math.round((ck/spF-1)*100)+'% over Wood'+(s==='spring'?'':' + spells')+')'); }
   console.log(s.padEnd(7),'farm only good/relaxed:',String(f).padStart(6),String(fr).padStart(6),' | with Wood'+(s==='spring'?'':' + spells')+' good/relaxed:',String(spF).padStart(6),String(allr).padStart(6), ' (+'+Math.round((spF/f-1)*100)+'%)');
 }

@@ -864,7 +864,7 @@ function zeroMap() { const o = {}; VIDS.forEach(v => o[v] = 0); return o; }
 function newState() {
   const plots = [];
   for (let i = 0; i < 56; i++) plots.push({ t:0, c:null, d:0, w:false, ready:false, s:false });
-  return { v:2, year:1, season:0, day:1, time:360, coins:150, energy:100, maxEnergy:100, can:20, canMax:20, sel:'mint',
+  return { v:2, recipes:{ minnowfry:true, minttea:true, berrytoast:true }, fed:null, year:1, season:0, day:1, time:360, coins:150, energy:100, maxEnergy:100, can:20, canMax:20, sel:'mint',
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     hollow:hollowState(), helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
@@ -898,6 +898,7 @@ function migrate(s) {
       if (s.hollowMax) for (const k of ['slime', 'bat', 'beetle']) n.hollow.seen[k] = true;
     }
     n.hollow.relics = Object.assign({}, n.hollow.relics || {}); for (const f in n.hollow.wardens) { const r = wardenRelic(f); if (r) n.hollow.relics[r] = true; }
+    n.recipes = Object.assign({ minnowfry:true, minttea:true, berrytoast:true }, s.recipes || {});
     if (!s.charters) buildCharters(n, { debt:s.debt === undefined ? 2000 : n.debt, proj:s.proj, done:s.done });
     else n.charters = s.charters;
     n.debt = 0;
@@ -2392,6 +2393,7 @@ function sendLetter(id, from, title, text, gift) {
   S.mail.unshift(m); if (S.mail.length > 40) S.mail.length = 40; return m;
 }
 // Letters about how deep she has gone (PLAN-hollow.md: floors 25 and 50 now, 75 and 100 in Part 3).
+LETTERS.kitchen = `I hear you've been living on herbs and pond water. That won't do.\n\nYour aunt's stove is the old iron one beside the cauldron. It still works, it just needs a good kick. I've put three of my easy recipes in her kitchen drawer: Minnow Fry, Mint Tea, and Thornberry Toast.\n\nA proper meal puts the energy back in your legs. Two a day, mind, or you'll be too full to dig. You'll find the Kitchen on your Brew sheet.\n\nIsolde`;
 const DEEP_LETTERS = {
   25:`Word in the village is you've been down to floor twenty-five. TWENTY-FIVE. The deepest I ever got was fifteen, and I came up with a crab on my boot.\n\nIf you see a river down there, tell it I said hello. Then tell me everything.\n\nJuno`,
   50:`Fifty floors. When I was a boy, the old keeper said the valley sits on a lantern, and if you dug far enough you'd find the flame. I always thought it was a story.\n\nI asked Theo to brew you something for the long climb back. Mind the stairs.\n\nBertram`,
@@ -2403,6 +2405,8 @@ function mailMorning(lines) {
   const past = (s, d) => S.year > 1 || S.season > s || (S.season === s && S.day >= d);
   if (past(0, 2)) send('book', 'guild', "Your aunt's spellbook", LETTERS.book, { kind:'spell', id:'quicken' });
   if (past(0, 4)) send('wood', 'fen', 'The Old Wood', LETTERS.wood);
+  if (past(0, 3) && arrived('isolde')) send('kitchen', 'isolde', "Your aunt's stove", LETTERS.kitchen);
+  for (const [v, L] of Object.entries(RECIPE_LETTERS)) if (S.sent.kitchen && arrived(v) && heartsOf(v) >= 3) send(`rc${v}`, v, L.title, L.text, { kind:'recipe', id:L.id });
   if (S.day >= FEST_DAY - 2 && S.day < FEST_DAY) send(`fest${festKey()}`, 'odile', `You're invited: ${FEST[S.season].name}`, FEST[S.season].invite);
   for (const v of VIDS) if (arrived(v)) { const b = VILLAGERS[v].bday; if (b[0] === S.season && b[1] === S.day + 1) send(`bd${v}y${S.year}`, v, 'Tomorrow is my birthday', BDAY_NOTES[v]); }
   for (const [v, L] of Object.entries(HEART_LETTERS)) if (arrived(v) && heartsOf(v) >= 4 && !S.sent[`h4${v}`]) send(`h4${v}`, v, L.title, L.text, L.gift());
@@ -2419,6 +2423,7 @@ function applyLetterGift(g) {
   if (!g) return null;
   if (g.kind === 'spell') { learnSpell(g.id); return `You learned ${SPELLS[g.id].name}. Find it under the new Spells button.`; }
   if (g.kind === 'coins') { earn(g.n); return `${g.n} coins were tucked inside.`; }
+  if (g.kind === 'recipe') { (S.recipes = S.recipes || {})[g.id] = true; return `A recipe card was tucked inside: ${DISHES[g.id].name}. Find it in the Kitchen, on the Brew sheet.`; }
   if (g.kind === 'seeds') { S.seeds[g.id] = (S.seeds[g.id] || 0) + g.n; return `${g.n} ${CROPS[g.id].name} seeds were tucked inside.`; }
   if (g.kind === 'items') { giveItems(g.items); return Object.entries(g.items).map(([k, n]) => `${n} ${itemName(k)}`).join(' and ') + ' came with it.'; }
   if (g.kind === 'sprinkler') { S.sprinklers += g.n; return `A brass sprinkler came with it. Place it from your seed pouch.`; }
@@ -3049,6 +3054,56 @@ const HOLLOW_POTIONS = {
   manadraught:{ name:'Mana Draught',   need:{ jelly:2, spore:1 }, sell:40, col:'#8fb8ff', wild:true }
 };
 Object.assign(POTIONS, HOLLOW_POTIONS); Object.assign(ITEMS, HOLLOW_DROPS, HOLLOW_POTIONS);
+/* ---- cooking (PLAN-hew.md Part 1): the Kitchen tab on the Brew sheet ----
+   Dishes refill energy (never past her max, except hearty ones, which go up to HEARTY over it). She can eat FULL_MAX a day.
+   A dish sells for half its ingredients, so cooking never makes money. from: 'start' (known), a price (Market recipe card),
+   or a villager (a letter at 3 hearts). */
+const FULL_MAX = 2, HEARTY = 15, COOK_MIN = 10;
+const DISHES = {
+  minnowfry:  { name:'Minnow Fry',        need:{ minnow:2 },              energy:20, col:'#c8b48a', from:'start' },
+  minttea:    { name:'Mint Tea',          need:{ mint:2 },                energy:15, col:'#9fe0b0', from:'start' },
+  berrytoast: { name:'Thornberry Toast',  need:{ thorn:2 },               energy:20, col:'#d05a8a', from:'start' },
+  springsalad:{ name:'Spring Salad',      need:{ fern:1, violet:1 },      energy:25, col:'#8fcf6a', from:60 },
+  moreltoast: { name:'Morel Toast',       need:{ morel:1, mint:1 },       energy:30, col:'#c9a26a', from:80 },
+  troutsup:   { name:'Trout Supper',      need:{ trout:1, ember:1 },      energy:40, col:'#e0a0b8', from:150 },
+  pepperstew: { name:'Sunpepper Stew',    need:{ pepper:1, sunberry:2 },  energy:35, col:'#ff6a3a', from:120 },
+  melonice:   { name:'Melon Ice',         need:{ melon:1 },               energy:45, col:'#c0f08a', from:150 },
+  chanpie:    { name:'Chanterelle Pie',   need:{ chanter:2, hazel:1 },    energy:40, col:'#f0b04a', from:120 },
+  jellytart:  { name:'Slime Jelly Tart',  need:{ jelly:2, honey:1 },      energy:35, col:'#a8e0a0', from:120, hollow:true },
+  hotpot:     { name:'Winter Hotpot',     need:{ frost:1, iceperch:1 },   energy:45, col:'#b8e0ff', from:200, hearty:true },
+  risotto:    { name:'Truffle Risotto',   need:{ truffle:1, holly:1 },    energy:50, col:'#ece4d4', from:250, hearty:true },
+  moonsup:    { name:'Moonfish Supper',   need:{ moonfish:1, honey:1 },   energy:50, col:'#d8d0ff', from:300, hearty:true },
+  honeycake:  { name:'Honey Cake',        need:{ honey:2 },               energy:40, col:'#f2c04b', from:'wren' },
+  chowder:    { name:'Mudcat Chowder',    need:{ mudcat:1, ember:1 },     energy:45, col:'#b8a07a', from:'fen' },
+  gourdsoup:  { name:'Hearty Gourd Soup', need:{ gourd:1, hazel:1 },      energy:45, col:'#f08c2a', from:'hettie', hearty:true },
+  startart:   { name:'Starfruit Tart',    need:{ star:1, honey:1 },       energy:40, col:'#ffd84a', from:'mara' }
+};
+for (const [k, d] of Object.entries(DISHES)) ITEMS[k] = { name:d.name, col:d.col, dish:true, sell:Math.max(5, Math.round(Object.entries(d.need).reduce((a, [i, n]) => a + ITEMS[i].sell * n, 0) / 2 / 5) * 5) };
+const RECIPE_LETTERS = {
+  wren:{ id:'honeycake', title:'Something sweet', text:`My bees made far too much honey this year, so here's what I do with it. Don't tell the bees.\n\nTwo jars of honey, a warm oven, and patience. It's the patience that's hard.\n\nWren` },
+  fen:{ id:'chowder', title:'A ferryman\'s supper', text:`Your aunt used to make this on cold nights and bring it down to the river in a pot wrapped in her scarf. I never did learn how she got the pot to stay warm.\n\nMudcat and emberroot. Simmer it slow.\n\nOld Fen` },
+  hettie:{ id:'gourdsoup', title:'For the long days', text:`You work too hard, dear. Everyone says so. So here is my gourd soup, which has seen me through sixty winters and two husbands.\n\nA hollowgourd and a handful of hazelnuts. It sticks to your ribs.\n\nHettie` },
+  mara:{ id:'startart', title:'From the mill', text:`I had flour left over (I always have flour left over) so I've been baking. This one's the best. Starfruit, honey, and my secret, which is more butter.\n\nMara` }
+};
+const fedToday = () => S.fed && S.fed.k === dayKey() ? S.fed.n : 0;
+const dishKnown = id => !!(S.recipes && S.recipes[id]);
+function cookDish(id) {
+  const d = DISHES[id]; if (!d || !dishKnown(id)) return false;
+  if (S.scene === 'hollow') { toast("The stove is at home. You can eat what's in your basket, though."); return false; }
+  if (!Object.entries(d.need).every(([k, n]) => (S.inv[k] || 0) >= n)) return false;
+  for (const [k, n] of Object.entries(d.need)) S.inv[k] -= n;
+  S.inv[id] = (S.inv[id] || 0) + 1; S.time += COOK_MIN; blip(500, 300, .15, 'triangle', .05); updateHUD(); return true;
+}
+function eatDish(id) {
+  const d = DISHES[id]; if (!d || !(S.inv[id] > 0)) return null;
+  if (fedToday() >= FULL_MAX) { toast(`You're full. You can eat ${FULL_MAX} dishes a day.`); return null; }
+  const cap = S.maxEnergy + (d.hearty ? HEARTY : 0);
+  if (S.energy >= cap) { toast(`You're not hungry. Save it for later.`); return null; }
+  const before = S.energy; S.energy = Math.min(cap, S.energy + d.energy); S.inv[id]--;
+  S.fed = { k:dayKey(), n:fedToday() + 1 }; SND.gift();
+  const got = S.energy - before; if (typeof witch !== 'undefined') floatText(witch.x, witch.y - .6, `+${got} energy`, '#9fd86a');
+  updateHUD(); return got;
+}
 Object.assign(SPELLS, {
   firebolt:{ name:'Firebolt', mana:2, col:'#ff6a3a', hollow:true, desc:'Only works in the Hollow. Tap a creature to throw a bolt of fire.' },
   frost:   { name:'Frost Ring', mana:6, col:'#a8e6ff', hollow:true, desc:'Only works in the Hollow. Tap yourself to hit every creature close by.' }
@@ -3058,6 +3113,7 @@ UPGRADES.can3 = { name:'Gold watering can', desc:'Holds 120 waterings.', cost:80
 VILLAGERS.fen.likes.push('shell', 'ironshell'); VILLAGERS.pip.likes.push('jelly', 'bounce'); VILLAGERS.odile.likes.push('crystal');
 VILLAGERS.theo.likes.push('spore', 'sporebrew'); VILLAGERS.zara.likes.push('prism', 'prismel'); VILLAGERS.juno.likes.push('prismel');
 VILLAGERS.juno.likes.push('pearl', 'pearlbalm'); VILLAGERS.hettie.likes.push('heartwood', 'roottonic'); VILLAGERS.rowan.likes.push('emberglass', 'embercord'); VILLAGERS.bertram.likes.push('rime', 'rimetea');
+VILLAGERS.isolde.likes.push('risotto'); VILLAGERS.juno.likes.push('troutsup'); VILLAGERS.silas.likes.push('melonice');
 VILLAGERS.aldous.likes.push('oldcoin', 'gildtonic'); VILLAGERS.odile.likes.push('stardust', 'dustel'); VILLAGERS.fen.likes.push('heartstone', 'heartcord');
 // Every creature is still "tap to throw a Firebolt". Each has one body shape (drawn by drawMob) and at most one trait:
 // hops, zigzags, slow, sleepy (dozes until she's close or it's hit), hides (only hittable while it glows),
@@ -4040,6 +4096,8 @@ function updateHUD() {
 }
 
 /* ================= sheets ================= */
+let brewTab = 'cauldron';
+const brewTabs = () => `<div class="tabs" role="tablist">${[['cauldron', 'Cauldron'], ['kitchen', 'Kitchen']].map(([t, l]) => `<button class="tab" role="tab" aria-selected="${brewTab === t}" data-act="btab" data-id="${t}" type="button">${l}</button>`).join('')}</div>`;
 let boardDone = [], boardOrder = [], boardScroll = 0, marketTab = 'buy', journalTab = 'charters', lastSheetKey = '', backupCode = '', calSeason = 0, vFrom = '', vPlace = '';
 function openSheet(kind, data) {
   if (kind === 'board') { boardDone = []; boardOrder = []; }
@@ -4116,6 +4174,8 @@ function renderSheet(kind, data) {
     h += `<div class="tabs" role="tablist">${['buy', 'sell', 'upgrades'].map(t => `<button class="tab" role="tab" aria-selected="${marketTab === t}" data-act="tab" data-id="${t}" type="button">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>`;
     if (marketTab === 'buy') {
       if (bouquetOnSale()) h += row(ITEMS.bouquet.col, 'Moonpetal Bouquet', `${BOUQUET_COST} coins · have ${S.inv.bouquet || 0} · give it to someone at 8 hearts to ask them out`, `<button class="btn" data-act="bouq" type="button" ${S.coins < BOUQUET_COST ? 'disabled' : ''}>Buy · ${BOUQUET_COST}</button>`);
+      const cards = Object.entries(DISHES).filter(([id, d]) => typeof d.from === 'number' && !dishKnown(id) && (!d.hollow || S.hollowMax));
+      if (cards.length) { h += `<h4 class="sec">Recipe cards</h4>`; for (const [id, d] of cards) h += row(d.col, `Recipe: ${d.name}`, `${d.from} coins · ${Object.entries(d.need).map(([k, n]) => `${n} ${itemName(k)}`).join(' + ')} · +${d.energy} energy${d.hearty ? ' · hearty' : ''}`, `<button class="btn alt" data-act="recipe" data-id="${id}" type="button" ${S.coins < d.from ? 'disabled' : ''}>Buy</button>`); h += `<h4 class="sec">Seeds</h4>`; }
       for (const [id, cr] of Object.entries(CROPS)) {
         if (!cropKnown(id)) continue;
         if (cropLockedToday(id)) { h += row(cr.col, cr.name + ' seeds', `Arrives on ${SEASONS[S.season].toLowerCase()} ${cr.unlock}`, '', 'dim'); continue; }
@@ -4162,8 +4222,30 @@ function renderSheet(kind, data) {
     };
     h += boardOrder.map(x => x.done ? doneCard(x) : reqCard(x, S.reqs.indexOf(x))).join('');
     h += `<p class="sub">Every request you fill earns a heart with that villager. At 3 and 6 hearts they bring you a gift.</p>`;
+  } else if (kind === 'cauldron' && brewTab === 'kitchen') {
+    title = 'Kitchen';
+    h += brewTabs();
+    const ate = fedToday(), mine = Object.keys(DISHES).filter(id => S.inv[id] > 0);
+    h += `<p class="sub">Dishes refill your energy. You can eat ${FULL_MAX} a day (${ate >= FULL_MAX ? "you're full today" : `${FULL_MAX - ate} left today`}). Hearty ones let you go ${HEARTY} past your usual max. Cooking takes ${COOK_MIN} minutes.</p>`;
+    if (mine.length) {
+      h += `<h4 class="sec">In your basket</h4>`;
+      for (const id of mine) { const d = DISHES[id], can = ate < FULL_MAX && S.energy < S.maxEnergy + (d.hearty ? HEARTY : 0);
+        h += row(d.col, `${d.name} ×${S.inv[id]}`, `+${d.energy} energy${d.hearty ? ' · hearty' : ''}`, `<button class="btn" data-act="eat" data-id="${id}" type="button" ${can ? '' : 'disabled'}>Eat</button>`, can ? '' : 'dim'); }
+    }
+    h += `<h4 class="sec">Recipes</h4>`;
+    const away = S.scene === 'hollow';
+    for (const [id, d] of Object.entries(DISHES)) {
+      if (!dishKnown(id)) continue;
+      const can = !away && Object.entries(d.need).every(([k, n]) => (S.inv[k] || 0) >= n);
+      const need = Object.entries(d.need).map(([k, n]) => `${n} ${itemName(k)} (${S.inv[k] || 0})`).join(' + ');
+      h += row(d.col, d.name, `${need} · +${d.energy} energy${d.hearty ? ' · hearty' : ''}`, `<button class="btn" data-act="cook" data-id="${id}" type="button" ${can ? '' : 'disabled'}>Cook</button>`, can ? '' : 'dim');
+    }
+    if (away) h += `<p class="sub">The stove is at home, but you can eat from your basket down here.</p>`;
+    const hid = Object.keys(DISHES).filter(id => !dishKnown(id)).length;
+    if (hid) h += `<p class="sub">${hid} more recipe${hid === 1 ? '' : 's'} to find: some are sold as recipe cards at the market, and some friends may share theirs.</p>`;
   } else if (kind === 'cauldron') {
     title = 'Cauldron';
+    h += brewTabs();
     const free = S.slots - S.brewing.length;
     h += `<p class="sub">${S.brewing.length ? `Brewing ${S.brewing.map(itemName).join(', ')}. ` : ''}${free > 0 ? `${free} free pot${free === 1 ? '' : 's'}. Potions are ready tomorrow morning.` : 'All pots are busy until morning.'}</p>`;
     for (const [id, po] of Object.entries(POTIONS)) {
@@ -4480,7 +4562,7 @@ function renderSheet(kind, data) {
     title = 'A gift!';
     h += `<ul class="lines">${data.map(t => `<li class="gift">${t}</li>`).join('')}</ul><div class="cta-row"><button class="btn" data-act="close" type="button">Lovely</button></div>`;
   }
-  const key = kind + '|' + (kind === 'market' ? marketTab : (kind === 'journal' ? journalTab : '')) + '|' + ((data && (data.v || data.p)) || '');
+  const key = kind + '|' + (kind === 'market' ? marketTab : kind === 'journal' ? journalTab : kind === 'cauldron' ? brewTab : '') + '|' + ((data && (data.v || data.p)) || '');
   const keep = key === lastSheetKey ? body.scrollTop : 0;
   $('shTitle').textContent = title; body.innerHTML = h; body.scrollTop = keep; lastSheetKey = key;
 }
@@ -4556,6 +4638,10 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'givegift') { giveGift(id, b.dataset.item); return; }
   else if (act === 'buy') { const n = +b.dataset.n, cost = seedPrice(id) * n; if (S.coins >= cost) { S.coins -= cost; S.seeds[id] = (S.seeds[id] || 0) + n; if (S.sel !== 'sprinkler' && S.sel !== 'trowel' && !S.sel.startsWith('spell:') && !(S.seeds[S.sel] > 0)) S.sel = id; blip(700, 500, .05); } renderSheet('market'); }
   else if (act === 'zbuy') { if (cartBuy(id)) { SND.coin(); updateHUD(); } renderSheet('place', { p:'cart' }); return; }
+  else if (act === 'btab') { brewTab = id; renderSheet('cauldron'); }
+  else if (act === 'cook') { if (cookDish(id)) toast(`You cooked ${DISHES[id].name}.`); renderSheet('cauldron'); }
+  else if (act === 'eat') { const got = eatDish(id); if (got) toast(`${DISHES[id].name}: +${got} energy.`); renderSheet('cauldron'); }
+  else if (act === 'recipe') { const d = DISHES[id]; if (S.coins >= d.from && !dishKnown(id)) { S.coins -= d.from; S.recipes[id] = true; SND.coin(); toast(`New recipe: ${d.name}. Cook it in the Kitchen, on the Brew sheet.`); updateHUD(); } renderSheet('market'); }
   else if (act === 'sell') { const n = Math.min(+b.dataset.n, S.inv[id] || 0); S.inv[id] -= n; SND.coin(); earn(itemValue(id) * n); renderSheet('market'); }
   else if (act === 'up') {
     const up = UPGRADES[id]; if (S.coins >= upCost(up) && !(up.items && Object.entries(up.items).some(([k, n]) => (S.inv[k] || 0) < n))) {
