@@ -3,7 +3,8 @@
 A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on her **iPhone** (Safari, added to the Home Screen). Matt tests on **Android**. Read this file fully before changing anything.
 
 - Live site: https://mfleshner.github.io/brambleroot/ (GitHub Pages, deploys from `main` root)
-- The villager plan (**PLAN-villagers.md**) is finished: all three parts shipped Nov 8, 2026. No next work is queued; ask Matt.
+- The villager plan (**PLAN-villagers.md**) is finished: all three parts shipped Nov 8, 2026.
+- **Next: PLAN-hollow.md** (the deep Hollow, 100 floors plus the Endless Below, in 3 parts). Decided Nov 8, 2026; no part built yet. Start with Part 1.
 
 ## Files
 - `src/brambleroot.html`: **the source** (about 250 KB, one file: HTML, CSS and JS in one IIFE). Cloud keys are empty here.
