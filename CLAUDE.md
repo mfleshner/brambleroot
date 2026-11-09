@@ -54,6 +54,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - `place` groups the village list under `PLACES` (square, inn, row, mill, river, lanes). Part 3's schedules can reuse these.
   - `arrive`: Silas autumn, Zara and Wren summer, everyone else spring.
   - Zara has `market:true`. Her cart comes on days 5, 12, 19 and 26 (`marketDay()`), plus festivals. `inValley(v)` is true only when someone is around; it gates garden visits, chat and gifts. `nextMarket()` names her next day.
+  - **Zara's wares (Nov 9, 2026):** her cart sheet (`place` sheet for `cart`) opens with a shop, `cartWares()`, shown only while she's standing at it (`zaraAtCart()`: village scene, cart parked, `where('zara') === 'cart'`). Stock (`cartStock()`): a Starshard (600, 1 per visit) and a Glowing Crystal (250, 1 per visit) every time, so the Witch's Ring doesn't need the Hollow, plus `CART_ROAD_N` = 3 out-of-season forage/fish from `cartRoad()` (hashed by year/season/day, 2.5× sell value, 3 each). Friend's price 10% off at 5 hearts or as her partner (`cartDisc`). Everything costs at least 2.25× what it sells for, so there's no resale loop. Bought counts live in `S.cart = { k:dayKey(), got }` (null default). Buy act `zbuy`; her villager page has "See her wares" (`placeopen cart`). `cartHere()` no longer hides the cart once she's married: she keeps it on market days. Tests: `carttest.js` (headless, ~590 checks), `cartphone.js` (phone tap-and-buy, iPhone 13 and Pixel 7).
   - Heart gift kinds: sprinkler, rod, lantern, energy, almanac, bell, hive (the original five), plus `discount` (Rowan: `S.upDisc`, 10% then 25% off upgrades through `upCost(up)`), `coins`, `items`, `seeds` (`seedGift(n, rare)`). The new ten give one-off items or coins, not permanent perks, to protect the economy.
   - Heart letters at 4 hearts (`HEART_LETTERS`) can also give `items` and `sprinkler`.
   - Aldous has a special talk line about this season's charter stars (in `talkTo`).
@@ -194,3 +195,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 11. Play-time tracking in the save, for Matt's stats page (Nov 8, 2026).
 12. Silver sprinkler heads, the trowel, and the notice board staying open after Give (Nov 8, 2026).
 13. Deep Hollow Part 1: bands, six new creatures, Wardens at 10/20/30, lift every 5 floors with springs, bestiary and journal pages (Nov 8, 2026).
+14. Zara's cart sells things now: Starshard, Glowing Crystal and three out-of-season finds each market day (Nov 9, 2026).

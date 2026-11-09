@@ -853,7 +853,7 @@ function newState() {
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     hollow:hollowState(), helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
-    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null };
+    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -2693,7 +2693,50 @@ const VSPOTS = {
   lighthouse:[[7, 12, 6, 12]]
 };
 const V_RIVER = 9, V_EXIT = [4, 12];
-const cartHere = () => arrived('zara') && (marketDay() || isFestDay()) && S.spouse !== 'zara';
+const cartHere = () => arrived('zara') && (marketDay() || isFestDay());
+/* ---------- Zara's wares ---------- */
+// What she sells from the cart: things the farm stall never has. Always priced well above what they sell for,
+// so buying to resell only loses coins. A Starshard and a Glowing Crystal every visit (so the Witch's Ring
+// doesn't need the Hollow), plus three finds from the road: wild things and fish from other seasons, fresh each day.
+const CART_FIXED = { starshard:{ price:600, n:1, note:'For gifts, or the Witch\'s Ring' }, crystal:{ price:250, n:1, note:'Usually found down in the Hollow' } };
+const CART_ROAD_N = 3, CART_LINES = ["Everything's from somewhere, darling. Most of it's from somewhere else.",
+  "Fresh off the road. Well. Fresh-ish.", "Browse all you like. Touching is extra. I'm joking. Mostly.",
+  "Nine valleys of odds and ends, and every one of them a bargain.", "That one's from the far south. So am I, some days."];
+function cartRoad() {
+  const pool = Object.keys(FORAGE).filter(k => !FORAGE[k].grove && !FORAGE[k].seasons.includes(S.season))
+    .concat(Object.keys(FISH).filter(k => FISH[k].seasons.length < 4 && !FISH[k].seasons.includes(S.season)));
+  const seed = S.year * 1000 + S.season * 100 + S.day;
+  return pool.map((k, i) => [hash(seed, i, 41), k]).sort((a, b) => a[0] - b[0]).slice(0, CART_ROAD_N).map(x => x[1]);
+}
+const cartDisc = () => (heartsOf('zara') >= 5 || isPartner('zara')) ? 10 : 0;
+const cartPrice = id => Math.round((CART_FIXED[id] ? CART_FIXED[id].price : itemValue(id) * 2.5) * (1 - cartDisc() / 100) / 5) * 5;
+function cartState() { if (!S.cart || S.cart.k !== dayKey()) S.cart = { k:dayKey(), got:{} }; return S.cart; }
+function cartStock() {
+  const got = cartState().got;
+  return Object.keys(CART_FIXED).concat(cartRoad()).map(id => ({ id, price:cartPrice(id), left:Math.max(0, (CART_FIXED[id] ? CART_FIXED[id].n : 3) - (got[id] || 0)), road:!CART_FIXED[id] }));
+}
+const zaraAtCart = () => S.scene === 'village' && cartHere() && where('zara') === 'cart';
+function cartBuy(id) {
+  const w = cartStock().find(x => x.id === id);
+  if (!w || !w.left || !zaraAtCart() || S.coins < w.price) return false;
+  S.coins -= w.price; S.inv[id] = (S.inv[id] || 0) + 1; S.cart.got[id] = (S.cart.got[id] || 0) + 1; return true;
+}
+function cartWares() {
+  let h = `<h4 class="sec">Zara's wares</h4>`;
+  if (!zaraAtCart()) { const u = where('zara'); return h + `<p class="sub">The little drawers are shut. Zara sells from the cart when she's standing at it${u === 'garden' ? '. Right now she\'s visiting your garden' : ''}.</p>`; }
+  const d = cartDisc(), lovedBy = id => VIDS.filter(v => (S.known[v] || {})[id] === 'love').map(v => VILLAGERS[v].name);
+  h += `<div class="bubble">${CART_LINES[(hash(S.year * 1000 + S.season * 100 + S.day, 7, 3) * CART_LINES.length) | 0]}</div>`;
+  h += `<p class="sub">${d ? "You get Zara's friend's price: 10% off everything." : 'At 5 hearts, Zara gives you a friend\'s price.'} New stock every market day.</p>`;
+  const one = w => {
+    const it = ITEMS[w.id], lb = lovedBy(w.id), sn = CART_FIXED[w.id] ? '' : (FORAGE[w.id] || FISH[w.id]).seasons.map(x => SEASONS[x].toLowerCase()).join(' or '), extra = CART_FIXED[w.id] ? CART_FIXED[w.id].note : `${/^[aeiou]/.test(sn) ? 'An' : 'A'} ${sn} find`;
+    const meta = `${fmt(w.price)} coins · ${extra}${lb.length ? ` · ${lb.join(' and ')} love${lb.length === 1 ? 's' : ''} it` : ''} · have ${S.inv[w.id] || 0}${w.left ? ` · ${w.left} left` : ''}`;
+    return row(it.col, it.name, meta, w.left ? `<button class="btn" data-act="zbuy" data-id="${w.id}" type="button" ${S.coins < w.price ? 'disabled' : ''}>Buy · ${fmt(w.price)}</button>` : '<span class="meta">Sold out</span>', w.left ? '' : 'dim');
+  };
+  const st = cartStock();
+  h += st.filter(w => !w.road).map(one).join('');
+  h += `<p class="sub">From the road this week:</p>` + st.filter(w => w.road).map(one).join('');
+  return h;
+}
 function vBuildingAt(c, r) {
   for (const k in VB) { const b = VB[k]; if (k === 'cart' && !cartHere()) continue; if (c >= b.c && c < b.c + b.w && r >= b.r && r < b.r + b.h) return k; }
   return null;
@@ -3871,6 +3914,7 @@ function renderSheet(kind, data) {
     h += `<p class="sub where">${mb.note}</p>`;
     if (!mb.ok) { if (mb.seek) h += `<div class="cta-row"><button class="btn" data-act="seek" data-id="${v}" type="button">${mb.seek}</button></div>`; }
     else h += `<div class="cta-row"><button class="btn" data-act="talk" data-id="${v}" type="button" ${talked ? 'disabled' : ''}>${talked ? 'Chatted today' : 'Chat'}</button><button class="btn alt" data-act="vgift" data-id="${v}" type="button" ${gifted || !anyItem ? 'disabled' : ''}>${gifted ? 'Gift given today' : (anyItem ? 'Give a gift' : 'Nothing to give')}</button></div>`;
+    if (v === 'zara' && mb.ok && zaraAtCart()) h += `<div class="cta-row"><button class="btn alt" data-act="placeopen" data-id="cart" type="button">See her wares</button></div>`;
     for (const id of questsFor(v)) h += questCard(id, v);
     h += notebook(v);
     const rb = romanceBox(v);
@@ -3919,6 +3963,7 @@ function renderSheet(kind, data) {
     { const e = evNow(); if (e && evPlace(EVENTS[e.id], S.rain) === p && !S.events[evKey(e.id)]) { const E = EVENTS[e.id], on = S.time >= E.from && S.time < E.to;
       h += `<article class="card fest"><h4>${E.name}</h4><p class="sub">${on ? `It's on now, until ${fmtTime(E.to)}. Everyone here will be glad to see you.` : (S.time < E.from ? `It starts at ${fmtTime(E.from)}.` : "It's over for this year.")}</p>${on ? `<div class="foot"><span class="due">Joining takes a couple of hours.</span><button class="btn" data-act="evjoin" type="button" style="margin-left:auto">Join in</button></div>` : ''}</article>`; } }
     for (const id of questsAt(p)) h += questCard(id);
+    if (p === 'cart') h += cartWares();
     const here = folkAt(p);
     if (here.length) h += `<h4 class="sec">Here now</h4>`;
     else h += `<p class="sub">Nobody's here right now.</p>`;
@@ -4027,7 +4072,7 @@ function renderSheet(kind, data) {
     title = 'A gift!';
     h += `<ul class="lines">${data.map(t => `<li class="gift">${t}</li>`).join('')}</ul><div class="cta-row"><button class="btn" data-act="close" type="button">Lovely</button></div>`;
   }
-  const key = kind + '|' + (kind === 'market' ? marketTab : (kind === 'journal' ? journalTab : '')) + '|' + ((data && data.v) || '');
+  const key = kind + '|' + (kind === 'market' ? marketTab : (kind === 'journal' ? journalTab : '')) + '|' + ((data && (data.v || data.p)) || '');
   const keep = key === lastSheetKey ? body.scrollTop : 0;
   $('shTitle').textContent = title; body.innerHTML = h; body.scrollTop = keep; lastSheetKey = key;
 }
@@ -4102,6 +4147,7 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'vgift') { if (!canMeet(id)) return; sheetOpen = 'vgift'; renderSheet('vgift', { v:id }); return; }
   else if (act === 'givegift') { giveGift(id, b.dataset.item); return; }
   else if (act === 'buy') { const n = +b.dataset.n, cost = seedPrice(id) * n; if (S.coins >= cost) { S.coins -= cost; S.seeds[id] = (S.seeds[id] || 0) + n; if (S.sel !== 'sprinkler' && S.sel !== 'trowel' && !S.sel.startsWith('spell:') && !(S.seeds[S.sel] > 0)) S.sel = id; blip(700, 500, .05); } renderSheet('market'); }
+  else if (act === 'zbuy') { if (cartBuy(id)) { SND.coin(); updateHUD(); } renderSheet('place', { p:'cart' }); return; }
   else if (act === 'sell') { const n = Math.min(+b.dataset.n, S.inv[id] || 0); S.inv[id] -= n; SND.coin(); earn(itemValue(id) * n); renderSheet('market'); }
   else if (act === 'up') {
     const up = UPGRADES[id]; if (S.coins >= upCost(up) && !(up.items && Object.entries(up.items).some(([k, n]) => (S.inv[k] || 0) < n))) {
