@@ -864,7 +864,7 @@ function zeroMap() { const o = {}; VIDS.forEach(v => o[v] = 0); return o; }
 function newState() {
   const plots = [];
   for (let i = 0; i < 56; i++) plots.push({ t:0, c:null, d:0, w:false, ready:false, s:false });
-  return { v:2, recipes:{ minnowfry:true, minttea:true, berrytoast:true }, fed:null, year:1, season:0, day:1, time:360, coins:150, energy:100, maxEnergy:100, can:20, canMax:20, sel:'mint',
+  return { v:2, hew:hewState(), recipes:{ minnowfry:true, minttea:true, berrytoast:true }, fed:null, year:1, season:0, day:1, time:360, coins:150, energy:100, maxEnergy:100, can:20, canMax:20, sel:'mint',
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     hollow:hollowState(), helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
@@ -899,6 +899,7 @@ function migrate(s) {
     }
     n.hollow.relics = Object.assign({}, n.hollow.relics || {}); for (const f in n.hollow.wardens) { const r = wardenRelic(f); if (r) n.hollow.relics[r] = true; }
     n.recipes = Object.assign({ minnowfry:true, minttea:true, berrytoast:true }, s.recipes || {});
+    n.hew = Object.assign(hewState(), s.hew || {});
     if (!s.charters) buildCharters(n, { debt:s.debt === undefined ? 2000 : n.debt, proj:s.proj, done:s.done });
     else n.charters = s.charters;
     n.debt = 0;
@@ -1363,7 +1364,7 @@ function doField(c, r) {
     if (!CROPS[id]) return false;
     if (!(S.seeds[id] > 0)) { toast(`Out of ${CROPS[id].name} seeds. Pick another in Seeds or buy more at the Market.`); return false; }
     if (!inSeason(id) && !isGH(i)) { toast(`${CROPS[id].name} won't grow outdoors in ${SEASONS[S.season].toLowerCase()}.${S.greenhouse ? ' Plant it under the greenhouse glass.' : ''}`); return false; }
-    S.seeds[id]--; p.c = id; p.d = 0; p.ready = false; burst(c, r, '#c9a675', 4, 20); tutorial(1);
+    S.seeds[id]--; p.c = id; p.d = 0; p.ready = false; p.lag = curseOn('slowgrow') ? 1 : 0; burst(c, r, '#c9a675', 4, 20); tutorial(1);
     if (!(S.seeds[id] > 0)) autoSelect();
   } else if (a === 'water') {
     if (S.can <= 0) { toast('Your watering can is empty. Tap the well by the path to refill it.'); return false; }
@@ -1413,11 +1414,12 @@ function visit(k, q) {
   if (k === 'exit') { leaveWood(); return; }
   if (k === 'shrine') { shrineVisit(); return; }
   if (k === 'cave') { caveVisit(); return; }
+  if (k === 'hewtower') { openSheet('hew'); return; }
   if (k === 'hollowup') { leaveHollow(); return; }
   if (k === 'hollowdown') { if (HV) hollowFloor(HV.floor + 1); return; }
   if (k === 'hollowspring') { useSpring(); return; }
   if (k === 'mailbox') { journalTab = 'mail'; openSheet('journal'); return; }
-  if (k === 'well') { S.can = S.canMax; const b = BUILD.well; burst(b.c, b.r + .6, '#8cc8f0', 10, 50); floatText(b.c, b.r, 'Can refilled', '#8cc8f0'); }
+  if (k === 'well') { S.can = canCap(); const b = BUILD.well; burst(b.c, b.r + .6, '#8cc8f0', 10, 50); floatText(b.c, b.r, 'Can refilled', '#8cc8f0'); }
   else if (k === 'cottage') openSheet('sleep');
   else if (k === 'cauldron') openSheet('cauldron');
   else if (k === 'board') openSheet('board');
@@ -1542,7 +1544,7 @@ function endDay(passedOut) {
   S.plots.forEach((p, i) => {
     if (!p.c || p.ready) { p.w = false; return; }
     const cr = CROPS[p.c];
-    if (p.w || S.rain || cr.noWater) { p.d++; grew++; if (p.d >= cr.grow) { p.ready = true; ripe++; } } else thirsty++;
+    if (p.w || S.rain || cr.noWater) { if (p.lag) p.lag--; else p.d++; grew++; if (p.d >= cr.grow) { p.ready = true; ripe++; } } else thirsty++;
     p.w = false;
   });
   if (grew) lines.push({ t:`${grew} crop${grew === 1 ? '' : 's'} grew overnight${ripe ? `, and ${ripe} ${ripe === 1 ? 'is' : 'are'} ready to harvest` : ''}.` });
@@ -1564,7 +1566,7 @@ function endDay(passedOut) {
   // weather
   S.rain = S.nextRain; S.snow = S.season === 3 && Math.random() < .45;
   if (S.day === 1 && S.year === 1 && S.season === 0) S.rain = false;
-  S.nextRain = Math.random() < RAIN[S.day >= DAYS ? (S.season + 1) % 4 : S.season];
+  S.nextRain = !curseOn('drought') && Math.random() < RAIN[S.day >= DAYS ? (S.season + 1) % 4 : S.season];
   if (S.rain) { for (const p of S.plots) if (p.t) p.w = true; lines.unshift({ t:'Rain fell at dawn. Every bed is watered today.', c:'gold' }); }
   if (S.snow) lines.unshift({ t:'Snow is falling. Only frostmoss grows outdoors now.', c:'gold' });
   // sprinklers
@@ -1731,7 +1733,7 @@ function applyGifts(v, lines) {
 /* ================= friendship ================= */
 const dayKey = () => `${S.year}.${S.season}.${S.day}`;
 // Romance: nine adults can go to 10 hearts, but hearts 9 and 10 only open for the one she's dating (or married to).
-const canRomance = v => VILLAGERS[v].romance !== false;
+const canRomance = v => VILLAGERS[v].romance !== false && !(S && S.hew && (S.hew.dating || S.hew.wed));
 const isPartner = v => !!v && (v === S.spouse || v === S.dating);
 const heartMax = v => isPartner(v) ? 10 : 8;
 const heartsOf = v => Math.min(heartMax(v), Math.floor((S.fr[v] || 0) / 100));
@@ -1760,7 +1762,7 @@ function dateLabel(n) { const t = dateOf(n); return `${SEASONS[t.s]} ${t.d}${t.y
 // The wedding is at the next festival, or 3 days after the proposal if that's sooner.
 function weddingAt() { const today = absDay(), fest = today - S.day + FEST_DAY + (S.day < FEST_DAY ? 0 : DAYS); return Math.min(fest, today + 3); }
 // The bouquet shows at the Market once someone she could date is at 6+ hearts.
-const bouquetOnSale = () => !S.spouse && ((S.inv.bouquet || 0) > 0 || VIDS.some(v => canRomance(v) && arrived(v) && heartsOf(v) >= 6));
+const bouquetOnSale = () => !S.spouse && ((S.inv.bouquet || 0) > 0 || VIDS.some(v => canRomance(v) && arrived(v) && heartsOf(v) >= 6) || (S.hew && hewHearts() >= 6 && !hewTaken() && !S.hew.dating && !S.hew.wed));
 const partnerName = () => S.spouse ? VILLAGERS[S.spouse].name : (S.dating ? VILLAGERS[S.dating].name : '');
 // What the romance part of a villager's page says and offers. Returns { note, acts } (HTML).
 function romanceBox(v) {
@@ -1787,7 +1789,7 @@ function romanceBox(v) {
 const SPOUSE_HELP_P = .6;
 const aN = w => (/^[AEIOU]/.test(w) ? 'an ' : 'a ') + w;
 const SPOUSE_HELP = {
-  rowan:() => { S.can = S.canMax; S.energy += 20; let n = 0; for (const p of S.plots) if (n < 8 && p.t && p.c && !p.ready && !p.w && !CROPS[p.c].noWater) { p.w = true; n++; }
+  rowan:() => { S.can = canCap(); S.energy += 20; let n = 0; for (const p of S.plots) if (n < 8 && p.t && p.c && !p.ready && !p.w && !CROPS[p.c].noWater) { p.w = true; n++; }
     return `Rowan was out before dawn. He sharpened your tools (+20 energy today)${n ? `, watered ${n} bed${n === 1 ? '' : 's'}` : ''} and filled your watering can.`; },
   juno:() => { const a = pickFish(), b = pickFish(); giveItems(a === b ? { [a]:2 } : { [a]:1, [b]:1 });
     return `Juno went out on the river at dawn and came back with two fish for your basket: ${a === b ? `both ${FISH[a].name}` : `${aN(FISH[a].name)} and ${aN(FISH[b].name)}`}.`; },
@@ -1875,6 +1877,7 @@ function talkTo(v) {
     line = st >= 3 ? 'Three stars! Three! I have told the whole Guild. Twice. They asked me to stop writing.' : st > 0 ? `${st} star${st === 1 ? '' : 's'} on this season's charter already. The Guild will be pleased. I'm pleased. I've told everyone.` : "No stars on the charter yet this season, but there's time. There's always time. Within reason."; }
   if (DEEP_TALK[v] && (S.hollowMax || 0) >= 31 && Math.random() < .35) { const deep = S.hollowMax;
     line = DEEP_TALK[v](deep); }
+  if (S.hew && S.hew.met && !S.hew.wed && VILLAGERS[v].look.age !== 'kid' && Math.random() < .15) line = HEW_GOSSIP[(Math.random() * HEW_GOSSIP.length) | 0];
   if (isPartner(v) && ROMANCE[v] && Math.random() < .7) { const pool = v === S.spouse ? ROMANCE[v].wed : ROMANCE[v].date; line = pool[(Math.random() * pool.length) | 0]; }
   if (isBday(v)) line = "It's my birthday today! " + line;
   blip(500, 650, .08, 'sine', .04);
@@ -2147,7 +2150,7 @@ function buildCharters(n, legacy) {
 
 /* ================= village life, spells, the Old Wood, wardrobe ================= */
 let rainFx = 0, bgKey = '';
-const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.scene === 'village' && lampLit() ? 'lit' : ''}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
+const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.hew && S.hew.met ? 'h' : ''}|${S.scene === 'village' && lampLit() ? 'lit' : ''}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
 Object.assign(BUILD, { gate:{ c:0, r:6, w:1, h:1, stand:[0,6] }, mailbox:{ c:3, r:1, w:1, h:1, stand:[3,2] } });
 VILLAGERS.mara.likes.push('hazel', 'morelbroth'); VILLAGERS.fen.likes.push('chanter', 'chantonic');
 VILLAGERS.pip.likes.push('sunberry', 'glimjam'); VILLAGERS.odile.loves.push('violet'); VILLAGERS.wren.likes.push('glimmer', 'firemoss');
@@ -2416,7 +2419,8 @@ function mailMorning(lines) {
   if (S.hollow && S.hollow.wardens[HOLLOW_BOTTOM] && arrived('hettie')) send('deep100', 'hettie', 'The hedges are flowering', DEEP_LETTERS[100]);
   for (const t of S.thanks || []) send(`thx${t.v}${t.k}`, t.v, 'Thank you', THANKS[t.v], { kind:'coins', n:t.n });
   S.thanks = [];
-  if (lines) for (const m of fresh) lines.push({ t:`A letter from ${m.from === 'guild' ? "the Witches' Guild" : VILLAGERS[m.from].name}: "${m.title}". Tap the mailbox by the cottage to read it.`, c:'gift', v:m.from === 'guild' ? null : m.from });
+  hewMorning(lines || [], send);
+  if (lines) for (const m of fresh) lines.push({ t:`A letter from ${fromName(m.from)}: "${m.title}". Tap the mailbox by the cottage to read it.`, c:'gift', v:m.from === 'guild' || m.from === 'hew' ? null : m.from });
   return fresh.length;
 }
 function applyLetterGift(g) {
@@ -2430,8 +2434,8 @@ function applyLetterGift(g) {
   return null;
 }
 const seal = size => `<svg class="por" viewBox="0 0 80 80" width="${size}" height="${size}" role="img" aria-label="The Witches' Guild"><circle cx="40" cy="40" r="40" fill="#5a3a6c"/><circle cx="40" cy="40" r="27" fill="#7a2a4a"/><path d="M40 21l5 11 12 1.5-9 8 2.6 12L40 48 29.4 53.5 32 41.5l-9-8 12-1.5z" fill="#f2b84b"/></svg>`;
-const fromPic = (from, size) => from === 'guild' ? seal(size) : portrait(from, 'happy', size);
-const fromName = from => from === 'guild' ? "The Witches' Guild" : VILLAGERS[from].name;
+const fromPic = (from, size) => from === 'guild' ? seal(size) : from === 'hew' ? hewPortrait(hewMood(), size) : portrait(from, 'happy', size);
+const fromName = from => from === 'guild' ? "The Witches' Guild" : from === 'hew' ? 'Hew the Almighty' : VILLAGERS[from].name;
 
 /* ---------- garden visits ---------- */
 const VISIT_SPOT = { mara:[7,2], fen:[2,11], pip:[5,2], odile:[5,11], wren:[5,1], rowan:[8, 4], silas:[7, 1], theo:[8, 8], isolde:[4, 12], juno:[3, 12], hettie:[0, 4], aldous:[0, 9], zara:[6, 12], bertram:[8, 10], tilly:[2, 2] };
@@ -2517,7 +2521,7 @@ function drawGate(g, season) {
 const FORAGE_TREES = [[0,0],[8,0],[0,2],[8,2],[0,4],[3,4],[7,4],[2,5],[8,6],[5,6],[0,7],[6,9],[1,10],[8,10],[0,11],[3,11],[7,12],[1,12]];
 const isWoodTree = (c, r) => FORAGE_TREES.some(([a, b]) => a === c && b === r);
 const STREAM = 8;
-const woodFree = (c, r) => r >= 4 && r <= 11 && r !== STREAM && !isWoodTree(c, r) && !(c === 4 && r >= 9);
+const woodFree = (c, r) => r >= 4 && r <= 11 && r !== STREAM && !isWoodTree(c, r) && !(c === 4 && r >= 9) && !(c === 8 && r <= 5); // (8,4)-(8,5): Hew's tower
 const groveFree = (c, r) => r >= 0 && r <= 2 && c >= 1 && c <= 7 && !(c === 4 && r === 1) && !(c === 7 && r === 1) && !isWoodTree(c, r);
 const WOOD_GROUND = ['#34502e', '#3a5a2c', '#4f4428', '#d3dce4'];
 function pickForage(boost, grove) {
@@ -2532,7 +2536,7 @@ function addWoodSpots(n, boost, grove) {
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if ((grove ? groveFree(c, r) : woodFree(c, r)) && !S.wood.spots.some(s => s.c === c && s.r === r)) free.push([c, r]);
   for (let i = 0; i < n && free.length; i++) { const [c, r] = free.splice((Math.random() * free.length) | 0, 1)[0]; S.wood.spots.push({ c, r, id:pickForage(boost, grove) }); }
 }
-function genWood() { S.wood = { key:dayKey(), spots:[] }; addWoodSpots(5, false, false); if (S.grove) addWoodSpots(2, false, true); }
+function genWood() { S.wood = { key:dayKey(), spots:[] }; addWoodSpots(curseOn('fewforage') ? 3 : 5, false, false); if (S.grove) addWoodSpots(2, false, true); }
 function forageRoll(n) {
   const got = {};
   for (let i = 0; i < n; i++) { const id = pickForage(false, false); S.inv[id] = (S.inv[id] || 0) + 1; S.found[id] = (S.found[id] || 0) + 1; got[id] = (got[id] || 0) + 1; }
@@ -2565,6 +2569,7 @@ function enqueueWood(t, fromDrag) {
   if (!S.grove && t.r <= 3) { toast(`A wall of thorny brambles. They say the Wood opens its heart to a witch who knows it. (${S.foundTotal || 0} of 12 finds so far)`); return; }
   if (S.grove && t.c === 4 && t.r === 1) { queue.push({ c:4, r:2, kind:'visit', b:'shrine' }); return; }
   if (S.grove && t.c === 7 && t.r === 1) { queue.push({ c:6, r:1, kind:'visit', b:'cave' }); return; }
+  if (S.hew && S.hew.met && t.c === 8 && (t.r === 4 || t.r === 5)) { queue.push({ c:7, r:5, kind:'visit', b:'hewtower' }); return; }
   queue.push({ c:t.c, r:t.r, kind:'walk' });
 }
 function buildWood(g, pal, season) {
@@ -2612,6 +2617,7 @@ function buildWood(g, pal, season) {
     g.strokeStyle = '#7a4a6a'; g.lineWidth = u * .7; g.beginPath(); for (let i = 0; i < 5; i++) { const tx = x + hash(c, i, 64) * T, ty = y + hash(c, i, 65) * T * .8; g.moveTo(tx, ty); g.lineTo(tx + 2 * u, ty - 2 * u); } g.stroke();
   }
   for (const [c, r] of FORAGE_TREES) if (r > 2) tree(g, ox + (c + .5) * T, oy + (r + 1) * T, T * 1.15, hash(c, r, 5), pal, season);
+  if (S.hew && S.hew.met) drawHewTower(g, u);
   const ex = ox + 4 * T, ey = oy + 12 * T;
   R(g, ex + 13 * u, ey + 4 * u, 1.5 * u, 10 * u, '#5a3d26'); R(g, ex + 9 * u, ey + 3 * u, 8 * u, 4 * u, '#c9a675');
   g.fillStyle = '#5a3d26'; g.beginPath(); g.moveTo(ex + 11 * u, ey + 5 * u); g.lineTo(ex + 14.5 * u, ey + 3.8 * u); g.lineTo(ex + 14.5 * u, ey + 6.2 * u); g.closePath(); g.fill();
@@ -3104,6 +3110,228 @@ function eatDish(id) {
   const got = S.energy - before; if (typeof witch !== 'undefined') floatText(witch.x, witch.y - .6, `+${got} energy`, '#9fd86a');
   updateHUD(); return got;
 }
+/* ================= Hew the Almighty Wizard (PLAN-hew.md Parts 2-3) =================
+   A passive villain who lives in a tower at the edge of the Old Wood. He is not in VILLAGERS (so festivals, requests,
+   the friends star and the village list don't count him); he has his own state S.hew, hearts, sheet ('hew') and romance.
+   One mild curse a season (HEW_CURSES). It can't be broken until it weakens on a day from 7 to 14 (cur.weak); then the
+   counter (a potion or dish from that season's pool, HEW_COUNTERS) breaks it at his tower. Breaking curses is the main way
+   to win his hearts. Dating needs 8 hearts and 4 curses broken; proposing needs 10 hearts and a won duel. If she is dating
+   or married to a villager, Hew stays a friend. Married to Hew: the real curses stop. */
+const HEW_ARRIVE = { y:1, s:1 }; // new games meet him from summer of year 1
+const HEW_CURSES = {
+  slowgrow:  { name:'the Sluggard Hex',     effect:'Every crop you plant takes one extra day to grow.',
+    letter:`Greetings, little witch.\n\nThis season I have cast upon your garden the Sluggard Hex. Every seed you plant will dawdle one whole day longer than it ought. I find it hilarious.\n\nDo not come crying to my tower. (You may come to my tower. Not crying.)\n\nHew the Almighty` },
+  shyfish:   { name:'the Bashful Waters',   effect:'The fish are shy: the green zone when you reel is smaller.',
+    letter:`Witch,\n\nI have whispered to every fish in the valley that you are terribly rude. They believe me. Fish are very gullible. Enjoy the Bashful Waters.\n\nHew the Almighty` },
+  drought:   { name:'the Parched Sky',      effect:'No rain falls this season. Every bed needs watering.', seasons:[0, 1, 2],
+    letter:`Dear witch,\n\nI have folded up the rain clouds and put them in a drawer. The Parched Sky will last all season, or until I get bored, which I won't.\n\nWater your own herbs.\n\nHew the Almighty` },
+  latemorn:  { name:'the Lie-In Jinx',      effect:'You wake an hour later, at 7 am.',
+    letter:`Good morning! Or rather, late morning, because I have hexed you with the Lie-In Jinx. You will sleep until seven every day this season.\n\nYou're welcome, honestly. You looked tired.\n\nHew the Almighty` },
+  smallcan:  { name:'the Leaky Can',        effect:'Your watering can only fills three quarters of the way.',
+    letter:`Witch,\n\nI have put a small, invisible hole in your watering can. You will not find it. I have looked, and I can't find it either, and I made it.\n\nThe Leaky Can. A classic.\n\nHew the Almighty` },
+  cheapherbs:{ name:"the Haggler's Curse", effect:'Raw herbs sell for 15% less at the market. Potions and everything else are safe.',
+    letter:`Witch,\n\nEvery herb you sell this season will look a little limp to the buyer. It is called the Haggler's Curse and it is my finest work. Potions are untouched; I'm not a monster.\n\nHew the Almighty` },
+  fewforage: { name:'the Hidden Wood',      effect:'The Old Wood hides its finds: three a day instead of five.',
+    letter:`Witch,\n\nI have asked the Old Wood to keep its mushrooms to itself this season. The trees and I go way back.\n\nThe Hidden Wood. Good luck foraging.\n\nHew the Almighty` },
+  onepot:    { name:'the Cold Cauldron',    effect:'One of your cauldron pots goes cold.', minSlots:2,
+    letter:`Witch,\n\nOne of your cauldron pots has gone stone cold, and will stay that way all season. I did that. With magic. From here.\n\nThe Cold Cauldron. I'm told it's very annoying.\n\nHew the Almighty` }
+};
+// What breaks a curse: something she can make that season. Picked per season, named in gossip once it weakens.
+const HEW_COUNTERS = [['calming', 'hearth', 'dream'], ['salve', 'jam', 'cordial'], ['ward', 'amber', 'chantonic'], ['frostel', 'minnowfry']];
+const HEW_LOVES = ['startart', 'risotto', 'gourdsoup'], HEW_BREAK_COINS = 400;
+const hewState = () => ({ met:false, fr:0, cur:null, hist:[], broken:0, talked:'', gifted:'', scenes:{}, dating:false, wed:false, duel:false, duelTry:'', ease:false, known:{} });
+const HW = () => (S.hew = S.hew || hewState());
+const seasonKey = () => `${S.year}-${S.season}`;
+const hewArrived = () => S.year > HEW_ARRIVE.y || S.season >= HEW_ARRIVE.s;
+const hewTaken = () => !!(S.dating || S.spouse || S.wedding); // with a villager: Hew stays a friend
+const hewMax = () => { const H = HW(); return H.dating || H.wed ? 10 : 8; };
+const hewHearts = () => Math.min(hewMax(), Math.floor(HW().fr / 100));
+const hewStage = () => { const H = HW(), h = hewHearts(); return H.wed ? 'wed' : H.dating ? 'dating' : h >= 6 ? 'friend' : h >= 3 ? 'rival' : 'nemesis'; };
+function addHew(pts) { const H = HW(); H.fr = Math.min(hewMax() * 100 + 50, H.fr + pts); }
+function curseOn(id) { const H = S && S.hew, c = H && H.cur; return !!(c && c.id === id && !c.broken && c.key === seasonKey() && !H.ease && !H.wed); }
+const curseLive = () => { const H = HW(), c = H.cur; return !!(c && !c.broken && c.key === seasonKey() && !H.wed); };
+const curseWeak = () => curseLive() && S.day >= HW().cur.weak;
+// effect helpers used across the game
+const canCap = () => curseOn('smallcan') ? Math.round(S.canMax * .75) : S.canMax;
+const potSlots = () => Math.max(1, S.slots - (curseOn('onepot') ? 1 : 0));
+const sellValue = id => CROPS[id] && curseOn('cheapherbs') ? Math.round(itemValue(id) * .85) : itemValue(id);
+function pickCurse() {
+  const H = HW(), recent = H.hist.slice(-7);
+  const ok = Object.keys(HEW_CURSES).filter(id => { const C = HEW_CURSES[id]; return (!C.seasons || C.seasons.includes(S.season)) && (!C.minSlots || S.slots >= C.minSlots); });
+  const fresh = ok.filter(id => !recent.includes(id)), pool = fresh.length ? fresh : ok;
+  return pool[(hash(S.year, S.season, 91) * pool.length) | 0];
+}
+function startCurse(day) {
+  const H = HW(), id = pickCurse(), pool = HEW_COUNTERS[S.season];
+  const weak = day <= 1 ? 7 + Math.floor(hash(S.year, S.season, 92) * 8) : Math.min(DAYS - 1, day + 6 + Math.floor(hash(S.year, S.season, 93) * 7));
+  H.cur = { id, key:seasonKey(), weak, counter:pool[(hash(S.year, S.season, 94) * pool.length) | 0], broken:false, start:day };
+  H.hist.push(id); if (H.hist.length > 16) H.hist.shift();
+  if (id === 'smallcan') S.can = Math.min(S.can, canCap());
+  return H.cur;
+}
+const HEW_LETTERS = {
+  intro:`To the witch in Bramble's cottage,\n\nAllow me to introduce myself. I am Hew the Almighty, the greatest wizard in this valley or any other, and I have moved into the tower at the edge of the Old Wood. It is a very good tower. Better than your cottage.\n\nYour aunt and I had a long and glorious rivalry. She is gone, so I suppose it falls to you. Each season I shall curse you. Nothing dreadful, I'm not a brute. Just enough to keep you humble.\n\nYou may visit my tower to complain. I shan't listen.\n\nHew the Almighty`,
+  late:`I'll be cursing you properly from the first day of next season. Prepare yourself. Or don't. It won't help.`,
+  wed:[`My dearest,\n\nThis season's curse: you must kiss your husband once a day. It cannot be broken. I checked.\n\nHew (still Almighty)`,
+    `My love,\n\nThis season I have cursed you with the Endless Cup of Tea. Every time you come to the tower, there will be one waiting. Terrible, I know.\n\nHew`,
+    `Wife,\n\nI have cursed the cat to sit on your feet whenever you read. Oh, he already does that? Then my work here is done.\n\nHew`,
+    `Dearest,\n\nThis season's curse: I will follow you around the garden telling you which herbs are my favourites. All of them. They're all my favourites because you grew them.\n\nHew`]
+};
+const HEW_GOSSIP = [
+  `Have you seen that tower in the Old Wood? Who builds a tower in a wood? Show-off.`,
+  `Hew came into the inn once and asked for "the strongest tea in the land." Isolde gave him chamomile. He said it was very strong.`,
+  `They say Hew and your aunt used to duel every midsummer. She always won. He always demanded a rematch.`,
+  `Hew's curses are terrible, but his handwriting is lovely. I've kept every letter. Don't tell him.`,
+  `I saw Hew trying to curse a goose. The goose won.`,
+  `Hew says he's "the Almighty." Almighty what, I asked. He said "just generally."`,
+  `Apparently Hew reads every one of your letters twice. Juno saw him do it at the docks.`,
+  `If you ask me, that wizard is lonely. Nobody curses someone every single season unless they want visitors.`,
+  `Hew left a pie on Hettie's step with a note that said "this is cursed." It was delicious.`,
+  `I heard Hew lost a duel to a scarecrow once. He insists the scarecrow cheated.`
+];
+const HEW_TALK = {
+  nemesis:[`Ah. The witch. Come to grovel? I accept grovelling on Tuesdays.`, `My tower has four hundred and twelve steps. I counted them. Twice, because I lost count. Leave.`, `Your aunt used to stand exactly there and glare at me. You glare less well. Practise.`, `I am very busy being almighty. Did you need something, or are you just admiring the tower?`, `Do you like my hat? Don't answer. It's a rhetorical hat.`],
+  rival:[`You again. Fine. Sit. Not there, that's the cauldron. ...There.`, `I suppose your garden is going well. Despite me. Which is annoying. Well done. Ugh.`, `I've been working on a new curse. It's terrible. You'll hate it. ...Do you want to hear about it?`, `Your aunt broke my curses in a week, every time. You're catching up. Don't let it go to your head.`, `I made too much tea. Have some. It's not cursed. Probably.`],
+  friend:[`There you are. I put the kettle on when I saw you on the path. Coincidence.`, `I may have been a little unfair, cursing you every season. I'm going to keep doing it, but I may have been unfair.`, `Bramble used to say I only cursed people I liked. She was wrong. Mostly wrong.`, `Tell me about the garden. And the village. And whatever Juno did this week.`, `I've started looking forward to the first of the season. For the curse letter. Obviously. Not because you come round after.`],
+  dating:[`I've cleaned the tower. Not for you. It just needed cleaning. All four hundred and twelve steps.`, `I've written you a poem. It's terrible. I'm keeping it.`, `When you walk up the path, my whole tower hums. It's very distracting. Please keep doing it.`, `I told the goose about you. It was unimpressed. I don't care. I'm impressed.`, `Stay for supper? I can cook. I can cook two things. Both of them are toast.`],
+  wed:[`Good morning, wife. The tower missed you. I mean I did. The tower is a tower.`, `I curse you to have a lovely day. That one's unbreakable too.`, `I still can't believe you said yes. I've checked my spellbook. It wasn't a spell.`, `Shall I come and help in the garden? I promise to only curse the weeds.`, `I've moved my good hat to the cottage. That's how serious I am.`]
+};
+// heart scenes at 2, 4, 6, 8 (and 10 is the proposal). Shown at the tower the first visit after reaching them.
+const HEW_SCENES = {
+  2:`Hew answers the door in a dressing gown covered in stars. "I wasn't expecting anyone," he says, which is plainly untrue, because there's a second teacup already out. He talks for an hour about a curse he's working on, and only stops when the kettle boils dry.`,
+  4:`You find Hew on the tower roof, glaring at the sky. "I'm trying to curse the clouds," he says. "They keep ignoring me." You sit beside him. After a while he stops glaring, and you both just watch them drift.`,
+  6:`Hew shows you a dusty box of letters: decades of curses and replies between him and your aunt. "She never once lost," he says. "I miss losing to her." He clears his throat. "You're getting very good at it too, you know. Breaking them."`,
+  8:`Hew is waiting at the bottom of the tower steps, hat in his hands. "I've decided," he announces, "that you're my favourite person to curse. That's all. That's the announcement." He goes very red and retreats up all four hundred and twelve steps.`,
+  10:`"I accept," Hew says, before you've finished asking, and then, "Sorry. Ask again. Properly." You do. He says yes again, louder, and the whole tower lights up like a lantern.`
+};
+// The wizard's duel: three of five rounds. He announces a spell; the counter beats it. Tells are in his taunts.
+const DUEL_SPELLS = {
+  fire:  { name:'Fireball', beat:'water', taunt:'Behold, the flames of my wrath!' },
+  water: { name:'Tidal Wave', beat:'earth', taunt:'I summon the sea itself!' },
+  earth: { name:'Rockfall', beat:'wind', taunt:'Let the mountains crush you!' },
+  wind:  { name:'Whirlwind', beat:'fire', taunt:'The storm obeys only me!' }
+};
+const DUEL_HINT = 'Water puts out fire, earth stops a wave, wind blows away rock, and fire burns through wind.';
+const DUEL_NAMES = { fire:'Fire', water:'Water', earth:'Earth', wind:'Wind' };
+const hewDuelOpen = () => { const H = HW(); return H.dating && !H.wed && hewHearts() >= 10 && !H.duel; };
+const hewDateReady = () => { const H = HW(); return !H.dating && !H.wed && !hewTaken() && hewHearts() >= 8 && H.broken >= 4; };
+function hewMorning(lines, send) {
+  if (!hewArrived()) return;
+  const H = HW(), key = seasonKey();
+  if (!H.met) { H.met = true; send('hewintro', 'hew', 'A letter from the tower', HEW_LETTERS.intro);
+    if (S.day > 18) { lines.push({ t:'Hew the Almighty has moved into a tower at the edge of the Old Wood. His first curse comes next season.', c:'gold' }); return; } }
+  if (H.wed) { if (!H.cur || H.cur.key !== key) { H.cur = { id:'love', key, broken:true }; send(`hewjoke${key}`, 'hew', 'This season\'s curse', HEW_LETTERS.wed[(S.year * 4 + S.season) % 4]); } }
+  else if ((!H.cur || H.cur.key !== key) && S.day <= 18) { const c = startCurse(S.day); const C = HEW_CURSES[c.id];
+    send(`hew${key}`, 'hew', `This season's curse: ${C.name}`, C.letter + `\n\n(${C.effect} It can't be broken until it weakens, sometime in the second week.)`); }
+  const c = H.cur;
+  if (c && !c.broken && c.key === key && HEW_CURSES[c.id] && S.day === c.weak) {
+    const who = VIDS.filter(arrived), v = who[(hash(S.year, S.season, 95) * who.length) | 0];
+    lines.push({ t:`${VILLAGERS[v].name}: "Hew's spell is fraying, I can feel it. They say he can't stand the smell of ${itemName(c.counter)}. Take him one at his tower in the Old Wood and ${HEW_CURSES[c.id].name} is done for."`, c:'gold', v, mood:'happy' });
+  }
+  if (H.wed && Math.random() < .3) lines.push({ t:`Hew left a note on the table: "${HEW_TALK.wed[(Math.random() * HEW_TALK.wed.length) | 0]}"`, c:'gift' });
+  if (curseOn('latemorn')) S.time = Math.max(S.time, 420);
+  if (curseOn('drought')) S.rain = false;
+}
+function hewBreak() {
+  const H = HW(), c = H.cur;
+  if (!curseLive() || !HEW_CURSES[c.id]) return false;
+  if (S.day < c.weak) return false;
+  if (!(S.inv[c.counter] > 0)) return false;
+  S.inv[c.counter]--; c.broken = true; H.broken++; earn(HEW_BREAK_COINS); addHew(150);
+  if (c.id === 'smallcan') S.can = Math.min(S.canMax, S.can);
+  SND.gift(); updateHUD(); return true;
+}
+function hewTalk() {
+  const H = HW(); if (H.talked === dayKey()) return null;
+  H.talked = dayKey(); addHew(10); const pool = HEW_TALK[hewStage()]; return pool[(Math.random() * pool.length) | 0];
+}
+function hewGift(id) {
+  const H = HW(); if (!(S.inv[id] > 0)) return null;
+  if (id === 'bouquet') { if (!hewDateReady()) return null; S.inv.bouquet--; H.dating = true; addHew(50); return 'date'; }
+  if (id === 'ring') { if (!H.dating || H.wed || !H.duel || hewHearts() < 10) return null; S.inv.ring--; H.wed = true; H.wedDay = { y:S.year, s:S.season, d:S.day }; return 'wed'; }
+  if (H.gifted === dayKey()) return 'once';
+  H.gifted = dayKey(); S.inv[id]--;
+  const love = HEW_LOVES.includes(id); H.known[id] = love ? 'love' : 'meh'; addHew(love ? 40 : 5); return love ? 'love' : 'meh';
+}
+// one duel round: he picks a spell (seeded per round), she answers with an element
+function duelSpell(round) { const ks = Object.keys(DUEL_SPELLS); return ks[(hash(S.year * 31 + S.season, S.day * 7 + round, 96) * ks.length) | 0]; }
+function hewDuelAnswer(st, el) {
+  const sp = duelSpell(st.round), won = DUEL_SPELLS[sp].beat === el;
+  st.log.push({ sp, el, won }); st.round++; if (won) st.wins++; else st.losses++;
+  if (st.wins >= 3) { HW().duel = true; addHew(30); st.done = 'won'; }
+  else if (st.losses >= 3) { HW().duelTry = dayKey(); st.done = 'lost'; }
+  return won;
+}
+function hewSceneDue() { const H = HW(), h = hewHearts(); return [2, 4, 6, 8].find(l => h >= l && !H.scenes[l]) || null; }
+const hewMood = () => ({ nemesis:'smug', rival:'smug', friend:'fond', dating:'fond', wed:'fond' })[hewStage()];
+function drawHewTower(g, u) { // at the edge of the Old Wood, tiles (8,4)-(8,5); drawn once into the wood background
+  const x = ox + 8 * T, base = oy + 6 * T, w = T * .82, cx = x + T / 2;
+  R(g, cx - w / 2, base - 2.6 * T, w, 2.6 * T, '#6e6a78'); for (let i = 0; i < 7; i++) R(g, cx - w / 2 + (i % 2) * w / 2, base - 2.6 * T + i * .37 * T, w / 2 - u, .3 * T, i % 2 ? '#7a7684' : '#625e6c');
+  g.fillStyle = '#2c2258'; g.beginPath(); g.moveTo(cx - w * .72, base - 2.6 * T); g.lineTo(cx + w * .72, base - 2.6 * T); g.lineTo(cx + .25 * T, base - 4 * T); g.lineTo(cx + .5 * T, base - 4.2 * T); g.closePath(); g.fill();
+  R(g, cx - w * .72, base - 2.66 * T, w * 1.44, 2.2 * u, '#d4847e');
+  R(g, cx - 3 * u, base - 1.9 * T, 6 * u, 7 * u, '#ffd27a'); R(g, cx - 3.5 * u, base - 13 * u, 7 * u, 13 * u, '#3a2a20'); circ(g, cx + 2 * u, base - 6 * u, .8 * u, '#f2b84b');
+  for (const [dx, dy] of [[-.2, -3.3], [.15, -3.6]]) circ(g, cx + dx * T, base + dy * T, 1.3 * u, '#fff1a8');
+}
+// Hew the Almighty Wizard: portrait in the same style as the villagers (80x80, clipped circle).
+// moods: smug (default), annoyed, flustered, fond, shock
+function hewPortrait(mood, size) {
+  mood = mood || 'smug';
+  const id = 'p' + (++porId);
+  const skin = '#f0c4a4', skinD = '#d8a07e', hair = '#5c3b26', hairD = '#3e2618', grey = '#9a8a80', ink = '#2a1a20';
+  const hat = '#2c2258', hatD = '#1e1840', robe = '#3e2c6e', sash = '#d4847e', iris = '#7a98ae';
+  const hy = 40, rx = 17.5, ry = 19.5;
+  let o = `<svg class="por" viewBox="0 0 80 80" width="${size}" height="${size}" role="img" aria-label="Hew the Almighty Wizard"><defs><clipPath id="${id}"><circle cx="40" cy="40" r="40"/></clipPath></defs><g clip-path="url(#${id})">`;
+  o += `<rect width="80" height="80" fill="#5a4a96"/><circle cx="40" cy="30" r="34" fill="#6e5eaa"/>`;
+  for (const [x, y, r] of [[12, 16, 1.2], [66, 12, 1], [70, 34, 1.3], [10, 40, 1]]) o += `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff1a8" opacity=".8"/>`;
+  // hair behind (swept up and back, volume on top)
+  o += `<path d="M${40 - rx - 2} ${hy + 4} Q${40 - rx - 4} ${hy - 16} 40 ${hy - ry - 6} Q${40 + rx + 5} ${hy - 16} ${40 + rx + 2} ${hy + 4} Z" fill="${hair}"/>`;
+  // robe and sash
+  o += `<path d="M6 84 Q8 62 40 60 Q72 62 74 84 Z" fill="${robe}"/><path d="M14 84 Q30 66 52 63 L58 66 Q34 72 24 84 Z" fill="${sash}"/>`;
+  o += `<path d="M31 62 L40 72 L49 62" fill="none" stroke="#f2b84b" stroke-width="1.6"/>`;
+  o += `<rect x="35" y="${hy + ry - 6}" width="10" height="8" fill="${skinD}"/>`;
+  // ears and head (a broad, round face)
+  o += `<circle cx="${40 - rx}" cy="${hy + 2}" r="3.6" fill="${skinD}"/><circle cx="${40 + rx}" cy="${hy + 2}" r="3.6" fill="${skinD}"/>`;
+  o += `<ellipse cx="40" cy="${hy}" rx="${rx}" ry="${ry}" fill="${skin}"/>`;
+  // full beard with a touch of grey, and a moustache
+  o += `<path d="M${40 - rx + .5} ${hy - 1} Q${40 - rx} ${hy + 25} 40 ${hy + 27} Q${40 + rx} ${hy + 25} ${40 + rx - .5} ${hy - 1} Q${40 + 9} ${hy + 9} 40 ${hy + 9.5} Q${40 - 9} ${hy + 9} ${40 - rx + .5} ${hy - 1} Z" fill="${hair}"/>`;
+  for (const [x, y, dx, dy] of [[30, hy + 20, .6, 2.2], [46.5, hy + 22, -.5, 2], [38.5, hy + 24.5, .3, 1.6], [52, hy + 15, -.7, 2]]) o += `<path d="M${x} ${y} q${dx} ${dy / 2} ${dx * .4} ${dy}" stroke="${grey}" stroke-width=".7" fill="none" opacity=".75" stroke-linecap="round"/>`;
+  const ey = hy - 1, ex = 7.5, my = ey + 12;
+  // mouth sits in the beard
+  if (mood === 'smug') o += `<path d="M35 ${my} Q41 ${my + 3.5} 47 ${my - 2.5}" stroke="#6a2a3a" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  else if (mood === 'fond') o += `<path d="M34.5 ${my - .5} Q40 ${my + 6.5} 45.5 ${my - .5} Z" fill="#7a2a3a"/><path d="M36.5 ${my + .5} Q40 ${my + 2} 43.5 ${my + .5}" stroke="#fff" stroke-width="1.1" fill="none"/>`;
+  else if (mood === 'annoyed') o += `<path d="M35 ${my + 1.5} Q40 ${my - .5} 45 ${my + 1.5}" stroke="#6a2a3a" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  else if (mood === 'flustered') o += `<path d="M36 ${my + 1} q2 -2 4 0 q2 2 4 0" stroke="#6a2a3a" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+  else o += `<ellipse cx="40" cy="${my + 1}" rx="2.6" ry="3" fill="#7a2a3a"/>`;
+  o += `<path d="M31 ${my - 3} Q35.5 ${my - 6} 40 ${my - 4} Q44.5 ${my - 6} 49 ${my - 3} Q44.5 ${my - 1.5} 40 ${my - 2.6} Q35.5 ${my - 1.5} 31 ${my - 3} Z" fill="${hairD}"/>`;
+  // nose
+  o += `<path d="M40 ${ey + 1} q-2.4 5.5 1.2 6.4" stroke="${skinD}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
+  // eyes: blue-grey, a little narrowed and knowing
+  if (mood === 'fond') o += `<path d="M${40 - ex - 3} ${ey + 1} Q${40 - ex} ${ey - 2.5} ${40 - ex + 3} ${ey + 1} M${40 + ex - 3} ${ey + 1} Q${40 + ex} ${ey - 2.5} ${40 + ex + 3} ${ey + 1}" stroke="${ink}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  else {
+    const op = mood === 'shock' ? 3.2 : mood === 'annoyed' ? 1.7 : 2.3;
+    for (const s of [-1, 1]) { const cx = 40 + s * ex;
+      o += `<ellipse cx="${cx}" cy="${ey}" rx="3.2" ry="${op}" fill="#fff"/><circle cx="${cx + (mood === 'flustered' ? -s * .8 : .4)}" cy="${ey + .2}" r="${Math.min(1.9, op)}" fill="${iris}"/><circle cx="${cx + .4}" cy="${ey + .2}" r=".9" fill="${ink}"/>`;
+      if (mood !== 'shock') o += `<path d="M${cx - 3.4} ${ey - op + .6} Q${cx} ${ey - op - .8} ${cx + 3.4} ${ey - op + .6}" stroke="${ink}" stroke-width="1.2" fill="none"/>`; }
+  }
+  // heavy dark brows; one raised when smug
+  const B = { smug:[[0, 0], [-2.2, -1]], annoyed:[[1.6, -1], [1.6, -1]], flustered:[[-1.8, -.6], [-1.8, -.6]], fond:[[-1.2, -1.2], [-1.2, -1.2]], shock:[[-3, -3], [-3, -3]] }[mood] || [[0, 0], [0, 0]];
+  const by = ey - 5.6;
+  o += `<path d="M${40 - ex - 4.6} ${by + B[0][0] + 1} Q${40 - ex} ${by + B[0][1] - 1.6} ${40 - ex + 3.8} ${by + (mood === 'annoyed' ? 2 : 0)}" stroke="${hairD}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  o += `<path d="M${40 + ex + 4.6} ${by + B[1][0] + 1} Q${40 + ex} ${by + B[1][1] - 1.6} ${40 + ex - 3.8} ${by + (mood === 'annoyed' ? 2 : 0)}" stroke="${hairD}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  const blush = { flustered:.75, fond:.5, smug:.2, annoyed:.3, shock:.25 }[mood] || .2;
+  o += `<ellipse cx="${40 - ex - 4}" cy="${ey + 6}" rx="3.6" ry="2" fill="#ff7a8a" opacity="${blush}"/><ellipse cx="${40 + ex + 4}" cy="${ey + 6}" rx="3.6" ry="2" fill="#ff7a8a" opacity="${blush}"/>`;
+  // the hat: wide brim tipped back, tall bent cone, stars, a rose band
+  o += `<ellipse cx="40" cy="${hy - ry - 4}" rx="28" ry="5" fill="${hatD}" transform="rotate(-9 40 ${hy - ry - 4})"/>`;
+  o += `<path d="M24 ${hy - ry - 5} Q30 ${hy - ry - 25} 46 ${hy - ry - 33} Q60 ${hy - ry - 36} 66 ${hy - ry - 28} Q54 ${hy - ry - 28} 52 ${hy - ry - 17} L56 ${hy - ry - 7} Z" fill="${hat}"/>`;
+  o += `<path d="M25 ${hy - ry - 8} Q40 ${hy - ry - 13} 55.4 ${hy - ry - 10} L55.8 ${hy - ry - 6.5} Q40 ${hy - ry - 9.5} 24.4 ${hy - ry - 4.5} Z" fill="${sash}"/>`;
+  for (const [x, y, r] of [[34, hy - ry - 18, 1.6], [45, hy - ry - 25, 1.2], [42, hy - ry - 15, 1]]) o += `<path d="M${x} ${y - r * 2} L${x + r * .6} ${y - r * .6} L${x + r * 2} ${y} L${x + r * .6} ${y + r * .6} L${x} ${y + r * 2} L${x - r * .6} ${y + r * .6} L${x - r * 2} ${y} L${x - r * .6} ${y - r * .6} Z" fill="#fff1a8"/>`;
+  // swept-back hair at the front: a quiff swept up under the tipped-back brim
+  o += `<path d="M${40 - rx - 1} ${hy - 2} Q${40 - rx + 1} ${hy - ry - 2} 40 ${hy - ry - 3} Q${40 + rx} ${hy - ry - 2} ${40 + rx + 1} ${hy - 2} Q${40 + rx - 3} ${hy - 12} ${40 + 6} ${hy - 14.5} Q40 ${hy - 13} ${40 - 7} ${hy - 15} Q${40 - rx + 3} ${hy - 12} ${40 - rx - 1} ${hy - 2} Z" fill="${hair}"/>`;
+  o += `<path d="M${40 - 8} ${hy - 15} Q40 ${hy - 20} ${40 + 9} ${hy - 16} M${40 - 3} ${hy - 15.5} Q${40 + 5} ${hy - 21} ${40 + 13} ${hy - 13}" stroke="${hairD}" stroke-width="1" fill="none" opacity=".7"/>`;
+  o += `<path d="M${40 - 12} ${hy - 13} Q${40 - 9} ${hy - ry - 8} ${40 + 2} ${hy - ry - 7} Q${40 + 13} ${hy - ry - 7} ${40 + 15} ${hy - 10} Q${40 + 6} ${hy - 17} ${40 - 12} ${hy - 13} Z" fill="${hair}"/><path d="M${40 - 9} ${hy - 15} Q${40 - 2} ${hy - ry - 5} ${40 + 9} ${hy - ry - 4} M${40 - 3} ${hy - 15.5} Q${40 + 5} ${hy - ry - 3} ${40 + 13} ${hy - 12}" stroke="${hairD}" stroke-width=".9" fill="none" opacity=".6"/>`;
+  return o + '</g></svg>';
+}
+
 Object.assign(SPELLS, {
   firebolt:{ name:'Firebolt', mana:2, col:'#ff6a3a', hollow:true, desc:'Only works in the Hollow. Tap a creature to throw a bolt of fire.' },
   frost:   { name:'Frost Ring', mana:6, col:'#a8e6ff', hollow:true, desc:'Only works in the Hollow. Tap yourself to hit every creature close by.' }
@@ -4036,7 +4264,7 @@ function cast() {
   fishing.timer = setTimeout(() => {
     if (!fishing || fishing.phase !== 'wait') return;
     const id = pickFish(), f = FISH[id];
-    const zw = [.32, .2, .11][f.diff], speed = [.9, 1.3, 1.8][f.diff];
+    const zw = [.32, .2, .11][f.diff] * (curseOn('shyfish') ? .7 : 1), speed = [.9, 1.3, 1.8][f.diff];
     fishing = { phase:'reel', id, zl:.08 + Math.random() * (.84 - zw), zw, pos:0, dir:1, speed, t0:performance.now() };
     renderSheet('fish'); blip(500, 900, .08, 'square', .03);
     const step = now => {
@@ -4096,7 +4324,7 @@ function updateHUD() {
 }
 
 /* ================= sheets ================= */
-let brewTab = 'cauldron';
+let brewTab = 'cauldron', duelSt = null;
 const brewTabs = () => `<div class="tabs" role="tablist">${[['cauldron', 'Cauldron'], ['kitchen', 'Kitchen']].map(([t, l]) => `<button class="tab" role="tab" aria-selected="${brewTab === t}" data-act="btab" data-id="${t}" type="button">${l}</button>`).join('')}</div>`;
 let boardDone = [], boardOrder = [], boardScroll = 0, marketTab = 'buy', journalTab = 'charters', lastSheetKey = '', backupCode = '', calSeason = 0, vFrom = '', vPlace = '';
 function openSheet(kind, data) {
@@ -4191,7 +4419,7 @@ function renderSheet(kind, data) {
       const wanted = {}; for (const q of S.reqs) wanted[q.item] = (wanted[q.item] || 0) + q.n;
       for (const c of openCharters()) for (const st of c.stars) if (!st.done && st.req.items) for (const [k, n] of Object.entries(st.req.items)) { const left = n - (st.got.items[k] || 0); if (left > 0) wanted[k] = (wanted[k] || 0) + left; }
       for (const [id, n] of items) {
-        const v = itemValue(id), note = wanted[id] ? ` · ${wanted[id]} wanted for requests or the charter` : '';
+        const v = sellValue(id), note = wanted[id] ? ` · ${wanted[id]} wanted for requests or the charter` : '';
         h += row(itemCol(id), `${itemName(id)} ×${n}`, `${v} coins each${note}`, `<button class="btn alt" data-act="sell" data-id="${id}" data-n="1" type="button">Sell 1</button><button class="btn" data-act="sell" data-id="${id}" data-n="${n}" type="button">All · ${fmt(v * n)}</button>`);
       }
     } else {
@@ -4246,7 +4474,7 @@ function renderSheet(kind, data) {
   } else if (kind === 'cauldron') {
     title = 'Cauldron';
     h += brewTabs();
-    const free = S.slots - S.brewing.length;
+    const free = potSlots() - S.brewing.length;
     h += `<p class="sub">${S.brewing.length ? `Brewing ${S.brewing.map(itemName).join(', ')}. ` : ''}${free > 0 ? `${free} free pot${free === 1 ? '' : 's'}. Potions are ready tomorrow morning.` : 'All pots are busy until morning.'}</p>`;
     for (const [id, po] of Object.entries(POTIONS)) {
       if (!potionKnown(id)) continue;
@@ -4254,9 +4482,10 @@ function renderSheet(kind, data) {
       const need = Object.entries(po.need).map(([k, n]) => `${n} ${itemName(k)} (${S.inv[k] || 0})`).join(' + ');
       h += row(po.col, po.name, `${need} · sells for ${po.sell}`, `<button class="btn" data-act="brew" data-id="${id}" type="button" ${can ? '' : 'disabled'}>Brew</button>`, can ? '' : 'dim');
     }
-    if (S.dating && !S.spouse && !S.wedding) {
+    const hewRing = S.hew && S.hew.dating && !S.hew.wed;
+    if ((S.dating && !S.spouse && !S.wedding) || hewRing) {
       const can = free > 0 && Object.entries(RING_NEED).every(([k, n]) => (S.inv[k] || 0) >= n);
-      h += row(ITEMS.ring.col, "Witch's Ring", `${Object.entries(RING_NEED).map(([k, n]) => `${n} ${itemName(k)} (${S.inv[k] || 0})`).join(' + ')} · give it to ${VILLAGERS[S.dating].name} at 10 hearts to propose`, `<button class="btn" data-act="brewring" type="button" ${can ? '' : 'disabled'}>Brew</button>`, can ? '' : 'dim');
+      h += row(ITEMS.ring.col, "Witch's Ring", `${Object.entries(RING_NEED).map(([k, n]) => `${n} ${itemName(k)} (${S.inv[k] || 0})`).join(' + ')} · ${hewRing ? 'give it to Hew at 10 hearts, after you win his duel, to propose' : `give it to ${VILLAGERS[S.dating].name} at 10 hearts to propose`}`, `<button class="btn" data-act="brewring" type="button" ${can ? '' : 'disabled'}>Brew</button>`, can ? '' : 'dim');
     }
     const hidden = Object.keys(POTIONS).filter(id => !potionKnown(id)).length;
     if (hidden) h += `<p class="sub">${hidden} more recipe${hidden === 1 ? '' : 's'} will appear as new seasons bring new herbs.</p>`;
@@ -4343,7 +4572,7 @@ function renderSheet(kind, data) {
     h += `<ul class="lines">`;
     if (thirsty) h += `<li class="bad">${thirsty} crop${thirsty === 1 ? ' still needs' : 's still need'} water and won't grow tonight.</li>`;
     if (ripe) h += `<li class="gold">${ripe} crop${ripe === 1 ? ' is' : 's are'} ready to harvest.</li>`;
-    if (S.slots - S.brewing.length > 0) h += `<li>${S.slots - S.brewing.length} cauldron pot${S.slots - S.brewing.length === 1 ? ' is' : 's are'} empty.</li>`;
+    if (potSlots() - S.brewing.length > 0) h += `<li>${potSlots() - S.brewing.length} cauldron pot${potSlots() - S.brewing.length === 1 ? ' is' : 's are'} empty.</li>`;
     if (S.day >= DAYS) {
       h += `<li class="bad">This is the last night of ${SEASONS[S.season].toLowerCase()}. Out-of-season crops will wither and open requests will come down.</li>`;
       for (const c of openCharters()) {
@@ -4356,7 +4585,7 @@ function renderSheet(kind, data) {
     if (S.spouse) h += `<li>${VILLAGERS[S.spouse].name} has left the lamp on for you.</li>`;
     if (S.wedding && !S.spouse && S.wedding.at === absDay() + 1) h += `<li class="gold">Tomorrow is your wedding day.</li>`;
     h += `<li>You'll wake at 6:00 am with full energy.</li></ul>`;
-    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button>${S.hollowMax ? `<button class="btn alt" data-act="relics" type="button">The relic shelf${Object.keys(HS().relics || {}).length ? ` (${Object.keys(HS().relics).length})` : ''}</button>` : ''}<button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>`;
+    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button>${S.hollowMax ? `<button class="btn alt" data-act="relics" type="button">The relic shelf${Object.keys(HS().relics || {}).length ? ` (${Object.keys(HS().relics).length})` : ''}</button>` : ''}<button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>${S.hew && S.hew.met && !S.hew.wed ? `<button class="btn alt" data-act="hewease" type="button">Hew's curses: ${S.hew.ease ? 'eased (no effects)' : 'on'}</button>` : ''}`;
   } else if (kind === 'clock') {
     title = 'The clock';
     h += `<p class="sub">Time only moves while you're walking or working. Stand still, and it waits for you.</p>`;
@@ -4368,6 +4597,52 @@ function renderSheet(kind, data) {
     title = d.newSeason ? `${SEASONS[S.season]} begins` : `${SEASONS[S.season]} ${S.day}`;
     h += `<p class="sub">${S.rain ? 'A grey, wet morning.' : (S.snow ? 'Snow on the roof and the garden hushed.' : 'Clear skies over the garden.')}</p>`;
     h += `<ul class="lines">${d.lines.map(l => `<li class="${l.c || ''}${l.v ? ' withpor' : ''}">${l.v ? portrait(l.v, l.mood || 'neutral', 30) : ''}<span>${l.t}</span></li>`).join('') || '<li>A quiet night.</li>'}</ul>`;
+  } else if (kind === 'hew') {
+    data = data || {}; const H = HW(), st = hewStage(), hh = hewHearts();
+    title = "Hew's tower";
+    const role = { nemesis:'Your nemesis', rival:'Your rival', friend:hewTaken() ? 'A good friend' : 'A grudging friend', dating:'Your sweetheart', wed:'Your husband' }[st];
+    const hmax = hewTaken() ? 8 : 10, open = H.dating || H.wed;
+    let hs = `<span class="hearts" aria-label="${hh} of ${hmax} hearts">`; for (let i = 0; i < hmax; i++) hs += i >= 8 && !open ? LOCK : `<i class="${i < hh ? 'on' : ''}"></i>`; hs += '</span>';
+    const sc = data.give || data.line ? null : hewSceneDue(); if (sc) H.scenes[sc] = true; // his reply to a chat or gift comes first; a due scene waits
+    h += `<div class="vhead">${hewPortrait(data.mood || (sc ? 'flustered' : hewMood()), 72)}<div class="info"><span class="name">Hew the Almighty</span><span class="meta">${role} · ${H.broken} curse${H.broken === 1 ? '' : 's'} broken</span>${hs}</div></div>`;
+    if (sc) h += `<h4 class="sec">${sc} hearts</h4><p class="scene">${HEW_SCENES[sc]}</p>`;
+    else if (data.line) h += `<p class="scene">"${data.line}"</p>`;
+    if (data.give) {
+      const ids = Object.keys(S.inv).filter(k => S.inv[k] > 0 && (DISHES[k] || POTIONS[k]) || (k === 'bouquet' && S.inv[k] > 0 && hewDateReady()) || (k === 'ring' && S.inv[k] > 0 && H.dating && H.duel && hh >= 10));
+      h += `<p class="sub">Hew only takes one gift a day. He's hard to impress: dishes are your best bet.${H.gifted === dayKey() ? ' He has had one today already.' : ''}</p>`;
+      if (!ids.length) h += `<p class="sub">You have nothing he'd take. Try cooking something.</p>`;
+      for (const k of ids.sort((a, b) => (b === 'ring' || b === 'bouquet') - (a === 'ring' || a === 'bouquet'))) { const kn = H.known[k], note = k === 'bouquet' ? 'ask him out' : k === 'ring' ? 'propose' : kn === 'love' ? 'he secretly loves this' : kn === 'meh' ? 'he was not impressed' : '';
+        const dis = k !== 'bouquet' && k !== 'ring' && H.gifted === dayKey();
+        h += row(itemCol(k), `${itemName(k)} ×${S.inv[k]}`, note, `<button class="btn" data-act="hewgift" data-id="${k}" type="button" ${dis ? 'disabled' : ''}>Give</button>`, dis ? 'dim' : ''); }
+      h += `<div class="cta-row"><button class="btn alt" data-act="hewback" type="button">Back</button></div>`;
+    } else {
+      const c = H.cur;
+      if (curseLive() && HEW_CURSES[c.id]) {
+        const C = HEW_CURSES[c.id], have = S.inv[c.counter] || 0;
+        h += `<h4 class="sec">This season's curse: ${C.name}</h4><p class="sub">${C.effect}${H.ease ? ' (Eased: it has no effect on you.)' : ''}</p>`;
+        if (S.day < c.weak) h += `<p class="sub">His spell holds firm for now. It will weaken sometime in the second week of the season, and someone in the village will tell you how to break it.</p>`;
+        else h += row(itemCol(c.counter), `It's weakening! Bring him ${itemName(c.counter)}`, `You have ${have}`, `<button class="btn" data-act="hewbreak" type="button" ${have ? '' : 'disabled'}>Break it</button>`, have ? '' : 'dim');
+      } else if (c && c.key === seasonKey() && HEW_CURSES[c.id] && c.broken) h += `<p class="sub">You broke ${HEW_CURSES[c.id].name} this season. Hew is sulking about it.</p>`;
+      else if (!H.wed) h += `<p class="sub">No curse on you right now. Hew is "saving his strength" for next season.</p>`;
+      const acts = [`<button class="btn" data-act="hewtalk" type="button" ${H.talked === dayKey() ? 'disabled' : ''}>${H.talked === dayKey() ? 'Chatted today' : 'Chat'}</button>`, `<button class="btn alt" data-act="hewgive" type="button">Give a gift</button>`];
+      if (hewDuelOpen()) acts.push(`<button class="btn" data-act="hewduel" type="button" ${H.duelTry === dayKey() ? 'disabled' : ''}>${H.duelTry === dayKey() ? 'Duel again tomorrow' : 'Challenge him to a duel'}</button>`);
+      h += `<div class="cta-row">${acts.join('')}</div>`;
+      const tips = [];
+      if (hewTaken() && hh >= 6) tips.push("You're spoken for, so Hew is content to be a friend.");
+      else if (!H.dating && !H.wed && hh >= 6) tips.push(H.broken < 4 ? `He won't hear of anything more until you've broken at least four of his curses (${H.broken} so far).` : hh < 8 ? 'He seems to like you. Keep visiting.' : 'At 8 hearts, a Moonpetal Bouquet might be welcome.');
+      if (H.dating && !H.wed) tips.push(hh < 10 ? 'Win him over to 10 hearts. Then he says you must beat him in a wizard\'s duel before you can propose.' : H.duel ? "You won his duel. Bring him a Witch's Ring." : 'Challenge him to a duel. Win three rounds to earn the right to propose.');
+      if (tips.length) h += `<p class="sub">${tips.join(' ')}</p>`;
+    }
+  } else if (kind === 'hewduel') {
+    title = "The wizard's duel";
+    const st = data || duelSt;
+    h += `<div class="vhead">${hewPortrait(st.done === 'won' ? 'flustered' : st.done === 'lost' ? 'smug' : 'annoyed', 64)}<div class="info"><span class="name">Hew the Almighty</span><span class="meta">Round ${Math.min(5, st.round + 1)} · you ${st.wins} · Hew ${st.losses}</span></div></div>`;
+    h += `<p class="sub">${DUEL_HINT} First to three wins.</p>`;
+    if (st.log.length) { const L = st.log[st.log.length - 1]; h += `<p class="sub">Last round: he cast ${DUEL_SPELLS[L.sp].name}, you answered with ${DUEL_NAMES[L.el]}. ${L.won ? 'You win the round!' : 'He wins the round.'}</p>`; }
+    if (st.done === 'won') h += `<p class="scene">Hew's last spell fizzles into a little puff of stars. He stares at it for a long moment. "Well," he says softly. "Bramble would have been proud." Then, louder: "Best of five next time!" But he's smiling.</p><p class="sub">You've earned the right to propose. Brew a Witch's Ring and give it to him.</p><div class="cta-row"><button class="btn" data-act="hewback" type="button">Back to the tower</button></div>`;
+    else if (st.done === 'lost') h += `<p class="scene">"Ha! The Almighty prevails!" Hew does a small victory dance, then remembers you're watching. "Same time tomorrow?" he asks, a little too hopefully.</p><div class="cta-row"><button class="btn" data-act="hewback" type="button">Back to the tower</button></div>`;
+    else { const sp = DUEL_SPELLS[duelSpell(st.round)];
+      h += `<p class="scene">Hew raises his staff. "${sp.taunt}" It's ${sp.name}!</p><div class="cta-row">${Object.keys(DUEL_NAMES).map(el => `<button class="btn alt" data-act="duel" data-id="${el}" type="button">${DUEL_NAMES[el]}</button>`).join('')}</div>`; }
   } else if (kind === 'villager') {
     const v = data.v, V = VILLAGERS[v], bd = V.bday, hs = heartsOf(v);
     title = V.name;
@@ -4638,11 +4913,22 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'givegift') { giveGift(id, b.dataset.item); return; }
   else if (act === 'buy') { const n = +b.dataset.n, cost = seedPrice(id) * n; if (S.coins >= cost) { S.coins -= cost; S.seeds[id] = (S.seeds[id] || 0) + n; if (S.sel !== 'sprinkler' && S.sel !== 'trowel' && !S.sel.startsWith('spell:') && !(S.seeds[S.sel] > 0)) S.sel = id; blip(700, 500, .05); } renderSheet('market'); }
   else if (act === 'zbuy') { if (cartBuy(id)) { SND.coin(); updateHUD(); } renderSheet('place', { p:'cart' }); return; }
+  else if (act === 'hewtalk') { const l = hewTalk(); renderSheet('hew', l ? { line:l } : {}); }
+  else if (act === 'hewgive') renderSheet('hew', { give:true });
+  else if (act === 'hewback') renderSheet('hew', {});
+  else if (act === 'hewbreak') { const C = HEW_CURSES[HW().cur.id]; if (hewBreak()) { openSheet('gift', [`You set the ${itemName(HW().cur.counter)} on Hew's table. He sniffs it, goes pale, and ${C.name} unravels like a dropped stitch.`, `"Fine," he says. "FINE. Take this and go away." He pushes a purse of ${HEW_BREAK_COINS} coins across the table. He seems almost pleased.`]); } else renderSheet('hew', {}); }
+  else if (act === 'hewgift') { const r = hewGift(id);
+    if (r === 'date') openSheet('gift', [`Hew stares at the bouquet as if it might explode. "For me?" he says. "Nobody has ever... I mean. Obviously people give me things constantly. Yes. Yes, all right. Yes."`, "You're dating Hew the Almighty. He'll be insufferable about it."]);
+    else if (r === 'wed') { addHew(50); openSheet('gift', [HEW_SCENES[10], 'You married Hew the Almighty. His curses on you are over for good, though he says he reserves the right to send you joke ones.']); }
+    else renderSheet('hew', { line:r === 'love' ? "...This is the best thing I've ever eaten. Don't tell anyone I said that. Don't tell ME I said that." : r === 'meh' ? 'Hmph. I suppose it\'s edible. I suppose I\'ll keep it.' : r === 'once' ? 'One gift a day. I have standards.' : null, mood:r === 'love' ? 'flustered' : r === 'meh' ? 'annoyed' : null }); }
+  else if (act === 'hewduel') { if (hewDuelOpen() && HW().duelTry !== dayKey()) { duelSt = { round:0, wins:0, losses:0, log:[], done:null }; openSheet('hewduel', duelSt); } }
+  else if (act === 'duel') { const st = duelSt; if (st && !st.done) { hewDuelAnswer(st, id); SND.cast(); } renderSheet('hewduel', st); }
+  else if (act === 'hewease') { HW().ease = !HW().ease; toast(HW().ease ? "Hew's curses are eased: the letters and story go on, but they won't change anything in your game." : "Hew's curses are back on."); renderSheet('sleep'); }
   else if (act === 'btab') { brewTab = id; renderSheet('cauldron'); }
   else if (act === 'cook') { if (cookDish(id)) toast(`You cooked ${DISHES[id].name}.`); renderSheet('cauldron'); }
   else if (act === 'eat') { const got = eatDish(id); if (got) toast(`${DISHES[id].name}: +${got} energy.`); renderSheet('cauldron'); }
   else if (act === 'recipe') { const d = DISHES[id]; if (S.coins >= d.from && !dishKnown(id)) { S.coins -= d.from; S.recipes[id] = true; SND.coin(); toast(`New recipe: ${d.name}. Cook it in the Kitchen, on the Brew sheet.`); updateHUD(); } renderSheet('market'); }
-  else if (act === 'sell') { const n = Math.min(+b.dataset.n, S.inv[id] || 0); S.inv[id] -= n; SND.coin(); earn(itemValue(id) * n); renderSheet('market'); }
+  else if (act === 'sell') { const n = Math.min(+b.dataset.n, S.inv[id] || 0); S.inv[id] -= n; SND.coin(); earn(sellValue(id) * n); renderSheet('market'); }
   else if (act === 'up') {
     const up = UPGRADES[id]; if (S.coins >= upCost(up) && !(up.items && Object.entries(up.items).some(([k, n]) => (S.inv[k] || 0) < n))) {
       S.coins -= upCost(up); SND.coin(); if (up.items) for (const [k, n] of Object.entries(up.items)) S.inv[k] -= n;
@@ -4671,12 +4957,12 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'boardback') { sheetOpen = 'board'; renderSheet('board'); $('shBody').scrollTop = boardScroll; lastSheetKey = 'board||'; return;
   }
   else if (act === 'bouq') { if (S.coins >= BOUQUET_COST) { S.coins -= BOUQUET_COST; S.inv.bouquet = (S.inv.bouquet || 0) + 1; SND.coin(); } renderSheet('market'); }
-  else if (act === 'brewring') { if (S.slots - S.brewing.length > 0 && Object.entries(RING_NEED).every(([k, n]) => (S.inv[k] || 0) >= n)) { for (const [k, n] of Object.entries(RING_NEED)) S.inv[k] -= n; S.brewing.push('ring'); blip(300, 900, .35, 'sine', .05); } renderSheet('cauldron'); }
+  else if (act === 'brewring') { if (potSlots() - S.brewing.length > 0 && Object.entries(RING_NEED).every(([k, n]) => (S.inv[k] || 0) >= n)) { for (const [k, n] of Object.entries(RING_NEED)) S.inv[k] -= n; S.brewing.push('ring'); blip(300, 900, .35, 'sine', .05); } renderSheet('cauldron'); }
   else if (act === 'bouquet') { giveBouquet(id); return; }
   else if (act === 'propose') { propose(id); return; }
   else if (act === 'goodbye') { sheetOpen = 'goodbye'; renderSheet('goodbye', { v:id }); return; }
   else if (act === 'byeyes') { kindGoodbye(id); return; }
-  else if (act === 'brew') { const po = POTIONS[id]; for (const [k, n] of Object.entries(po.need)) S.inv[k] -= n; S.brewing.push(id); blip(300, 600, .25, 'sine', .05); renderSheet('cauldron'); }
+  else if (act === 'brew') { if (potSlots() - S.brewing.length <= 0) return; const po = POTIONS[id]; for (const [k, n] of Object.entries(po.need)) S.inv[k] -= n; S.brewing.push(id); blip(300, 600, .25, 'sine', .05); renderSheet('cauldron'); }
   else if (act === 'spellsel') { S.sel = 'spell:' + id; closeSheet(); toast(`Tap a bed to cast ${SPELLS[id].name}. Pick seeds again to go back to planting.`); return; }
   else if (act === 'cast') { castSpell(id); renderSheet('spells'); }
   else if (act === 'letter') { const i = +b.dataset.i, m = S.mail[i]; let got = null; if (!m.read) { m.read = true; got = applyLetterGift(m.gift); } sheetOpen = 'letter'; renderSheet('letter', { i, got }); updateHUD(); save(); return; }

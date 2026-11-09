@@ -7,7 +7,7 @@ const SEAS={
  winter:{C:{frost:{seed:40,sell:90,grow:5,noWater:true}}, F:[40,70,70]}
 };
 function run(season,start,o){
-  const {C,F}=SEAS[season]; const fAvg=F.reduce((a,b)=>a+b,0)/F.length*(o.fScale||1);
+  const {C:C0,F}=SEAS[season]; const C=Object.fromEntries(Object.entries(C0).map(([k,c])=>[k,{...c,grow:c.grow+(o.slow||0),sell:Math.round(c.sell*(o.cheap||1))}])); const fAvg=F.reduce((a,b)=>a+b,0)/F.length*(o.fScale||1);
   let coins=start, plots=[], tilled=0, earned=0;
   for(let d=1; d<=DAYS; d++){
     for(const p of plots){ if(p.ready<=d && !p.done){ const c=C[p.c]; const n=(c.yield||1)*(p.b?2:1); p.b=false; coins+=c.sell*n; earned+=c.sell*n; if(c.regrow) p.ready=d+c.regrow; else p.done=true; } }
@@ -34,6 +34,9 @@ for(const [s,st] of rows){
   const f=run(s,st,{...base}), fr=run(s,st,{...base,eff:.6});
   const all=run(s,st,{...cfg,eff:1,forage:true,spells:s!=='spring'}), allr=run(s,st,{...cfg,eff:.6,forage:true,spells:s!=='spring'});
   const spF=s==='spring'?run(s,st,{...cfg,eff:1,forage:true,spells:false}):all;
+  if(cfg.curses){ const base0=spF; const sim=o=>s==='spring'?run(s,st,{...cfg,...o,eff:1,forage:true,spells:false}):run(s,st,{...cfg,...o,eff:1,forage:true,spells:true});
+    const slow=sim({slow:1}), cheap=sim({cheap:.85}), few=sim({spots:cfg.spots-2});
+    console.log(s.padEnd(7),'  whole-season curses: Sluggard Hex',String(Math.round((slow/base0-1)*100))+'%',"| Haggler's",String(Math.round((cheap/base0-1)*100))+'%','| Hidden Wood',String(Math.round((few/base0-1)*100))+'%'); }
   if(cfg.cookE){ const ck=run(s,st,{...cfg,eff:1+cfg.cookE/100,forage:true,spells:s!=='spring'})-28*cfg.cookK; console.log(s.padEnd(7),`  cooking (+${cfg.cookE} energy/day for ${cfg.cookK} coins/day):`,String(ck).padStart(6),' (+'+Math.round((ck/spF-1)*100)+'% over Wood'+(s==='spring'?'':' + spells')+')'); }
   console.log(s.padEnd(7),'farm only good/relaxed:',String(f).padStart(6),String(fr).padStart(6),' | with Wood'+(s==='spring'?'':' + spells')+' good/relaxed:',String(spF).padStart(6),String(allr).padStart(6), ' (+'+Math.round((spF/f-1)*100)+'%)');
 }

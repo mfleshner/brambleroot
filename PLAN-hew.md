@@ -16,7 +16,9 @@ Today energy only comes back when she sleeps (plus Isolde's breakfast as a spous
 - **Sell value** is always below the ingredients, so cooking is never a money maker. Villagers can still be given dishes as gifts, and some like them.
 - **Balance check:** run econ4 with a bot that cooks and eats its best dish twice a day. Season earnings may rise a little (more work done), but not enough to make charters trivial. Report the numbers.
 
-## Part 2: Hew the Almighty Wizard (the passive villain)
+## Part 2: Hew the Almighty Wizard (the passive villain) — DONE Nov 9, 2026
+Shipped with Part 3 in one go. The tower is at the right edge of the Old Wood. A curse that starts mid-season (when he first arrives) weakens at least six days later. Counters per season: spring Calming Draught/Hearth Tonic/Dreamwater, summer Sunfire Salve/Thornberry Jam/Melon Cordial, autumn Wolf's Ward/Amber Syrup/Chanterelle Tonic, winter Frost Elixir/Minnow Fry. The ease setting is a button on the Sleep sheet.
+
 
 Hew is Matt. He looks like Matt: brown hair swept up and back, a full brown beard with a touch of grey, heavy dark brows, blue-grey eyes, a smug grin. Tall pointed wizard hat, deep robe, a dusty-rose sash. He gets a portrait like the villagers (moods: smug, annoyed, flustered, fond) and a tower at the edge of the map she can walk to.
 
@@ -35,7 +37,9 @@ Hew is Matt. He looks like Matt: brown hair swept up and back, a full brown bear
 - **Gossip:** villagers comment on the current curse and on Hew. He's smug and dramatic and a bit of a joke in town.
 - **An "ease up" setting** in Settings turns the curse effects off (letters and story still happen), in case one is annoying her.
 
-## Part 3: winning him over, and romance
+## Part 3: winning him over, and romance — DONE Nov 9, 2026
+The duel: he names his spell in his taunt (Fireball, Tidal Wave, Rockfall, Whirlwind) and she taps the element that beats it; first to three, one try a day. He secretly loves Starfruit Tart, Truffle Risotto and Hearty Gourd Soup.
+
 
 - **Warming up.** Every curse she breaks raises Hew's hearts. He goes from nemesis to rival to grudging friend. Visiting the tower and giving him dishes he secretly loves help a little; ordinary gifts barely move him.
 - **Harder than the other romances:**
