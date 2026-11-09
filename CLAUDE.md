@@ -3,7 +3,7 @@
 A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on her **iPhone** (Safari, added to the Home Screen). Matt tests on **Android**. Read this file fully before changing anything.
 
 - Live site: https://mfleshner.github.io/brambleroot/ (GitHub Pages, deploys from `main` root)
-- Next work: **PLAN-villagers.md**, Part 3: story quests and group events are left. Parts 1 and 2 are done; Part 3's schedules, village map, gift notebook and calendar are built (not yet deployed as of Nov 8, 2026).
+- The villager plan (**PLAN-villagers.md**) is finished: all three parts shipped Nov 8, 2026. No next work is queued; ask Matt.
 
 ## Files
 - `src/brambleroot.html`: **the source** (about 250 KB, one file: HTML, CSS and JS in one IIFE). Cloud keys are empty here.
@@ -68,7 +68,17 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
     - `canMeet(v)`: chat, gifts, bouquet, ring and goodbye buttons need her in the village (for village places) or on the farm (garden/cottage). The sims call `talkTo`/`giveGift` directly, so they're unaffected. The villager page shows where someone is, until when, and a "Go to…" button (`seekVillager`) that walks her there.
     - Village scene `S.scene === 'village'`: `VB` buildings, `VSPOTS` standing spots per place ([villager c, r, her c, r]), `villageFolk()` (extras and rainy indoor places show as a count over the door; tapping a building opens the `place` sheet). The board opens the calendar. Exit signpost at (4,12). The farm gate now opens a `gate` sheet: village or Old Wood.
     - Gift notebook: `notebook(v)` on each page (from `S.known`), `notebookCount()` on the village list. Calendar sheet `calendar` (`calSeason`), opened by tapping the date in the HUD (`#calBtn`) or the village board.
-    - Tests: `schedsim.js` (headless, ~2,950 checks), `villagemaptest.js` (25 phone checks + screenshots). `romancetest.js`/`villagetest.js` now put Rowan, Fen and Zara in the garden all day so they can be chatted with.
+    - Tests: `schedsim.js` (headless, ~2,990 checks), `villagemaptest.js` (25 phone checks + screenshots; the Pixel "tap someone by the inn" check is occasionally flaky on timing, rerun it). `romancetest.js`/`villagetest.js` now put Rowan, Fen and Zara in the garden all day so they can be chatted with.
+    - Square and docks have 8 and 6 standing spots (extra ones for group events). The mill's stand tile is (2,2), so it's no longer a villager spot.
+  - **Story quests (Part 3):** `QUESTS` (secret, brews, goat, lamp, deep, archive), state `S.quests[id] = { s, at, done }`.
+    - Step kinds: `{ v }` meet (v may be a list), `{ v, give }` bring, `{ at, need, after, give }` at a village place, `{ floor }` reach a Hollow floor (`questHollow` in `hollowFloor`). `give.pick` is item ids or 'crop'/'forage'/'potion'; `qTake` uses the cheapest first. The last step's text is the ending; `reward` pays then (`questReward`).
+    - `questMorning` (in `endDay`) unlocks stories when `when()` is true and announces them. No deadlines.
+    - UI: story cards on villager pages (`questsFor`) and place sheets (`questsAt`), `qscene` sheet, Journal **Stories** tab (with Go buttons: `seek`, or `goplace` → `seekPlace(p)`, which walks through the gate).
+    - Hettie's ending teaches **Bramble's Charm** (`SPELLS.kin`, 15 mana, once a day: +15 friendship with everyone she chatted with today). The lamp story lights the lighthouse (`lampLit()`, part of `bgKeyNow` in the village; it's drawn dark and cracked until then).
+  - **Group events (Part 3):** `EVENTS` picnic (spring 21, square, 11–2, needs 3 villagers at 4+ hearts, guests are those friends), bonfire (summer 21, docks, 7–10 pm), supper (winter 21, inn, 6–9 pm). Once a year each (`S.events['<id>y<year>']`).
+    - `eventMorning` sends the host's invitation 2 days before and sets `S.evToday = { id, key, who }` on the day (fixed in the morning). `where()` puts the guests at the place in its hours (rain moves outdoor ones to the inn); `genVisits` leaves guests out of the garden.
+    - She joins from the place sheet (`evjoin` → `joinEvent`): everyone there +60 friendship, a small treat, about 2 hours pass. The calendar shows each event and a "Go to" card on the day. Picnic blanket and bonfire are drawn in the village (`drawEventProp`).
+    - Tests: `questsim.js` (headless, ~390 checks, plus when stories open for a busy and a social player), `questtest.js` (13 phone checks per phone + screenshots).
   - The winter "befriend" star is **6 villagers at 5+ hearts** (`req.friends`, +1 per year), not "every villager".
 - **Life:**
   - `LOOKS` and `witchSVG` (the wardrobe)
@@ -165,3 +175,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 7. Clock: pauses while she stands still, plus a Brisk/Gentle/Slow pace setting (Nov 8, 2026).
 8. Villager plan, Part 1: ten new villagers, a village list grouped by place, 1 to 3 garden visits a day, Zara's market days (Nov 8, 2026).
 9. Villager plan, Part 2: 10 hearts, dating, the kind goodbye, the Witch's Ring, weddings and married life (Nov 8, 2026).
+10. Villager plan, Part 3: schedules, the walkable village, gift notebook, calendar, six story quests and three group events (Nov 8, 2026).

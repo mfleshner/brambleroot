@@ -43,7 +43,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   padding-top:calc(env(safe-area-inset-top,0px) + 8px);padding-bottom:12px;
   padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));pointer-events:none}
 .r1,.r2{display:flex;align-items:center;gap:10px}
-.when{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.when{display:flex;align-items:baseline;gap:6px;white-space:nowrap;background:none;border:0;color:inherit;font-family:inherit;padding:8px 10px;margin:-8px -10px;pointer-events:auto;cursor:pointer}
 .dayn{font-family:var(--display);font-size:22px;line-height:1;color:var(--text)}
 .of{font-size:12px;color:var(--muted)}
 .clock{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:auto;background:none;border:0;font-family:inherit;padding:8px 10px;margin:-8px -10px}
@@ -121,6 +121,8 @@ h4.sec{margin:8px 0 0;font-family:var(--display);font-weight:400;font-size:20px}
 .btn:disabled{background:#3a2b46;color:#7d6d88;cursor:default}
 .card{display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--ink2);border:1px solid var(--line);border-radius:12px}
 .card.done{border-color:rgba(143,207,106,.6)}
+.card.quest{border-color:rgba(239,154,172,.55)}
+.sub.why{color:#ef9aac}
 .card h4{margin:0;font-family:var(--display);font-weight:400;font-size:20px;line-height:1.1}
 .who{display:flex;align-items:center;gap:10px}
 .pf{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:18px;color:#1c1324}
@@ -177,6 +179,20 @@ h4.sec{margin:8px 0 0;font-family:var(--display);font-weight:400;font-size:20px}
 .cal div{background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.5;color:var(--muted)}
 .cal div b{display:block;color:var(--text);font-family:var(--display);font-weight:400;font-size:17px}
 .cal div.now{border-color:var(--gold)}
+.calg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.calg .wd{text-align:center;font-size:11px;color:var(--muted)}
+.calg .d{position:relative;min-height:52px;background:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:3px 2px;font:inherit;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:1px;overflow:hidden}
+.calg .d svg{flex:none}
+.calg .d .n{font-variant-numeric:tabular-nums}
+.calg .d.today{border-color:var(--gold);color:var(--text);box-shadow:0 0 0 1px var(--gold) inset}
+.calg .d.fest{background:rgba(242,184,75,.13)}
+.calg .d.past{opacity:.5}
+.calg .d .tag{font-size:9.5px;color:var(--gold);line-height:1.1}
+.calg .d .mk{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:#3a8a8a}
+.calg button.d{cursor:pointer;color:var(--text)}
+.lines.nb .q{color:var(--muted)}
+.lines.nb b{margin-right:4px}
+h4.nbh{font-size:17px}
 
 /* fishing */
 .pond{position:relative;height:46px;border-radius:10px;background:linear-gradient(#2f6f8c,#24546b);overflow:hidden;border:1px solid var(--line)}
@@ -203,7 +219,7 @@ h4.sec{margin:8px 0 0;font-family:var(--display);font-weight:400;font-size:20px}
 
 <header id="hud">
   <div class="r1">
-    <div class="when"><span class="dayn" id="dayLbl">Spring 1</span><span class="of" id="ofLbl">of 28</span></div>
+    <button class="when" id="calBtn" type="button" aria-label="Calendar"><span class="dayn" id="dayLbl">Spring 1</span><span class="of" id="ofLbl">of 28</span></button>
     <button class="clock" id="clock" type="button" aria-label="Clock speed">6:00 am</button>
     <span class="wx" id="wx" hidden>Rain</span>
     <div class="coins"><i class="coin"></i><span id="coins">150</span></div>
@@ -843,7 +859,7 @@ function newState() {
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
-    dating:null, wedding:null, spouse:null, weddingDay:null };
+    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -942,6 +958,7 @@ function buildStatic() {
   bg = document.createElement('canvas'); bg.width = C.width; bg.height = C.height;
   const g = bg.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
   bgKey = bgKeyNow(); if (S && S.scene === 'wood') { buildWood(g, pal, season); return; }
+  if (S && S.scene === 'village') { buildVillage(g, pal, season); return; }
   if (S && S.scene === 'hollow') { buildHollow(g); return; }
   const u = T / 16;
   R(g, 0, 0, W, H, pal.forest);
@@ -1220,6 +1237,7 @@ function draw() {
   const night = nightAmount();
   if (S.scene === 'hollow') drawHollowDynamic();
   else if (S.scene === 'wood') drawWoodDynamic();
+  else if (S.scene === 'village') { drawVillageWindows(night); drawVillageDynamic(); }
   else { for (let i = 0; i < 56; i++) drawPlot(S.plots[i], plotCol(i), plotRow(i), i); drawGreenhouse(); drawHives(); drawDynamicBuildings(night); drawMailbox(); drawVisitors(); }
   const u = T / 16;
   ctx.strokeStyle = 'rgba(242,184,75,.85)'; ctx.lineWidth = Math.max(1.5, u * .8); ctx.setLineDash([u * 2, u * 1.5]);
@@ -1235,7 +1253,8 @@ function draw() {
     ctx.globalCompositeOperation = 'lighter';
     const k = night / .62;
     const glow = (x, y, r, rgb, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
-    if (S.scene !== 'wood') {
+    if (S.scene === 'village') villageGlows(glow, k);
+    else if (S.scene !== 'wood') {
     const cb = BUILD.cottage, wy = oy + cb.r * T + cb.h * T * .74;
     glow(ox + cb.c * T + cb.w * T * .22, wy, T * 1.3, '255,190,90', .5 * k);
     glow(ox + cb.c * T + cb.w * T * .8, wy, T * 1.3, '255,190,90', .5 * k);
@@ -1355,7 +1374,11 @@ function autoSelect() {
 function tired() { toast('Too tired to keep working. Sleep to get your energy back.'); queue = []; return false; }
 function visit(k, q) {
   if (k === 'villager') { const x = (S.visits || []).find(z => z.v === q.v); if (x && visitPresent(x)) openSheet('villager', { v:q.v, from:'garden', mood:isPartner(q.v) ? 'love' : undefined, line:S.talked[q.v] === dayKey() ? null : (x.spouse ? ROMANCE[q.v].wed[(Math.random() * ROMANCE[q.v].wed.length) | 0] : VISIT_LINES[q.v]) }); else toast(`${VILLAGERS[q.v].name} has already headed home.`); return; }
-  if (k === 'gate') { enterWood(); return; }
+  if (k === 'gate') { openSheet('gate'); return; }
+  if (k === 'tovillage') { enterVillage(q.seek, q.place); return; }
+  if (k === 'vexit') { leaveVillage(); return; }
+  if (k === 'vperson') { const f = villageFolk().find(z => z.v === q.v && !z.inside); if (f) openSheet('villager', { v:q.v, from:'village' }); else toast(`${VILLAGERS[q.v].name} has moved on. Check the Journal to see where.`); return; }
+  if (k === 'vplace') { if (q.place === 'board') { calSeason = S.season; openSheet('calendar', { from:'village' }); } else openSheet('place', { p:q.place }); return; }
   if (k === 'exit') { leaveWood(); return; }
   if (k === 'shrine') { shrineVisit(); return; }
   if (k === 'cave') { caveVisit(); return; }
@@ -1389,6 +1412,7 @@ function tileAt(x, y) {
 }
 function enqueue(t, fromDrag) {
   if (S.scene === 'wood') return enqueueWood(t, fromDrag);
+  if (S.scene === 'village') return enqueueVillage(t, fromDrag);
   if (queue.some(q => q.c === t.c && q.r === t.r && q.kind === 'field')) return;
   if (inField(t.c, t.r)) {
     const i = plotIdx(t.c, t.r), p = S.plots[i], a = predict(p);
@@ -1417,6 +1441,7 @@ C.addEventListener('pointermove', e => {
   const t = tileAt(e.clientX, e.clientY); if (!t) return;
   const key = t.c + ',' + t.r; if (key === lastKey) return;
   if (S.scene === 'hollow') return;
+  if (S.scene === 'village') return;
   if (S.scene === 'wood' || inField(t.c, t.r)) enqueue(t, true);
   lastKey = key;
 });
@@ -1533,6 +1558,8 @@ function endDay(passedOut) {
   for (const v of VIDS) if (arrived(v) && isBday(v)) lines.push({ t:`It's ${VILLAGERS[v].name}'s birthday today. A gift means three times as much.`, c:'gift', v, mood:'happy' });
   postRequests(lines);
   checkStars(lines);
+  eventMorning(lines);
+  questMorning(lines);
   genVisits(); genWood(); S.scene = 'farm'; HV = null;
   if (isFestDay()) lines.push({ t:`Tonight is the ${FEST[S.season].name}! Tap the noticeboard whenever you're ready to go. You'll spend the evening there.`, c:'gold', v:'odile', mood:'happy' });
   mailMorning(lines);
@@ -1713,15 +1740,15 @@ function romanceBox(v) {
   if (v === S.dating) {
     let note = `You're dating ${V.name}. `, acts = '';
     if (h < 10) note += `Hearts 9 and 10 are open now. ${V.name} gets closer with every chat and gift.`;
-    else if (has('ring')) { note += `${V.name} is at 10 hearts, and you have the Witch's Ring.`; acts += `<button class="btn" data-act="propose" data-id="${v}" type="button" ${inValley(v) ? '' : 'disabled'}>Propose with the ring</button>`; }
+    else if (has('ring')) { note += `${V.name} is at 10 hearts, and you have the Witch's Ring.`; acts += `<button class="btn" data-act="propose" data-id="${v}" type="button" ${canMeet(v) ? '' : 'disabled'}>Propose with the ring</button>`; }
     else note += `${V.name} is at 10 hearts. Brew a Witch's Ring at the cauldron (1 Glowing Crystal and 1 Starshard) and give it to propose.`;
-    acts += `<button class="btn alt" data-act="goodbye" data-id="${v}" type="button">Have a kind word</button>`;
+    acts += `<button class="btn alt" data-act="goodbye" data-id="${v}" type="button" ${canMeet(v) ? '' : 'disabled'}>Have a kind word</button>`;
     return { note, acts };
   }
   if (S.dating) return { note:h >= 8 ? `You're seeing ${partnerName()}. If your heart has moved on, have a kind word with them first.` : '', acts:'' };
   if (h < 8) return { note:`${V.name} could be more than a friend. At 8 hearts, a Moonpetal Bouquet from the Market asks them out.`, acts:'' };
   if (!has('bouquet')) return { note:`${V.name} is at 8 hearts. Buy a Moonpetal Bouquet at the Market (${BOUQUET_COST} coins) and give it to ask them out.`, acts:'' };
-  return { note:`${V.name} is at 8 hearts, and you have a Moonpetal Bouquet.`, acts:`<button class="btn" data-act="bouquet" data-id="${v}" type="button" ${inValley(v) ? '' : 'disabled'}>Give the bouquet</button>` };
+  return { note:`${V.name} is at 8 hearts, and you have a Moonpetal Bouquet.`, acts:`<button class="btn" data-act="bouquet" data-id="${v}" type="button" ${canMeet(v) ? '' : 'disabled'}>Give the bouquet</button>` };
 }
 // Married life: about 60% of mornings the spouse helps, each in their own way.
 const SPOUSE_HELP_P = .6;
@@ -2079,7 +2106,7 @@ function buildCharters(n, legacy) {
 
 /* ================= village life, spells, the Old Wood, wardrobe ================= */
 let rainFx = 0, bgKey = '';
-const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
+const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.scene === 'village' && lampLit() ? 'lit' : ''}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
 Object.assign(BUILD, { gate:{ c:0, r:6, w:1, h:1, stand:[0,6] }, mailbox:{ c:3, r:1, w:1, h:1, stand:[3,2] } });
 VILLAGERS.mara.likes.push('hazel', 'morelbroth'); VILLAGERS.fen.likes.push('chanter', 'chantonic');
 VILLAGERS.pip.likes.push('sunberry', 'glimjam'); VILLAGERS.odile.loves.push('violet'); VILLAGERS.wren.likes.push('glimmer', 'firemoss');
@@ -2114,17 +2141,19 @@ const SPELLS = {
   rain:    { name:'Rain Call', mana:40, col:'#6cc3ef', desc:'A small private raincloud waters every tilled bed in the garden. Once a day.' },
   bounty:  { name:'Bountiful', mana:20, target:true, col:'#f2b84b', desc:'Pick a bed with a crop. Its next harvest yields double. Once a day.' },
   errand:  { name:"Familiar's Errand", mana:15, col:'#c9b6ff', desc:'The cat slips into the Old Wood and comes back with three forage finds. Once a day.' },
-  whisper: { name:'Wood Whisper', mana:15, col:'#5fd08a', desc:'The Old Wood shows you five more finds today, with better odds of rare ones. Once a day.' }
+  whisper: { name:'Wood Whisper', mana:15, col:'#5fd08a', desc:'The Old Wood shows you five more finds today, with better odds of rare ones. Once a day.' },
+  kin:     { name:"Bramble's Charm", mana:15, col:'#ef9aac', desc:"Your aunt's kindness charm. Everyone you've chatted with today thinks fondly of you: +15 friendship each. Once a day." }
 };
 const SPELL_HINT = {
   hearth:'Mara might teach you something once you are close (4 hearts).',
   rain:'Odile has been reading old school registers (4 hearts).',
   bounty:'Wren says the bees know a charm (4 hearts).',
   whisper:"Old Fen knows the Wood's language (4 hearts).",
-  errand:'Hidden somewhere deep in the Old Wood.'
+  errand:'Hidden somewhere deep in the Old Wood.',
+  kin:"Granny Hettie knows a secret about your aunt (a story, from 4 hearts)."
 };
 const manaMaxFor = () => 20 + 5 * S.spells.length;
-const ONCE = { hearth:1, rain:1, bounty:1, errand:1, whisper:1 };
+const ONCE = { hearth:1, rain:1, bounty:1, errand:1, whisper:1, kin:1 };
 const castToday = id => (S.castDay || {})[id] === dayKey();
 const markCast = id => { S.castDay = Object.assign({}, S.castDay, { [id]:dayKey() }); };
 function learnSpell(id) { if (S.spells.includes(id)) return false; S.spells.push(id); S.manaMax = manaMaxFor(); S.mana = S.manaMax; return true; }
@@ -2143,6 +2172,11 @@ function castSpell(id) {
     toast(`The cat came back from the Wood with ${forageRoll(3)}.`);
   } else if (id === 'whisper') {
     addWoodSpots(5, true, false); toast('The Old Wood rustles. Five new finds are waiting among the trees.');
+  } else if (id === 'kin') {
+    const vs = VIDS.filter(v => S.talked[v] === dayKey());
+    if (!vs.length) { toast("Chat with someone first. Bramble's Charm warms everyone you've talked to today."); return false; }
+    for (const v of vs) addFr(v, 15);
+    toast(`${vs.length > 3 ? `${vs.length} friends are` : `${nameList(vs)} ${vs.length > 1 ? 'are' : 'is'}`} thinking fondly of you: +15 friendship each.`);
   }
   S.mana -= sp.mana; if (ONCE[id]) markCast(id); SND.cast(); return true;
 }
@@ -2348,8 +2382,9 @@ function genVisits() {
   for (let i = pool.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
   const used = new Set(), key = p => p[0] + ',' + p[1];
   // Her spouse is out in the garden most days, from breakfast to supper, on top of the usual visitors.
-  if (S.spouse && VISIT_SPOT[S.spouse] && Math.random() < .8) { const v = S.spouse, sp = VISIT_SPOT[v], st = VISIT_STAND[v]; used.add(key(sp)); used.add(key(st)); S.visits.push({ v, c:sp[0], r:sp[1], from:420, to:1200, spouse:true }); }
+  if (S.spouse && VISIT_SPOT[S.spouse] && Math.random() < .8 && !(evNow() && evNow().who.includes(S.spouse))) { const v = S.spouse, sp = VISIT_SPOT[v], st = VISIT_STAND[v]; used.add(key(sp)); used.add(key(st)); S.visits.push({ v, c:sp[0], r:sp[1], from:420, to:1200, spouse:true }); }
   const si = pool.indexOf(S.spouse); if (si >= 0) pool.splice(si, 1);
+  const ev = evNow(); if (ev) { for (let i = pool.length - 1; i >= 0; i--) if (ev.who.includes(pool[i])) pool.splice(i, 1); }
   for (const v of pool) {
     if (S.visits.filter(x => !x.spouse).length >= n) break;
     const sp = VISIT_SPOT[v], st = VISIT_STAND[v];
@@ -2527,6 +2562,343 @@ function woodGlows(glow, k) {
   for (const s of (S.wood && S.wood.spots) || []) if (FORAGE[s.id].rare || FORAGE[s.id].grove) glow(ox + (s.c + .5) * T, oy + (s.r + .5) * T, T * .7, '255,240,180', .4 * k);
 }
 
+/* ---------- schedules and the village (villager plan, part 3) ---------- */
+// where(v) says where someone is right now: a village place (VPLACES), 'garden' (visiting her), 'cottage' (her spouse,
+// at home with her), 'home' (at their own home, not about) or 'away' (not in the valley today).
+// Rain sends anyone outdoors to an indoor place (their own `wet` choice, or the inn). Day % 7 === 0 is a rest day.
+const VPLACES = {
+  mill:      { name:'the mill', title:'The mill', indoor:true, sub:'Flour dust and the creak of the wheel. Turnip the goat watches you from the doorway.' },
+  lanes:     { name:"Hettie's lane", title:"Hettie's lane", indoor:true, sub:"Granny Hettie's cottage, all herbs and crooked chimney, with Wren's hives humming next door." },
+  school:    { name:'the school', title:'The school', indoor:true, sub:'One room, one stove and a great many crayons.' },
+  inn:       { name:'the Kettle & Crow', title:'The Kettle & Crow', indoor:true, sub:'The inn. Pie, gossip and a crow over the door who has opinions.' },
+  apothecary:{ name:"Theo's apothecary", title:"Theo's apothecary", indoor:true, sub:'Shelves of jars, every one labelled in tiny writing.' },
+  smithy:    { name:'the smithy', title:'The smithy', indoor:true, sub:'Hot iron and the ring of the hammer. Rowan keeps the kettle on the forge.' },
+  square:    { name:'the square', title:'The square', sub:'The noticeboard, the old well and the best gossip in the valley.' },
+  cart:      { name:"Zara's cart", title:"Zara's cart", sub:'A painted wagon with a striped awning, full of things from far away.' },
+  docks:     { name:'the docks', title:'The docks', sub:"Fen's ferry, Juno's boat and a lot of opinions about the weather." },
+  lighthouse:{ name:'the lighthouse', title:'The lighthouse', indoor:true, sub:"Bertram's lighthouse at the river mouth. The lamp turns all night." }
+};
+const SCHED = {
+  mara:   { day:[[360, 'mill'], [720, 'square'], [810, 'mill'], [1080, 'inn'], [1230, 'home']] },
+  fen:    { day:[[360, 'docks'], [1050, 'inn'], [1260, 'home']], wet:{ docks:'lighthouse' } },
+  pip:    { day:[[360, 'home'], [480, 'school'], [900, 'square'], [1110, 'home']], rest:[[360, 'home'], [540, 'square'], [720, 'docks'], [960, 'square'], [1110, 'home']] },
+  odile:  { day:[[360, 'home'], [450, 'school'], [960, 'square'], [1080, 'inn'], [1200, 'home']], rest:[[360, 'home'], [600, 'lanes'], [780, 'square'], [1020, 'home']], wet:{ square:'school' } },
+  wren:   { day:[[360, 'lanes'], [720, 'square'], [870, 'lanes'], [1140, 'home']] },
+  rowan:  { day:[[360, 'home'], [420, 'smithy'], [720, 'inn'], [780, 'smithy'], [1080, 'inn'], [1260, 'home']], rest:[[360, 'home'], [540, 'docks'], [720, 'inn'], [900, 'smithy'], [1080, 'inn'], [1260, 'home']] },
+  silas:  { day:[[360, 'home'], [600, 'square'], [840, 'docks'], [1020, 'inn'], [1380, 'home']] },
+  theo:   { day:[[360, 'home'], [480, 'apothecary'], [720, 'lanes'], [810, 'apothecary'], [1140, 'inn'], [1260, 'home']] },
+  isolde: { day:[[360, 'inn'], [1380, 'home']], rest:[[360, 'inn'], [600, 'square'], [750, 'inn'], [1380, 'home']] },
+  juno:   { day:[[360, 'docks'], [720, 'inn'], [810, 'docks'], [1020, 'square'], [1200, 'home']] },
+  hettie: { day:[[360, 'home'], [420, 'lanes'], [840, 'square'], [960, 'lanes'], [1140, 'home']] },
+  aldous: { day:[[360, 'home'], [480, 'square'], [720, 'inn'], [810, 'square'], [1020, 'inn'], [1170, 'home']], wet:{ square:'school' } },
+  zara:   { day:[[360, 'home'], [480, 'cart'], [1140, 'inn'], [1290, 'home']], wet:{ cart:'cart' } },
+  bertram:{ day:[[360, 'home'], [720, 'docks'], [900, 'inn'], [1080, 'lighthouse']], wet:{ docks:'lighthouse' } },
+  tilly:  { day:[[360, 'home'], [480, 'school'], [900, 'docks'], [1020, 'square'], [1110, 'home']], rest:[[360, 'home'], [540, 'lanes'], [720, 'square'], [960, 'docks'], [1110, 'home']] }
+};
+const restDay = d => d % 7 === 0;
+function where(v, t, d, wet) {
+  if (t === undefined) t = S.time; if (d === undefined) d = S.day; if (wet === undefined) wet = S.rain;
+  const V = VILLAGERS[v], sp = v === S.spouse;
+  if (!arrived(v)) return 'away';
+  if (V.market && !sp && !(d % 7 === 5 || d === FEST_DAY)) return 'away';
+  if (d === S.day && S.evToday) { const e = evNow(); if (e && e.who.includes(v)) { const E = EVENTS[e.id]; if (t >= E.from && t < E.to) return evPlace(E, wet); } }
+  if (d === S.day) for (const x of S.visits || []) if (x.v === v && t >= x.from && t < x.to) return 'garden';
+  if (d === FEST_DAY && t >= 1020) return sp ? 'cottage' : 'square';
+  const sc = SCHED[v], list = (restDay(d) && sc.rest) || sc.day;
+  let p = list[0][1]; for (const [m, q] of list) if (t >= m) p = q;
+  if (V.market && sp && !(d % 7 === 5 || d === FEST_DAY) && p === 'cart') p = 'home';
+  if (wet && VPLACES[p] && !VPLACES[p].indoor) p = (sc.wet && sc.wet[p]) || 'inn';
+  if (p === 'home' && sp) p = 'cottage';
+  return p;
+}
+// When does where(v) next change today? 0 if not before bedtime.
+function untilOf(v) { const p = where(v); for (let t = Math.floor(S.time / 10) * 10 + 10; t < passOut(); t += 10) if (where(v, t) !== p) return t; return 0; }
+function placeLabel(p) {
+  if (VPLACES[p]) return 'at ' + VPLACES[p].name;
+  return { garden:'in your garden', cottage:'at home with you', home:'at home', away:'away' }[p] || p;
+}
+// Talk and gifts only work when she's where they are: the village for village places, the farm for her garden and cottage.
+function canMeet(v) {
+  const p = where(v);
+  if (p === 'garden' || p === 'cottage') return S.scene === 'farm';
+  return !!VPLACES[p] && S.scene === 'village';
+}
+// What the villager page says about where someone is, and how to go and find them.
+function meetBox(v) {
+  const V = VILLAGERS[v], p = where(v), u = untilOf(v), till = u ? ` until ${fmtTime(u)}` : '';
+  if (canMeet(v)) return { ok:true, note:`${V.name} is ${placeLabel(p)}${till}.` };
+  if (V.market && p === 'away') return { ok:false, note:`${V.name}'s cart is out on the road. It comes back ${nextMarket()}. Her cart comes every seventh day: days 5, 12, 19 and 26.` };
+  if (p === 'away') return { ok:false, note:`${V.name} isn't in the valley yet.` };
+  if (p === 'home') return { ok:false, note:`${V.name} is at home${u ? `, and out again at ${fmtTime(u)}` : (S.time >= 1020 ? ' for the night. Back out tomorrow' : '')}.` };
+  const go = S.scene === 'farm' || S.scene === 'village';
+  const hint = p === 'garden' || p === 'cottage' ? (go ? 'Head home to say hello.' : 'Head home to find them.') : (go ? 'Go and find them there to chat or give a gift.' : 'Head home, then down to the village to find them.');
+  return { ok:false, note:`${V.name} is ${placeLabel(p)}${till}. ${hint}`, seek:go ? (p === 'garden' || p === 'cottage' ? 'Go home' : `Go to ${VPLACES[p].name}`) : '' };
+}
+// Send her walking to someone: through the farm gate to the village, or home to the garden.
+function seekVillager(v) {
+  const p = where(v);
+  closeSheet();
+  if (p === 'garden' || p === 'cottage') {
+    if (S.scene === 'village') leaveVillage();
+    if (S.scene !== 'farm') return;
+    if (p === 'garden' && VISIT_STAND[v]) queue.push({ c:VISIT_STAND[v][0], r:VISIT_STAND[v][1], kind:'visit', b:'villager', v });
+    return;
+  }
+  if (!VPLACES[p]) return;
+  if (S.scene === 'farm') { queue.push({ c:BUILD.gate.stand[0], r:BUILD.gate.stand[1], kind:'visit', b:'tovillage', seek:v }); return; }
+  if (S.scene === 'village') seekInVillage(v);
+}
+function seekInVillage(v) {
+  const f = villageFolk().find(z => z.v === v);
+  if (f) { queue.push({ c:f.wc, r:f.wr, kind:'visit', b:'vperson', v }); return; }
+  const p = where(v), B = VB[p]; if (B) queue.push({ c:B.stand[0], r:B.stand[1], kind:'visit', b:'vplace', place:p });
+}
+
+/* ---------- the village map ---------- */
+// 9 x 13 tiles like the farm. Buildings (VB) are tapped to see who's inside; villagers stand at their place's spots
+// [villager col, row, her col, row]. Extra people (or everyone, when it rains) are indoors and show as a count.
+const VB = {
+  mill:      { c:0, r:0, w:2, h:2, stand:[2, 2] },
+  lanes:     { c:3, r:0, w:2, h:1, stand:[4, 2] },
+  school:    { c:7, r:0, w:2, h:2, stand:[6, 2] },
+  inn:       { c:0, r:3, w:2, h:2, stand:[3, 4] },
+  apothecary:{ c:7, r:3, w:2, h:2, stand:[5, 4] },
+  board:     { c:4, r:4, w:1, h:1, stand:[4, 5] },
+  well:      { c:4, r:6, w:1, h:1, stand:[3, 6] },
+  smithy:    { c:0, r:6, w:2, h:2, stand:[3, 7] },
+  cart:      { c:7, r:6, w:2, h:1, stand:[6, 7] },
+  docks:     { c:6, r:9, w:1, h:1, stand:[6, 10] },
+  lighthouse:{ c:8, r:10, w:1, h:3, stand:[6, 12] }
+};
+const VSPOTS = {
+  mill:[[2, 1, 2, 2], [0, 2, 1, 2]],
+  lanes:[[3, 1, 3, 2], [5, 1, 5, 2], [4, 1, 4, 2]],
+  school:[[6, 1, 6, 2], [8, 2, 7, 2]],
+  inn:[[2, 3, 3, 3], [2, 4, 3, 4], [0, 5, 1, 5]],
+  apothecary:[[6, 3, 5, 3], [6, 4, 5, 4]],
+  square:[[3, 5, 3, 6], [5, 5, 5, 6], [4, 7, 4, 8], [5, 7, 6, 7], [6, 5, 7, 5], [2, 5, 1, 5], [3, 8, 2, 8], [5, 8, 6, 8]],
+  smithy:[[2, 6, 3, 6], [2, 7, 3, 7], [0, 8, 1, 8]],
+  cart:[[6, 6, 6, 7]],
+  docks:[[6, 9, 6, 10], [5, 10, 5, 11], [7, 10, 7, 11], [4, 10, 4, 11], [3, 10, 3, 11], [6, 11, 6, 10]],
+  lighthouse:[[7, 12, 6, 12]]
+};
+const V_RIVER = 9, V_EXIT = [4, 12];
+const cartHere = () => arrived('zara') && (marketDay() || isFestDay()) && S.spouse !== 'zara';
+function vBuildingAt(c, r) {
+  for (const k in VB) { const b = VB[k]; if (k === 'cart' && !cartHere()) continue; if (c >= b.c && c < b.c + b.w && r >= b.r && r < b.r + b.h) return k; }
+  return null;
+}
+// Who's in the village right now, and where they stand. Indoor places hold everyone when it rains.
+function villageFolk() {
+  const out = [], by = {};
+  for (const v of VIDS) { const p = where(v); if (VPLACES[p]) (by[p] = by[p] || []).push(v); }
+  for (const p in by) {
+    const spots = S.rain && VPLACES[p].indoor ? [] : VSPOTS[p];
+    by[p].forEach((v, i) => out.push(i < spots.length ? { v, p, c:spots[i][0], r:spots[i][1], wc:spots[i][2], wr:spots[i][3] } : { v, p, inside:true }));
+  }
+  return out;
+}
+const folkAt = p => VIDS.filter(v => where(v) === p);
+function enterVillage(seek, place) {
+  S.scene = 'village'; witch.x = V_EXIT[0]; witch.y = V_EXIT[1]; cat.x = 4.4; cat.y = 12.6; cat.trail = []; queue = [];
+  if (!S.villageSeen) { S.villageSeen = true; toast('The village. Tap someone to chat, or tap a building to see who\'s inside. The path home is at the bottom.', 5600); }
+  if (seek) seekInVillage(seek);
+  else if (place) { const B = VB[place] || (place === 'square' ? VB.well : null); if (B) queue.push({ c:B.stand[0], r:B.stand[1], kind:'visit', b:'vplace', place }); }
+}
+function leaveVillage() { S.scene = 'farm'; witch.x = 0; witch.y = 6; cat.x = .4; cat.y = 6.5; cat.trail = []; queue = []; }
+function enqueueVillage(t, fromDrag) {
+  if (fromDrag) return;
+  const folk = villageFolk().filter(f => !f.inside);
+  const f = folk.find(z => z.c === t.c && z.r === t.r) || (vBuildingAt(t.c, t.r) ? null : folk.find(z => z.c === t.c && z.r === t.r + 1));
+  if (f) { queue.push({ c:f.wc, r:f.wr, kind:'visit', b:'vperson', v:f.v }); return; }
+  if (t.r === V_EXIT[1] && t.c >= 3 && t.c <= 5) { queue.push({ c:V_EXIT[0], r:V_EXIT[1], kind:'visit', b:'vexit' }); return; }
+  const b = vBuildingAt(t.c, t.r);
+  if (b) { const B = VB[b]; queue.push({ c:B.stand[0], r:B.stand[1], kind:'visit', b:'vplace', place:b === 'well' ? 'square' : b }); return; }
+  if (t.r === V_RIVER && t.c !== 4) { toast('The river. The bridge is in the middle, and the docks are to the right.'); return; }
+  queue.push({ c:t.c, r:t.r, kind:'walk' });
+}
+function vPathTile(c, r) {
+  if (r === 2 || r === 8) return true;
+  if ((c === 2 || c === 6) && r > 2 && r < 8) return true;
+  if (c === 4 && r >= 8) return true;
+  return false;
+}
+const vSquare = (c, r) => c >= 3 && c <= 5 && r >= 4 && r <= 7;
+function buildVillage(g, pal, season) {
+  const u = T / 16;
+  R(g, 0, 0, W, H, pal.forest);
+  for (let i = 0; i < 260; i++) {
+    const x = hash(i, 11, 9) * W, y = hash(i, 12, 9) * H;
+    if (x > ox - T * .3 && x < ox + COLS * T + T * .3 && y > oy - T * .2 && y < oy + ROWS * T + T * 1.2) continue;
+    tree(g, x, y + T, T * (1 + hash(i, 13, 9) * .6), hash(i, 14, 9), pal, season);
+  }
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const x = ox + c * T, y = oy + r * T;
+    if (vSquare(c, r)) {
+      R(g, x, y, T, T, season === 3 ? '#c8c4bc' : '#9a9286');
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) R(g, x + i * 4 * u + (j % 2) * 2 * u + .5 * u, y + j * 4 * u + .5 * u, 3.2 * u, 3.2 * u, hash(c * 4 + i, r * 4 + j, 7) > .5 ? (season === 3 ? '#d8d4cc' : '#aaa296') : (season === 3 ? '#bcb8b0' : '#8a8276'));
+    } else if (vPathTile(c, r)) {
+      R(g, x, y, T, T, pal.path[0]);
+      for (let i = 0; i < 5; i++) { const a = hash(c, r, i + 70), b = hash(c, r, i + 79); R(g, x + a * (T - 2 * u), y + b * (T - 2 * u), 2 * u, 1.4 * u, i % 2 ? pal.path[1] : pal.path[2]); }
+    } else {
+      R(g, x, y, T, T, pal.g[(c + r) % 2]);
+      for (let i = 0; i < 6; i++) { const a = hash(c, r, i + 30), b = hash(c, r, i + 40); R(g, x + a * (T - u), y + b * (T - 2 * u), u, 2 * u, i % 3 ? pal.bl[0] : pal.bl[1]); }
+      if (r > V_RIVER && !vBuildingAt(c, r) && hash(c, r, 97) > pal.fp && pal.fl.length) {
+        const fc = pal.fl[(hash(c, r, 96) * pal.fl.length) | 0];
+        for (let i = 0; i < 3; i++) circ(g, x + (.2 + hash(c, r, 51 + i) * .6) * T, y + (.2 + hash(c, r, 61 + i) * .6) * T, u * 1.1, fc);
+      }
+    }
+  }
+  // river, bridge and dock
+  const ry = oy + V_RIVER * T, water = season === 3 ? '#b8d4e4' : pal.pond[0];
+  R(g, ox - T * .3, ry + u, COLS * T + T * .6, T - 2 * u, water);
+  for (let c = 0; c < COLS; c++) R(g, ox + c * T + hash(c, 2, 1) * T * .6, ry + T * .45, 4 * u, u, season === 3 ? '#eef6fa' : pal.pond[1]);
+  R(g, ox + 4 * T, ry, T, T, '#8a6440'); for (let k = 1; k < 4; k++) R(g, ox + 4 * T, ry + k * 4 * u, T, .8 * u, '#6a4a2c');
+  R(g, ox + 4 * T, ry, 1.2 * u, T, '#5a3d26'); R(g, ox + 5 * T - 1.2 * u, ry, 1.2 * u, T, '#5a3d26');
+  R(g, ox + 6 * T + 2 * u, ry - u, T - 4 * u, T + u, '#9a7450'); for (let k = 1; k < 5; k++) R(g, ox + 6 * T + 2 * u, ry + k * 3.4 * u, T - 4 * u, .7 * u, '#6a4a2c');
+  R(g, ox + 6 * T + 2 * u, ry + T - u, 1.6 * u, 3 * u, '#5a3d26'); R(g, ox + 7 * T - 3.6 * u, ry + T - u, 1.6 * u, 3 * u, '#5a3d26');
+  // a little boat by the dock
+  g.fillStyle = '#7a4a2c'; g.beginPath(); g.moveTo(ox + 7 * T + u, ry + 5 * u); g.lineTo(ox + 8 * T - 2 * u, ry + 5 * u); g.lineTo(ox + 8 * T - 4 * u, ry + 11 * u); g.lineTo(ox + 7 * T + 3 * u, ry + 11 * u); g.closePath(); g.fill();
+  R(g, ox + 7 * T + 2 * u, ry + 5 * u, T - 5 * u, 1.2 * u, '#c9a675');
+  // trees and hedges around the edges
+  for (const [c, r] of [[0, 10], [2, 11], [0, 12]]) tree(g, ox + (c + .5) * T, oy + (r + 1) * T, T * 1.05, hash(c, r, 21), pal, season);
+  vBuildings(g, season);
+  // signpost home
+  const ex = ox + V_EXIT[0] * T, ey = oy + V_EXIT[1] * T;
+  R(g, ex + 13 * u, ey + 4 * u, 1.5 * u, 10 * u, '#5a3d26'); R(g, ex + 9 * u, ey + 3 * u, 8 * u, 4 * u, '#c9a675');
+  g.fillStyle = '#5a3d26'; g.beginPath(); g.moveTo(ex + 11 * u, ey + 5 * u); g.lineTo(ex + 14.5 * u, ey + 3.8 * u); g.lineTo(ex + 14.5 * u, ey + 6.2 * u); g.closePath(); g.fill();
+}
+// One house: stone or plaster walls, a roof, a door and two windows. Returns its window rectangles for the night glow.
+function vHouse(g, x, y, w, h, wall, roof, season, opts) {
+  const u = T / 16, o = opts || {};
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x + w / 2, y + h - u, w * .48, u * 3, 0, 0, 7); g.fill();
+  const wy = y + h * (o.roofH || .45);
+  R(g, x + 2 * u, wy, w - 4 * u, y + h - wy - u, wall);
+  for (let i = 0; i < 14; i++) R(g, x + 3 * u + hash(i, w, 3) * (w - 9 * u), wy + 2 * u + hash(i, h, 4) * (y + h - wy - 6 * u), 3 * u, 1.5 * u, shade(wall, i % 2 ? 10 : -10));
+  if (o.chimney) R(g, x + w * .72, y + h * .02, 4 * u, h * .3, '#6b5a4d');
+  g.fillStyle = roof; g.beginPath(); g.moveTo(x - u, wy + u); g.lineTo(x + w * .16, y + h * .06); g.lineTo(x + w * .84, y + h * .06); g.lineTo(x + w + u, wy + u); g.closePath(); g.fill();
+  g.strokeStyle = shade(roof, -18); g.lineWidth = u * .8;
+  for (let i = 1; i < 5; i++) { const yy = y + h * .06 + i * (wy - y - h * .06) / 5; const k = (yy - y - h * .06) / (wy - y - h * .06); g.beginPath(); g.moveTo(x + w * .16 - k * (w * .16 + u), yy); g.lineTo(x + w * .84 + k * (w * .16 + u), yy); g.stroke(); }
+  if (season === 3) { g.fillStyle = '#f4f8fb'; g.beginPath(); g.moveTo(x + w * .14, y + h * .08); g.lineTo(x + w * .86, y + h * .08); g.lineTo(x + w * .9, y + h * .16); g.lineTo(x + w * .1, y + h * .16); g.closePath(); g.fill(); }
+  const dw = Math.min(w * .2, 7 * u), dx = x + (o.doorX === undefined ? .5 : o.doorX) * w - dw / 2;
+  R(g, dx, y + h - (y + h - wy) * .62, dw, (y + h - wy) * .62 - u, o.door || '#5a3a24'); circ(g, dx + dw * .78, y + h - (y + h - wy) * .3, u * .6, '#f2b84b');
+  const wins = [], ww = Math.min(w * .18, 6 * u), wh = (y + h - wy) * .34, wyy = wy + (y + h - wy) * .22;
+  for (const fx of o.wins || [.2, .8]) { const wx = x + fx * w - ww / 2; R(g, wx - .6 * u, wyy - .6 * u, ww + 1.2 * u, wh + 1.2 * u, '#3a2a1c'); R(g, wx, wyy, ww, wh, '#5d7790'); wins.push([wx, wyy, ww, wh]); }
+  return wins;
+}
+let VWINS = [];
+function vBuildings(g, season) {
+  const u = T / 16, bx = k => ox + VB[k].c * T, by = k => oy + VB[k].r * T, bw = k => VB[k].w * T, bh = k => VB[k].h * T;
+  VWINS = [];
+  // the mill, with its water wheel on the side
+  VWINS.push(...vHouse(g, bx('mill'), by('mill'), bw('mill'), bh('mill'), '#e4d6b8', '#8a4a2a', season, { wins:[.25, .75], doorX:.5 }));
+  const wx = bx('mill') + bw('mill') - 2 * u, wy = by('mill') + bh('mill') * .62;
+  g.strokeStyle = '#5a3d26'; g.lineWidth = 1.6 * u; g.beginPath(); g.arc(wx, wy, 6 * u, 0, 7); g.stroke();
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; g.beginPath(); g.moveTo(wx, wy); g.lineTo(wx + Math.cos(a) * 6 * u, wy + Math.sin(a) * 6 * u); g.stroke(); }
+  // Hettie's cottage on the lane, and Wren's hives beside it
+  VWINS.push(...vHouse(g, bx('lanes'), by('lanes') - 2 * u, bw('lanes'), bh('lanes') + 2 * u, '#cdbf9a', '#9a8a4a', season, { wins:[.25, .78], doorX:.52, chimney:true, roofH:.5 }));
+  for (const k of [0, 1]) { const hx = ox + 5 * T + (3 + k * 7) * u, hy = oy + 6 * u; R(g, hx, hy + 6 * u, 5 * u, 2 * u, '#6a4a2c'); g.fillStyle = season === 3 ? '#e8e2d0' : '#e8b84a'; g.beginPath(); g.ellipse(hx + 2.5 * u, hy + 3.5 * u, 3 * u, 3.5 * u, 0, 0, 7); g.fill(); g.strokeStyle = '#a07a2a'; g.lineWidth = .6 * u; for (const yy of [2, 4, 6]) { g.beginPath(); g.moveTo(hx, hy + yy * u); g.lineTo(hx + 5 * u, hy + yy * u); g.stroke(); } }
+  // the school, with its bell
+  VWINS.push(...vHouse(g, bx('school'), by('school'), bw('school'), bh('school'), '#c98a6a', '#4a5a7a', season, { wins:[.22, .78] }));
+  const sx = bx('school') + bw('school') / 2; R(g, sx - 2.5 * u, by('school') - u, 5 * u, 4 * u, '#4a5a7a'); circ(g, sx, by('school') + 1.5 * u, 1.6 * u, '#f2b84b');
+  // the inn, with a kettle sign
+  VWINS.push(...vHouse(g, bx('inn'), by('inn'), bw('inn'), bh('inn'), '#d9c49a', '#7a3a4a', season, { wins:[.2, .5, .8], doorX:.62, chimney:true }));
+  const ix = bx('inn') + bw('inn') + u, iy = by('inn') + bh('inn') * .5;
+  R(g, ix - 4 * u, iy - 4 * u, 5 * u, u, '#5a3d26'); R(g, ix - 4 * u, iy - 3 * u, .8 * u, 2 * u, '#5a3d26');
+  R(g, ix - 6 * u, iy - u, 5 * u, 5 * u, '#c9a675'); circ(g, ix - 3.5 * u, iy + 1.8 * u, 1.6 * u, '#2a2230');
+  // the apothecary, with green bottles in the window
+  VWINS.push(...vHouse(g, bx('apothecary'), by('apothecary'), bw('apothecary'), bh('apothecary'), '#b8c4a8', '#3a6a5a', season, { wins:[.22, .78], door:'#2e4a40' }));
+  const ax = bx('apothecary') - u, ay = by('apothecary') + bh('apothecary') * .5;
+  R(g, ax - 3 * u, ay - u, 5 * u, 5 * u, '#c9a675'); R(g, ax - 1 * u, ay, u, 1.5 * u, '#3a8a5a'); circ(g, ax - .5 * u, ay + 2.5 * u, 1.3 * u, '#3a8a5a');
+  // the smithy: dark stone, an anvil out front and a glowing forge
+  VWINS.push(...vHouse(g, bx('smithy'), by('smithy'), bw('smithy'), bh('smithy'), '#8b8273', '#4a3a3a', season, { wins:[.25], doorX:.7, chimney:true }));
+  const fx = bx('smithy') + bw('smithy') + 2 * u, fy = by('smithy') + bh('smithy') - 5 * u;
+  R(g, fx - 2 * u, fy, 2 * u, 4 * u, '#3a3a42'); R(g, fx - 4 * u, fy - u, 7 * u, 2 * u, '#4a4a52');
+  // the noticeboard and the well in the square
+  const nb = ox + VB.board.c * T, nby = oy + VB.board.r * T;
+  R(g, nb + 3 * u, nby + 4 * u, 2 * u, 12 * u, '#5a3d26'); R(g, nb + 11 * u, nby + 4 * u, 2 * u, 12 * u, '#5a3d26');
+  R(g, nb + u, nby + 3 * u, 14 * u, 9 * u, '#8a6440'); R(g, nb + 2 * u, nby + 4 * u, 12 * u, 7 * u, '#a57a4f');
+  R(g, nb, nby + 1.5 * u, 16 * u, 2 * u, season === 3 ? '#f4f8fb' : '#5a3a6c');
+  for (let i = 0; i < 3; i++) R(g, nb + (3 + i * 3.6) * u, nby + (5 + (i % 2)) * u, 3 * u, 4 * u, '#f2e8dc');
+  const wl = ox + (VB.well.c + .5) * T, wly = oy + VB.well.r * T;
+  g.fillStyle = '#8b8273'; g.beginPath(); g.ellipse(wl, wly + 11 * u, 6.5 * u, 3.5 * u, 0, 0, 7); g.fill();
+  g.fillStyle = season === 3 ? '#cfe2ec' : '#2a4a62'; g.beginPath(); g.ellipse(wl, wly + 10 * u, 4.5 * u, 2 * u, 0, 0, 7); g.fill();
+  R(g, wl - 5 * u, wly + 2 * u, u * 1.2, 8 * u, '#5a3d26'); R(g, wl + 3.8 * u, wly + 2 * u, u * 1.2, 8 * u, '#5a3d26');
+  g.fillStyle = season === 3 ? '#f4f8fb' : '#5a3a6c'; g.beginPath(); g.moveTo(wl - 7 * u, wly + 3 * u); g.lineTo(wl, wly - u); g.lineTo(wl + 7 * u, wly + 3 * u); g.closePath(); g.fill();
+  // the lighthouse, white with red bands
+  const lx = ox + VB.lighthouse.c * T, ly = oy + VB.lighthouse.r * T, lw = T, lh = 3 * T;
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(lx + lw / 2, ly + lh - u, lw * .45, u * 2.5, 0, 0, 7); g.fill();
+  g.fillStyle = '#f2ece2'; g.beginPath(); g.moveTo(lx + 3 * u, ly + lh - u); g.lineTo(lx + 5 * u, ly + 9 * u); g.lineTo(lx + lw - 5 * u, ly + 9 * u); g.lineTo(lx + lw - 3 * u, ly + lh - u); g.closePath(); g.fill();
+  for (let i = 0; i < 3; i++) { const yy = ly + 16 * u + i * 11 * u; R(g, lx + 3.6 * u + (lh - yy + ly) * .04, yy, lw - 7.2 * u - (lh - yy + ly) * .08, 4 * u, '#c94a3a'); }
+  R(g, lx + 4 * u, ly + 3 * u, lw - 8 * u, 6 * u, '#3a3a42'); R(g, lx + 5 * u, ly + 4 * u, lw - 10 * u, 4 * u, lampLit() ? '#f2d36b' : '#6a6a78');
+  if (!lampLit()) { g.strokeStyle = '#2a2a32'; g.lineWidth = .7 * u; g.beginPath(); g.moveTo(lx + 6 * u, ly + 4 * u); g.lineTo(lx + 8.5 * u, ly + 6 * u); g.lineTo(lx + 7.5 * u, ly + 8 * u); g.stroke(); }
+  g.fillStyle = '#c94a3a'; g.beginPath(); g.moveTo(lx + 3 * u, ly + 3.5 * u); g.lineTo(lx + lw / 2, ly - u); g.lineTo(lx + lw - 3 * u, ly + 3.5 * u); g.closePath(); g.fill();
+  R(g, lx + lw / 2 - 2 * u, ly + lh - 6 * u, 4 * u, 5 * u, '#5a3a24');
+  if (lampLit()) VWINS.push([lx + 5 * u, ly + 4 * u, lw - 10 * u, 4 * u, 'lamp']);
+}
+// Zara's painted cart, parked on market days and festivals
+function drawCart() {
+  const u = T / 16, x = ox + VB.cart.c * T, y = oy + VB.cart.r * T, w = VB.cart.w * T;
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x + w / 2, y + 15 * u, w * .45, 2 * u, 0, 0, 7); ctx.fill();
+  R(ctx, x + 2 * u, y + 7 * u, w - 4 * u, 6 * u, '#7a3a6a'); R(ctx, x + 2 * u, y + 7 * u, w - 4 * u, u, '#f2b84b');
+  for (let i = 0; i < 7; i++) R(ctx, x + 2 * u + i * (w - 4 * u) / 7, y + u, (w - 4 * u) / 7, 4 * u, i % 2 ? '#f2e8dc' : '#3a8a8a');
+  R(ctx, x + 3 * u, y + 5 * u, u, 2 * u, '#5a3d26'); R(ctx, x + w - 4 * u, y + 5 * u, u, 2 * u, '#5a3d26');
+  ['#c94a3a', '#f2d36b', '#8f80ff', '#7fd39a', '#ff8a4a'].forEach((c, i) => circ(ctx, x + (5 + i * 4.5) * u, y + 6.5 * u, 1.5 * u, c));
+  for (const wx of [x + 6 * u, x + w - 6 * u]) { circ(ctx, wx, y + 14 * u, 3 * u, '#5a3d26'); circ(ctx, wx, y + 14 * u, 1.2 * u, '#c9a675'); }
+}
+// A villager standing on a tile, the same way garden visitors are drawn.
+function drawFolk(v, c, r) {
+  const u = T / 16, L = VILLAGERS[v].look, k = L.age === 'kid' ? .85 : 1, px = ox + (c + .5) * T, feet = oy + (r + .9) * T;
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(px, feet, 5 * u, 1.6 * u, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = L.shirt; ctx.beginPath(); ctx.moveTo(px - 4.5 * u * k, feet - u); ctx.lineTo(px + 4.5 * u * k, feet - u); ctx.lineTo(px + 2.8 * u * k, feet - 9 * u * k); ctx.lineTo(px - 2.8 * u * k, feet - 9 * u * k); ctx.closePath(); ctx.fill();
+  const img = porImage(v), s = 12 * u * k;
+  if (img.complete && img.naturalWidth) ctx.drawImage(img, px - s / 2, feet - 9 * u * k - s + u, s, s);
+  else circ(ctx, px, feet - 9 * u * k - s / 2 + u, s / 2, VILLAGERS[v].col);
+  if (S.talked[v] !== dayKey()) {
+    const bx = px + 6 * u, by = feet - 21 * u - (reduceMotion ? 0 : Math.abs(Math.sin(clock * 3 + c)) * u);
+    circ(ctx, bx, by, 3.4 * u, '#f4ead9'); for (let i = -1; i <= 1; i++) circ(ctx, bx + i * 1.3 * u, by, .5 * u, '#2a1d36');
+  }
+}
+// Group events: a picnic blanket in the square, a bonfire by the docks (only outdoors, only while it's on).
+const evProp = () => { const e = evNow(); if (!e || S.rain) return null; const E = EVENTS[e.id]; return S.time >= E.from && S.time < E.to && !VPLACES[E.place].indoor ? e.id : null; };
+function drawEventProp(id) {
+  const u = T / 16;
+  if (id === 'picnic') {
+    const x = ox + 3.55 * T, y = oy + 7.5 * T, w = 1.9 * T, h = .55 * T;
+    R(ctx, x, y, w, h, '#f2e8dc'); for (let i = 0; i < 8; i++) for (let j = 0; j < 2; j++) if ((i + j) % 2) R(ctx, x + i * w / 8, y + j * h / 2, w / 8, h / 2, '#d9533a');
+    R(ctx, x + w * .42, y - 2 * u, 5 * u, 4 * u, '#a57a4f'); R(ctx, x + w * .42, y - 2 * u, 5 * u, u, '#7a5a3a');
+  }
+  if (id === 'bonfire') {
+    const cx = ox + 5.5 * T, cy = oy + 12.55 * T, f = reduceMotion ? 0 : Math.sin(clock * 9) * u;
+    R(ctx, cx - 6 * u, cy + u, 12 * u, 2 * u, '#5a3d26'); R(ctx, cx - 5 * u, cy - u, 2 * u, 4 * u, '#6a4a2c'); R(ctx, cx + 3 * u, cy - u, 2 * u, 4 * u, '#6a4a2c');
+    for (const [dx, hh, c] of [[-3, 8, '#ff6a3a'], [0, 11, '#ff8a4a'], [3, 7, '#ff6a3a'], [0, 6, '#f2d36b']]) { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(cx + (dx - 3) * u, cy); ctx.lineTo(cx + dx * u + f * .4, cy - hh * u - f); ctx.lineTo(cx + (dx + 3) * u, cy); ctx.closePath(); ctx.fill(); }
+  }
+}
+function drawVillageDynamic() {
+  const u = T / 16;
+  if (cartHere()) drawCart();
+  { const ep = evProp(); if (ep) drawEventProp(ep); }
+  const folk = villageFolk(), inside = {};
+  for (const f of folk) if (f.inside) inside[f.p] = (inside[f.p] || 0) + 1;
+  for (const f of folk.filter(z => !z.inside).sort((a, b) => a.r - b.r)) drawFolk(f.v, f.c, f.r);
+  // a little count over the door of anywhere with people inside
+  for (const p in inside) {
+    const B = VB[p]; if (!B) continue;
+    const bx = ox + (B.c + B.w / 2) * T + (p === 'lighthouse' ? 0 : B.w * T * .28), by = oy + B.r * T + (p === 'lighthouse' ? T * 1.2 : 2 * u);
+    circ(ctx, bx, by, 4.2 * u, '#f4ead9'); ctx.fillStyle = '#2a1d36'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.max(10, 6 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.fillText(String(inside[p]), bx, by + .3 * u);
+  }
+}
+function villageGlows(glow, k) {
+  for (const [x, y, w, h, kind] of VWINS) glow(x + w / 2, y + h / 2, T * (kind === 'lamp' ? 1.6 : .9), kind === 'lamp' ? '255,230,140' : '255,190,90', (kind === 'lamp' ? .6 : .42) * k);
+  if (cartHere()) glow(ox + (VB.cart.c + 1) * T, oy + (VB.cart.r + .4) * T, T * 1.1, '255,200,120', .35 * k);
+  if (evProp() === 'bonfire') glow(ox + 5.5 * T, oy + 12.3 * T, T * 2.2, '255,150,70', .7 * k);
+}
+function drawVillageWindows(night) {
+  if (night <= .2) return;
+  for (const [x, y, w, h, kind] of VWINS) if (!kind) R(ctx, x, y, w, h, '#ffcf6b');
+}
+
 /* ================= the Hollow ================= */
 const HOLLOW_DROPS = {
   jelly:   { name:'Slime Jelly',     sell:15, col:'#7fe07a' },
@@ -2562,6 +2934,7 @@ function hollowFloor(f) {
   for (let i = 0; i < n; i++) { const k = pick(); HV.mobs.push({ k, hp:MOBS[k].hp, x:Math.random() * 8, y:Math.random() * 7, hit:0, ph:Math.random() * 6, kb:0 }); }
   witch.x = 4; witch.y = 11; cat.x = 4.4; cat.y = 11.6; cat.trail = []; queue = [];
   if (f > (S.hollowMax || 0)) { S.hollowMax = f; hollowMilestone(f); }
+  questHollow(f);
 }
 function hollowMilestone(f) {
   if (f === 5 && learnSpell('frost')) { SND.gift(); openSheet('gift', ['Frost glitters on the walls of floor 5, and in it someone has scratched a spell: Frost Ring. You learned it.', 'Tap yourself to cast it. It hits every creature close to you, for 6 mana.']); }
@@ -2729,6 +3102,253 @@ function drawHollowLight() {
   ctx.fillText(`${HV.mobs.length} creature${HV.mobs.length === 1 ? '' : 's'} left`, ox + T * .2, oy + T * .1 + Math.max(18, T * .55));
 }
 
+/* ---------- story quests (villager plan, part 3) ---------- */
+// Each story unlocks once friendships are strong enough, then waits patiently: no deadlines, nothing to miss.
+// Step kinds: { v } meet someone (v can be a list: any of them), { v, give } bring them something,
+// { at, need, after, give } do something at a village place (need: who must be there, after: from what time),
+// { floor } reach a floor of the Hollow. The last step's text is the ending, and `reward` is paid then.
+// give.pick is a list of item ids, or 'crop', 'forage' or 'potion' for any of that kind. Cheapest items go first.
+const QUESTS = {
+  secret: { title:"The aunt's secret", host:'hettie', cast:['hettie', 'aldous'], when:() => heartsOf('hettie') >= 4, unlock:"Granny Hettie, at 4 hearts",
+    hook:'Granny Hettie has found something in your aunt\'s letters.',
+    steps:[
+      { v:'hettie', btn:'Ask about the letters', hint:'Visit Granny Hettie. She has found something in your aunt\'s letters.',
+        text:`Hettie has the trunk of letters open on her kitchen table. "Seventy years of them, and she only ever mentions the Guild once." She taps a page, which is mostly about slugs. "'The Guild has fined me again. Worth every coin.' Fined for what? She never says." Hettie peers at you over her spectacles. "The mayor keeps the old Guild letters at the town hall. Go and charm him, dear. He likes being charmed."` },
+      { v:'aldous', btn:'Ask about Bramble and the Guild', hint:'Ask Mayor Aldous about the Guild\'s old letters.',
+        text:`Aldous goes pink, then fetches a box he clearly knows by heart. Inside is a Guild notice, sixty years old: Bramble was fined for "teaching witchcraft to persons not of the Guild." He reads out the list. A warming charm for a young miller's wife. The Wood's words for a ferryman. A rain-calling, copied into a school register. "She taught half the valley," he says. "And she paid every fine in honey. The Guild hated that." He hands you the notice. "Hettie should have this."` },
+      { v:'hettie', give:{ pick:'forage', n:3 }, btn:'Give 3 Wood finds', hint:'Take the notice back to Hettie, with 3 finds from the Old Wood for her tea and her lamp.',
+        text:`Hettie reads the notice twice by the lamp, then laughs until she has to sit down. "Of course. Of course she did." From the very bottom of the trunk she lifts a letter sealed with green wax, addressed in Bramble's terrible spelling to Whoever Comes Next. Inside is one last spell page, and a note: "The Guild only ever cared who was a witch. I only cared who was a neighbour. Be kind to them. They'll be kind back." Hettie squeezes your hand. "That's you, dear. You're what came next."` }
+    ],
+    reward:{ spell:'kin', fr:{ hettie:120, aldous:60 } }, rtext:"A new spell page: Bramble's Charm." },
+  brews: { title:'Rival brews', host:'isolde', cast:['isolde', 'theo'], when:() => heartsOf('isolde') >= 3 && heartsOf('theo') >= 3, unlock:'Isolde and Theo, both at 3 hearts',
+    hook:'Isolde and Theo have fallen out over a hot toddy.',
+    steps:[
+      { v:'isolde', btn:'Ask what happened', hint:'Isolde wants a word. She\'s usually at the Kettle & Crow.',
+        text:`"Chemically unsound," Isolde says, slamming down a tankard. "That's what Theo called my mulled cider. In my own inn. Twenty years I've made it." She leans in. "So I've challenged him to a taste-off, and the whole inn will judge. But I need a secret ingredient, love. Something warming. Bring me something, and don't tell him."` },
+      { v:'isolde', give:{ pick:['ember', 'pepper', 'hearth', 'salve', 'amber'], n:1 }, btn:'Give the secret ingredient', hint:'Bring Isolde something warming: Emberroot, Sunpepper, a Hearth Tonic, Sunfire Salve or Amber Syrup.',
+        text:`Isolde sniffs it, grins and hides it in her apron. "Perfect. He'll never guess." On your way out, Theo's apprentice owl lands on your hat with a note in tiny handwriting: "Please come to the apothecary. Confidential. Bring a sample of your best brew. (This is not about the cider.) (It is about the cider.)"` },
+      { v:'theo', give:{ pick:'potion', n:1 }, btn:'Give Theo a potion', hint:'Theo wants a potion of yours to "calibrate" his recipe. He\'s usually at the apothecary.',
+        text:`Theo holds your potion up to the window and makes three pages of notes. "For calibration," he says. "Not because I'm worried. I'm not worried. I've charted every variable." He has not slept, by the look of him. "The taste-off is at the inn, in the evening. You'll come? Someone has to be impartial. Also I'm scared of her."` },
+      { at:'inn', need:['isolde', 'theo'], after:1140, btn:'Start the taste-off', hint:'Go to the inn one evening, when Isolde and Theo are both there (Theo comes by after 7 pm).',
+        text:`The whole inn crowds round two steaming pots. Isolde's cider tastes of orchards and bonfires. Theo's tastes of orchards, bonfires and, faintly, of a laboratory. The vote is a perfect tie, and everyone looks at you. Before you can choose, Theo pours a little of his into hers. Isolde tastes it, glares, and tastes it again. "Oh, that's annoying," she says. "That's much better." By closing time it's on the board above the bar: The Kettle & Theo, a hot toddy. They split the takings with you, still arguing about the name.` }
+    ],
+    reward:{ coins:350, items:{ hearth:1 }, fr:{ isolde:100, theo:100 } }, rtext:'350 coins and a Hearth Tonic.' },
+  goat: { title:'The lost goat', host:'mara', cast:['mara', 'pip', 'tilly'], when:() => heartsOf('pip') >= 2 && heartsOf('tilly') >= 2, unlock:'Pip and Tilly, both at 2 hearts',
+    hook:'Turnip the goat has gone missing.',
+    steps:[
+      { v:'mara', btn:'What\'s wrong?', hint:'Mara is upset about something. Find her at the mill.',
+        text:`Mara is pacing outside the mill with an empty rope. "Turnip's gone. Pip and Tilly were minding her. Minding her!" She takes a breath. "She's never run off before. She's old, and she's daft, and if she's fallen in the river..." She stops. "Find those two, would you? They'll know which way she went. They'll be too frightened to tell me."` },
+      { v:['pip', 'tilly'], btn:'Ask where Turnip went', hint:'Find Pip or Tilly. They know which way Turnip went.',
+        text:`Pip and Tilly confess everything at once, very fast. They were teaching Turnip to fetch. Turnip fetched Odile's register, ate a page of it, and ran off towards the river "really fast, for a goat". Tilly adds, "She likes snacks. Any snacks. She ate my shoelace." Pip nods gravely. "Bring snacks."` },
+      { at:'docks', give:{ pick:'crop', n:2 }, btn:'Tempt Turnip with 2 crops', hint:'Go to the docks with 2 crops from your garden for snacks. Turnip was heading for the river.',
+        text:`You find Turnip standing in Juno's boat, chewing a rope and looking very pleased with herself. She ignores you, then ignores you a bit less, then trots over for the snacks as if it had been her idea all along. She lets you lead her home without a fuss, stopping only to eat a dandelion, a hat ribbon and a small sign.` },
+      { v:'mara', btn:'Bring Turnip home', hint:'Take Turnip back to Mara.',
+        text:`Mara drops to her knees and hugs the goat, who tolerates it. Pip and Tilly hover nearby, ready to be told off. Instead Mara laughs. "You two are hereby the official goat wardens. Which means you walk her every day, and you buy Odile a new register." They look thrilled. Turnip eats the rope. Mara presses a warm loaf and a purse into your hands. "From me and Turnip. Mostly me. She'd only eat it."` }
+    ],
+    reward:{ coins:250, items:{ honey:1 }, fr:{ mara:80, pip:100, tilly:100 } }, rtext:'250 coins and a jar of honey.' },
+  lamp: { title:'The lighthouse lamp', host:'bertram', cast:['bertram', 'fen', 'rowan'], when:() => heartsOf('bertram') >= 4 && heartsOf('fen') >= 2, unlock:'Bertram at 4 hearts and Old Fen at 2',
+    hook:'Bertram wants to light the old lamp again.',
+    steps:[
+      { v:'bertram', btn:'Hear him out', hint:'Bertram has something on his mind. Find him at the docks or the lighthouse.',
+        text:`Bertram is polishing the cracked lamp again. "Nine years dark," he says. "No ships come now. But Fen's eyes are going, and he still crosses that river after dusk." He clears his throat. "I'd like it lit. Rowan could forge a new frame for the lens. But the lens wants something that holds light. Crystal. I've none left."` },
+      { v:'rowan', give:{ pick:['icicle', 'wyrd', 'crystal'], n:1 }, btn:'Give it to Rowan', hint:'Bring Rowan something that holds light for the lens: an Ice Crystal, a Wyrdstone or a Glowing Crystal. He\'s at the smithy.',
+        text:`Rowan turns the crystal in the forge-light. "For Bertram's lamp?" He is quiet for a moment. "My da used to row by that light." He works through the afternoon, and by evening there's a new brass frame on the anvil with the crystal set in the middle, throwing little rainbows on the wall. "Don't tell him I did it for free," he says. "Tell him it was expensive."` },
+      { v:'fen', btn:'Tell Fen', hint:'Tell Old Fen the lamp is mended. He\'ll want to be there.',
+        text:`Fen listens without a word. Then he goes into his hut and comes back with a small, very old tin. "Lamp oil," he says. "The last of what your aunt and I carried up there, that winter. Saved it nine years. Don't ask me why." He tucks it into your basket. "Evening's best. Bertram will be up the tower after supper. Tell him I'm coming. Tell him to wait."` },
+      { at:'lighthouse', need:['bertram'], after:1140, btn:'Light the lamp', hint:'Go to the lighthouse one evening after 7 pm, when Bertram is there.',
+        text:`Two hundred steps, and Fen insists on climbing every one himself, stopping to complain on most of them. At the top, Bertram fits Rowan's frame, pours in the old oil and hands you the match. "Witch's hand," he says. "For luck." The lamp catches, flickers, then blooms gold, and the beam swings out over the dark river for the first time in nine years. Down in the village, someone cheers. Fen and Bertram stand side by side and say nothing for a long time. Then Fen says, "Still owe you that fish." Bertram says, "I know."` }
+    ],
+    reward:{ coins:400, items:{ moonfish:1 }, lit:true, fr:{ bertram:120, fen:100, rowan:40 } }, rtext:'400 coins, a Moonfish, and the lighthouse shines every night now.' },
+  deep: { title:'The deepest floor', host:'juno', cast:['juno'], when:() => heartsOf('juno') >= 4 && S.spells.includes('firebolt'), unlock:'Juno at 4 hearts, once you\'ve found the Hollow',
+    hook:'Juno has a favour to ask about the Hollow.',
+    steps:[
+      { v:'juno', btn:'Ask about the favour', hint:'Juno wants to ask you something. She\'s often at the docks.',
+        text:`Juno unrolls her pie-tin map. Floor fifteen is still a question mark. "Mum got further than anyone," she says. "She always scratched a little fish into the wall, wherever she'd been. I've found them down to floor nine." She rolls the map up again, carefully. "I can't go deeper. My lungs aren't made for it. But you've got fire. Would you look for her fish? At the very bottom?"` },
+      { floor:HOLLOW_BOTTOM, hint:'Reach the bottom of the Hollow, floor 15. The rope lift remembers your deepest floor.',
+        text:'Low on the glowing wall of the bottom floor, half hidden by crystal, someone has scratched a little fish. Beside it are two letters, and a date from twenty years ago. Juno will want to know.' },
+      { v:'juno', btn:'Tell Juno about the fish', hint:'Tell Juno what you found on floor 15.',
+        text:`Juno goes very still while you describe the fish, and the letters, and the date. "She made it," she says. "All the way down." She laughs, and wipes her eyes with her sleeve, and laughs again. "I always said she'd have seen the bottom. Bertram said nobody could." She presses something into your hands: two Starshards, wrapped in a page of the old map. "Mum's. She found them down there. She'd want them to go to whoever went next."` }
+    ],
+    reward:{ items:{ starshard:2 }, coins:200, fr:{ juno:150 } }, rtext:'Two Starshards and 200 coins.' },
+  archive: { title:'The charter archive', host:'aldous', cast:['aldous', 'odile'], when:() => heartsOf('aldous') >= 4, unlock:'Mayor Aldous, at 4 hearts',
+    hook:'Mayor Aldous needs help with the charter archive.',
+    steps:[
+      { v:'aldous', btn:'Offer to help', hint:'Mayor Aldous needs help. He\'s usually in the square.',
+        text:`Aldous is in a state. "The archive roof leaked. Sixty years of charters in the school attic, and the oldest ones are getting damp." He wrings his hat. "Odile has the key, and she won't let me up alone since the incident with the ladder. Would you go? Sort out what can be saved? I'll owe you. Officially."` },
+      { at:'school', need:['odile'], btn:'Climb up to the attic', hint:'Go to the school while Odile is there (weekdays, until 4 pm). She has the attic key.',
+        text:`Odile lets you up the ladder with a lantern. The attic is boxes to the rafters, and you spend an hour carrying the damp ones to the dry end. In the oldest box, under a mouse nest, you find a charter in your aunt's handwriting: her very first one, sixty years old. It has no stars at all. Across the bottom she has written, "Next year." Odile reads it over your shoulder and smiles. "Aldous needs to see this. And he'll want wax to seal the new folders, if you have any honey or jam."` },
+      { v:'aldous', give:{ pick:['honey', 'jam', 'amber'], n:1 }, btn:'Give Aldous the charter', hint:'Bring Aldous your aunt\'s first charter, with honey, jam or Amber Syrup to make the wax seals.',
+        text:`Aldous reads the charter, then reads it again. "No stars. Not one. And she still wrote 'next year'." He frames it himself that afternoon, crookedly, and hangs it in the town hall beside the newest charter, which has your name on it. "So everyone can see," he says. "You don't have to get it all at once. You just have to come back." The town hall pays you for your trouble. The mayor insists. Twice.` }
+    ],
+    reward:{ coins:600, fr:{ aldous:120, odile:60 } }, rtext:'600 coins from the town hall.' }
+};
+const QIDS = Object.keys(QUESTS);
+const qState = id => (S.quests || {})[id];
+const qStep = id => { const st = qState(id); return st && !st.done ? QUESTS[id].steps[st.s] : null; };
+const qWho = step => step.v ? [].concat(step.v) : (step.need || []);
+const QPICK = { crop:CROPS, forage:FORAGE, potion:POTIONS };
+const qPickIds = g => typeof g.pick === 'string' ? Object.keys(QPICK[g.pick]).filter(k => k !== 'wyrd') : g.pick;
+const qHave = g => qPickIds(g).reduce((n, k) => n + (S.inv[k] || 0), 0);
+const qPickLabel = g => typeof g.pick === 'string' ? { crop:'crops', forage:'Old Wood finds', potion:'potions' }[g.pick] : qPickIds(g).map(itemName).join(', ');
+const nameList = vs => vs.map(v => VILLAGERS[v].name).join(', ').replace(/, ([^,]*)$/, ' and $1');
+// Why the current step can't be done right now ('' if it can).
+function qBlock(id, v) {
+  const step = qStep(id); if (!step) return 'Nothing to do.';
+  if (step.floor) return 'This happens in the Hollow.';
+  if (step.v) { const vs = v && [].concat(step.v).includes(v) ? [v] : [].concat(step.v); if (!vs.some(canMeet)) return `Find ${vs.length > 1 ? `${nameList(vs).replace(' and ', ' or ')}` : VILLAGERS[vs[0]].name} first.`; }
+  if (step.at) {
+    if (S.scene !== 'village') return `Head to ${VPLACES[step.at].name}.`;
+    if (step.after && S.time < step.after) return `Come back after ${fmtTime(step.after)}.`;
+    const miss = (step.need || []).filter(v => where(v) !== step.at);
+    if (miss.length) return `${nameList(miss)} ${miss.length > 1 ? "aren't" : "isn't"} here right now.`;
+  }
+  if (step.give && qHave(step.give) < step.give.n) return `You need ${step.give.n} (you have ${qHave(step.give)}).`;
+  return '';
+}
+function qHint(id) {
+  const step = qStep(id); if (!step) return '';
+  let h = step.hint;
+  if (step.give) h += ` You have ${qHave(step.give)} of ${step.give.n}.`;
+  if (step.floor) h += ` Deepest so far: floor ${S.hollowMax || 0}.`;
+  return h;
+}
+// Takes the cheapest matching items first.
+function qTake(g) {
+  let left = g.n;
+  for (const k of qPickIds(g).slice().sort((a, b) => itemValue(a) - itemValue(b))) { const t = Math.min(left, S.inv[k] || 0); if (t) { S.inv[k] -= t; left -= t; } if (!left) break; }
+}
+function questReward(Q) {
+  const r = Q.reward, out = [];
+  if (r.spell && learnSpell(r.spell)) out.push(`You learned ${SPELLS[r.spell].name}. It's in your spellbook.`);
+  if (r.coins) { earn(r.coins); out.push(`${fmt(r.coins)} coins.`); }
+  if (r.items) { giveItems(r.items); out.push(Object.entries(r.items).map(([k, n]) => `${n} ${itemName(k)}`).join(' and ') + '.'); }
+  if (r.lit) out.push('The lighthouse shines over the river every night now.');
+  if (r.fr) { const g = []; for (const [v, n] of Object.entries(r.fr)) { addFr(v, n); applyGifts(v, g); } out.push(`${nameList(Object.keys(r.fr))} ${Object.keys(r.fr).length > 1 ? 'are' : 'is'} much fonder of you.`, ...g); }
+  checkStars();
+  return out;
+}
+// Do the current step of a story. `v` is who she's talking to, for meet steps with a choice of people.
+function questDo(id, v) {
+  const Q = QUESTS[id], st = qState(id), step = qStep(id); if (!step || step.floor) return;
+  const why = qBlock(id, v); if (why) { toast(why); return; }
+  if (step.give) qTake(step.give);
+  const who = step.v ? [v && [].concat(step.v).includes(v) ? v : [].concat(step.v).find(canMeet)] : (step.need || []);
+  for (const x of who) addFr(x, 20);
+  st.s++;
+  const lines = [];
+  if (st.s >= Q.steps.length) { st.done = true; st.at = absDay(); lines.push(...questReward(Q).map(t => ({ t, c:'gift' }))); }
+  else lines.push({ t:'Next: ' + qHint(id) });
+  updateHUD(); save(); SND.gift();
+  sheetOpen = 'qscene'; renderSheet('qscene', { id, who:who.concat(st.done ? Q.cast.filter(x => !who.includes(x)) : []), text:step.text, lines, done:st.done });
+}
+// The Hollow step: reaching the floor counts as soon as she gets there.
+function questHollow(f) {
+  for (const id of QIDS) {
+    const step = qStep(id); if (!step || !step.floor || f < step.floor) continue;
+    qState(id).s++; SND.gift();
+    const msg = [step.text, 'Next: ' + qHint(id)];
+    if (sheetOpen) toast(step.text, 7000); else openSheet('gift', msg);
+  }
+}
+// Mornings: new stories open as friendships grow.
+function questMorning(lines) {
+  if (!S.quests) S.quests = {};
+  for (const id of QIDS) {
+    const Q = QUESTS[id]; if (S.quests[id] || !Q.cast.every(arrived) || !Q.when()) continue;
+    S.quests[id] = { s:0, at:absDay() };
+    lines.push({ t:`A new story: ${Q.title}. ${Q.hook} (See Stories in the Journal.)`, c:'gold', v:Q.host, mood:'neutral' });
+  }
+}
+const lampLit = () => !!(S && S.quests && S.quests.lamp && S.quests.lamp.done);
+// A story card for a villager's page or a place sheet.
+function questCard(id, v) {
+  const Q = QUESTS[id], st = qState(id), step = qStep(id), why = qBlock(id, v);
+  return `<article class="card quest"><h4>${Q.title}</h4><p class="sub">Step ${st.s + 1} of ${Q.steps.length}. ${qHint(id)}</p>${why ? `<p class="sub why">${why}</p>` : ''}<div class="foot"><button class="btn" data-act="qdo" data-id="${id}"${v ? ` data-v="${v}"` : ''} type="button" ${why ? 'disabled' : ''} style="margin-left:auto">${step.btn}</button></div></article>`;
+}
+const questsFor = v => QIDS.filter(id => { const s = qStep(id); return s && s.v && [].concat(s.v).includes(v); });
+const questsAt = p => QIDS.filter(id => { const s = qStep(id); return s && s.at === p; });
+// Walk her to a village place (from the farm, through the gate).
+function seekPlace(p) {
+  closeSheet(); const B = VB[p] || (p === 'square' ? VB.well : null); if (!B) return;
+  if (S.scene === 'farm') { queue.push({ c:BUILD.gate.stand[0], r:BUILD.gate.stand[1], kind:'visit', b:'tovillage', place:p }); return; }
+  if (S.scene === 'village') queue.push({ c:B.stand[0], r:B.stand[1], kind:'visit', b:'vplace', place:p });
+}
+
+/* ---------- group events (villager plan, part 3) ---------- */
+// Once a year each, on the rest day after the festival (day 21). People who come are at the event's place for its
+// hours; she joins from the place sheet in the village (or the calendar). Everyone there gets friendship.
+const EV_FR = 60;
+const EVENTS = {
+  picnic: { season:0, day:21, place:'square', from:660, to:840, name:'The spring picnic', short:'Picnic', host:'mara',
+    need:() => VIDS.filter(v => inValley(v) && heartsOf(v) >= 4).length >= 3, needText:n => `It happens once 3 friends are at 4+ hearts (you have ${n}).`,
+    who:() => VIDS.filter(v => inValley(v) && heartsOf(v) >= 4),
+    invite:`A picnic! Spring 21, in the square, from 11 until 2. Only for my closest friends, which is why it's mostly people who like you.\n\nBring nothing. I'm baking. Turnip is not invited, she knows what she did.\n\nMara`,
+    morning:'Mara\'s spring picnic is in the square from 11 am to 2 pm. Your closest friends will be there.',
+    intro:'Blankets on the grass by the old well, a basket the size of a cauldron, and Mara\'s bread still warm. Your friends wave you over.',
+    wet:'The rain chased the picnic into the Kettle & Crow. Isolde has pushed the tables together and laid a blanket over them anyway.',
+    lines:{ mara:'I baked enough for twenty. There are eight of us. That was on purpose.', fen:'Picnics. Sitting on the ground at my age. ...Pass the honey.', pip:'I brought a frog. For the picnic. Not to eat. For company.', odile:'No marking, no registers. Just sandwiches. Bliss.', wren:'The bees found the jam before we did. Share, I suppose.', rowan:"I carried the hamper. It was heavy. You're welcome. Have some pie.", silas:"I wrote a song about picnics. It's mostly about ants.", theo:"I've catalogued every sandwich. The cucumber ones are statistically the best.", isolde:'Somebody else cooked for once! I could cry.', juno:'Race you to the river after! Loser carries the blanket.', hettie:"Your aunt and I picnicked on this very spot. She sat on a wasp. I've never laughed so much.", aldous:'An unofficial gathering. I am attending unofficially. In my unofficial hat.', zara:'In the south we picnic on rooftops. This is better. Fewer pigeons.', bertram:'Fine weather. My knees say it holds till three.', tilly:'Pip and I made daisy chains for everyone! Yours is the long one.' },
+    reward:() => { S.energy += 30; return ['Mara\'s bread and honey: +30 energy today.']; } },
+  bonfire: { season:1, day:21, place:'docks', from:1140, to:1320, name:'Bonfire night', short:'Bonfire', host:'juno',
+    need:() => true, who:() => VIDS.filter(inValley),
+    invite:`Bonfire night! Summer 21, down at the docks, from 7 till late. Bertram and I are frying the catch. Fen's in charge of the fire, so stand back.\n\nEveryone's coming. That means you.\n\nJuno`,
+    morning:'Bonfire night is at the docks from 7 pm. Everyone will be there.',
+    intro:'A great crackling fire on the riverbank, sparks drifting up to meet the stars. Juno and Bertram are frying fish, Silas is tuning up, and the whole village is sitting in a ring.',
+    wet:'The rain put the bonfire out, so everyone has crammed into the Kettle & Crow. Isolde has lit every candle she owns, and Juno is frying fish in the inn kitchen.',
+    lines:{ mara:'Turnip tried to eat a burning stick. She is fine. The stick is not.', fen:"Built a hundred of these fires. This one's the best. Don't tell the others.", pip:"I'm allowed to stay up till ten! TEN!", odile:'A night off, and the stars out. I could stay here all summer.', wren:'The fireflies came to see the fire. Look, they think it\'s a friend.', rowan:'I made the iron grill. Fish tastes better off iron. Science.', silas:'This is my favourite kind of song, the kind everyone sings badly together.', theo:"Did you know sparks are tiny bits of burning wood? I knew. I'm just saying it.", isolde:"No dishes tonight! Everyone eats off a stick, love.", juno:'Best catch of the year in that pan. I picked every one myself.', hettie:"At my age you sit closest to the fire. It's the rule. I made the rule.", aldous:'I have prepared a short speech. Isolde has hidden it. Probably for the best.', zara:"Fires like this in every valley, and every one's different. Yours has the best fish.", bertram:"Juno's fish, my pan. A proper partnership. She's still wrong about the perch.", tilly:'Pip and I are toasting honey on sticks! It drips. A lot.' },
+    reward:() => { const a = pickFish(), b = pickFish(); giveItems(a === b ? { [a]:2 } : { [a]:1, [b]:1 }); return [`Juno sends you home with leftovers from the pan: ${a === b ? `two ${FISH[a].name}` : `${aN(FISH[a].name)} and ${aN(FISH[b].name)}`}.`]; } },
+  supper: { season:3, day:21, place:'inn', from:1080, to:1260, name:'The lantern supper', short:'Supper', host:'isolde',
+    need:() => true, who:() => VIDS.filter(inValley),
+    invite:`The lantern supper is on winter 21, at the Kettle & Crow, from 6. One long table, every lantern lit, and a stew that's been going since Tuesday.\n\nThe whole valley comes. Save room, love.\n\nIsolde`,
+    morning:'The lantern supper is at the Kettle & Crow from 6 pm. The whole valley is invited.',
+    intro:'Every lantern in the valley is lit and hung from the inn\'s beams. One long table runs the whole length of the room, with snow piled against the windows and a pot of stew big enough to bathe in.',
+    wet:'',
+    lines:{ mara:'Isolde used my flour for the dumplings. They are perfect. I may weep.', fen:"Warm room, good stew, old friends. Can't ask for more. I'll ask for more stew.", pip:"I sat next to you on purpose. It's the best seat. It's next to the bread.", odile:'The children made the lanterns at school. Every one has a cat on it.', wren:'The bees are asleep, so tonight I eat for all of them.', rowan:"Isolde made me carve the joint. I carved it very carefully. It's fine. Eat it.", silas:"No sad songs tonight, Isolde says. I've written a happy one. It's very short.", theo:"I've calculated the stew's age. It's older than Pip. Don't tell Pip.", isolde:"Look at you all. Full table, full bellies. Best night of my year, love.", juno:'Ice fishing at dawn tomorrow. Who\'s in? Bertram, you don\'t count.', hettie:"Your aunt never missed a lantern supper. She'd be pleased you're in her chair.", aldous:'A toast! To the valley! A short toast. Isolde is watching the clock again.', zara:'I came back early for this. Somebody had to tell the stew stories.', bertram:'Long night, warm inn. A keeper could get used to this.', tilly:'I helped make the dumplings! The lumpy ones are mine. They taste the same.' },
+    reward:() => { S.energy += 40; giveItems({ hearth:1 }); return ['Isolde\'s stew: +40 energy today, and a Hearth Tonic for the walk home.']; } }
+};
+const EIDS = Object.keys(EVENTS);
+const evKey = id => `${id}y${S.year}`;
+const evPlace = (E, wet) => wet && !VPLACES[E.place].indoor ? 'inn' : E.place;
+// Today's event, if one is on: { id, key, who }. Set each morning, so who's coming doesn't change during the day.
+function evNow() { const e = S.evToday; return e && e.key === dayKey() && EVENTS[e.id] ? e : null; }
+const evOpen = () => { const e = evNow(); return e && !S.events[evKey(e.id)] && S.time >= EVENTS[e.id].from && S.time < EVENTS[e.id].to ? e : null; };
+const evTime = E => `${fmtTime(E.from)} to ${fmtTime(E.to)}`;
+function eventMorning(lines) {
+  S.evToday = null; if (!S.events) S.events = {};
+  for (const id of EIDS) {
+    const E = EVENTS[id]; if (S.season !== E.season || S.events[evKey(id)] || !arrived(E.host)) continue;
+    if (S.day === E.day - 2 && E.need() && sendLetter(`ev${evKey(id)}`, E.host, `You're invited: ${E.name.replace(/^The /, 'the ')}`, E.invite))
+      lines.push({ t:`A letter from ${VILLAGERS[E.host].name}: an invitation. Tap the mailbox by the cottage to read it.`, c:'gift', v:E.host });
+    if (S.day === E.day && E.need()) {
+      S.evToday = { id, key:dayKey(), who:E.who() };
+      lines.push({ t:`Today: ${E.name}! ${E.morning}${S.rain && !VPLACES[E.place].indoor ? ' (Rain, so it has moved into the inn.)' : ''}`, c:'gold', v:E.host, mood:'happy' });
+    }
+  }
+}
+// She joins the event: everyone there gets friendship, she gets a small treat, and a couple of hours pass.
+function joinEvent() {
+  const e = evOpen(); if (!e || S.scene !== 'village') return;
+  const E = EVENTS[e.id], p = evPlace(E, S.rain);
+  const here = VIDS.filter(v => where(v) === p);
+  S.events[evKey(e.id)] = true;
+  const got = [];
+  for (const v of here) addFr(v, EV_FR);
+  for (const v of here) applyGifts(v, got);
+  const lines = E.reward().concat([`Everyone there is a little fonder of you (+${EV_FR} friendship each).`], got);
+  checkStars();
+  S.time = Math.max(S.time, Math.min(S.time + 120, E.to));
+  updateHUD(); save(); SND.gift();
+  sheetOpen = 'event'; renderSheet('event', { id:e.id, here, lines });
+}
+// Calendar text for an event in a season (used for every season tab).
+function evCalLine(id) {
+  const E = EVENTS[id], went = S.events && S.events[evKey(id)];
+  let t = `${E.name}, ${VPLACES[E.place].name}, ${evTime(E)}`;
+  if (went) t += ' (you went)';
+  else if (id === 'picnic' && !E.need()) t += `. ${E.needText(VIDS.filter(v => inValley(v) && heartsOf(v) >= 4).length)}`;
+  return t;
+}
+
+
 /* ================= fishing ================= */
 let fishing = null, fishRAF = 0;
 function pickFish() {
@@ -2804,7 +3424,7 @@ function updateHUD() {
 }
 
 /* ================= sheets ================= */
-let marketTab = 'buy', journalTab = 'charters', lastSheetKey = '', backupCode = '';
+let marketTab = 'buy', journalTab = 'charters', lastSheetKey = '', backupCode = '', calSeason = 0, vFrom = '', vPlace = '';
 function openSheet(kind, data) {
   sheetOpen = kind; queue = [];
   $('scrim').hidden = false; $('sheet').hidden = false;
@@ -2832,6 +3452,31 @@ function hearts(n, v) {
   return h + '</span>';
 }
 function seasonsTxt(id) { return CROPS[id].seasons.map(s => SEASONS[s]).join(' & '); }
+// The gift notebook: each person's loves, likes and dislikes, filled in as she finds them out by giving gifts.
+const NB_KINDS = [['love', 'loves', 'Loves', 'gift'], ['like', 'likes', 'Likes', ''], ['hate', 'hates', 'Dislikes', 'bad']];
+function notebook(v) {
+  const V = VILLAGERS[v], known = S.known[v] || {};
+  let any = 0, li = '';
+  for (const [r, list, label, cls] of NB_KINDS) {
+    const got = V[list].filter(k => known[k] === r), left = V[list].length - got.length; any += got.length;
+    li += `<li class="${cls}"><b>${label}</b> ${got.length ? got.map(itemName).join(', ') : ''}${left ? `<span class="q">${got.length ? ' · ' : ''}${left} still to find</span>` : (got.length ? ' <span class="q">· all found</span>' : '')}</li>`;
+  }
+  return `<h4 class="sec nbh">Gift notebook</h4><p class="sub">${any ? 'What you\'ve learned from giving gifts.' : `Give gifts to learn what ${V.name} likes. A birthday gift counts three times over.`}</p><ul class="lines nb">${li}</ul>`;
+}
+function notebookCount() {
+  let got = 0, all = 0;
+  for (const v of VIDS) { if (!arrived(v)) continue; const known = S.known[v] || {}; for (const [r, list] of NB_KINDS) { all += VILLAGERS[v][list].length; got += VILLAGERS[v][list].filter(k => known[k] === r).length; } }
+  return { got, all };
+}
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+// A row in a list of villagers (the "who's here" sheets).
+function vRow(v, from) {
+  const V = VILLAGERS[v], chips = [];
+  if (S.talked[v] === dayKey()) chips.push('Chatted'); if (S.gifted[v] === dayKey()) chips.push('Gift given');
+  if (isBday(v)) chips.unshift('Birthday today!');
+  if (v === S.spouse) chips.unshift('Married'); else if (S.wedding && S.wedding.v === v) chips.unshift('Engaged'); else if (v === S.dating) chips.unshift('Dating');
+  return `<button class="vrow" type="button" data-act="vopen" data-from="${from}" data-id="${v}">${portrait(v, isBday(v) ? 'happy' : 'neutral', 52)}<div class="info"><span class="name">${V.name} <span class="role">· ${V.role}</span></span>${hearts(heartsOf(v), v)}<span class="meta">${chips.length ? chips.join(' · ') : 'Hasn\'t seen you today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+}
 function renderSheet(kind, data) {
   const body = $('shBody'); let h = '', title = '';
   $('shClose').textContent = kind === 'morning' ? 'Start the day' : (kind === 'festival' ? 'Head home' : 'Close');
@@ -2912,7 +3557,7 @@ function renderSheet(kind, data) {
     if (hidden) h += `<p class="sub">${hidden} more recipe${hidden === 1 ? '' : 's'} will appear as new seasons bring new herbs.</p>`;
   } else if (kind === 'journal') {
     title = 'Journal';
-    h += `<div class="tabs" role="tablist">${[['charters', 'Charters'], ['mail', 'Mail'], ['village', 'Village'], ['almanac', 'Almanac']].map(([t, l]) => `<button class="tab" role="tab" aria-selected="${journalTab === t}" data-act="jtab" data-id="${t}" type="button">${l}</button>`).join('')}</div>`;
+    h += `<div class="tabs" role="tablist">${[['charters', 'Charters'], ['mail', 'Mail'], ['village', 'Village'], ['stories', 'Stories'], ['almanac', 'Almanac']].map(([t, l]) => `<button class="tab" role="tab" aria-selected="${journalTab === t}" data-act="jtab" data-id="${t}" type="button">${l}</button>`).join('')}</div>`;
     if (journalTab === 'charters') {
       h += `<p class="sub">Each season the Guild sets a charter with three stars. Stars you miss come back next ${SEASONS[S.season].toLowerCase()} with your progress kept, and every star you earn means a bigger head start next season.</p>`;
       const bar = (label, got, need, col, note) => `<div class="pl"><span>${label}</span><span class="bar"><i style="width:${Math.min(100, got / need * 100)}%;background:${col}"></i></span><span class="n">${fmt(Math.min(got, need))} / ${fmt(need)}${note || ''}</span></div>`;
@@ -2940,8 +3585,20 @@ function renderSheet(kind, data) {
     } else if (journalTab === 'mail') {
       if (!S.mail.length) h += `<p class="sub">No letters yet. Villagers write when something is on their mind.</p>`;
       S.mail.forEach((m, i) => { h += `<button class="vrow ${m.read ? '' : 'unread'}" type="button" data-act="letter" data-i="${i}">${fromPic(m.from, 44)}<div class="info"><span class="name">${m.title}</span><span class="meta">${fromName(m.from)} · ${m.day}${m.read ? '' : ' · new'}</span></div><span class="chev" aria-hidden="true">›</span></button>`; });
+    } else if (journalTab === 'stories') {
+      h += `<p class="sub">Stories open up as you grow closer to people. None of them run out of time, so do each step whenever you like.</p>`;
+      for (const id of QIDS) {
+        const Q = QUESTS[id], st = qState(id), crowd = `<div class="crowd">${Q.cast.map(v => portrait(v, st && st.done ? 'happy' : 'neutral', 36)).join('')}</div>`;
+        if (!st) { if (Q.cast.every(arrived)) h += `<div class="vrow dim"><span class="por q">?</span><div class="info"><span class="name">A story yet to come</span><span class="meta">With ${Q.unlock}</span></div></div>`; continue; }
+        if (st.done) { h += `<article class="card done"><div class="chead"><h4>${Q.title}</h4><span class="stars">Finished</span></div>${crowd}<p class="sub">${Q.rtext}</p></article>`; continue; }
+        const step = qStep(id); let loc = '', btn = '';
+        if (step.v) for (const v of [].concat(step.v)) { const mb = meetBox(v); loc += `<p class="sub where">${canMeet(v) ? `${VILLAGERS[v].name} is right here.` : `${VILLAGERS[v].name} is ${placeLabel(where(v))}.`}</p>`; if (!btn && !canMeet(v) && mb.seek) btn = `<button class="btn alt" data-act="seek" data-id="${v}" type="button">${mb.seek}</button>`; }
+        if (step.at) { const miss = (step.need || []).filter(v => where(v) !== step.at); loc += `<p class="sub where">${miss.length ? `${nameList(miss)} ${miss.length > 1 ? "aren't" : "isn't"} there right now.` : (step.need ? `${nameList(step.need)} ${step.need.length > 1 ? 'are' : 'is'} there now.` : '')}</p>`; if (S.scene === 'farm' || S.scene === 'village') btn = `<button class="btn alt" data-act="goplace" data-id="${step.at}" type="button">Go to ${VPLACES[step.at].name}</button>`; }
+        h += `<article class="card quest"><h4>${Q.title}</h4>${crowd}<p class="sub">Step ${st.s + 1} of ${Q.steps.length}. ${qHint(id)}</p>${loc}${btn ? `<div class="cta-row">${btn}</div>` : ''}</article>`;
+      }
     } else if (journalTab === 'village') {
-      h += `<p class="sub">Chat with each neighbour once a day and bring them a gift they like. Friendship grows into heart scenes and favours.</p>`;
+      const nb = notebookCount();
+      h += `<p class="sub">Chat with each neighbour once a day and bring them a gift they like. You'll need to find them first: everyone keeps their own hours around the village. Friendship grows into heart scenes and favours.</p><p class="sub">Gift notebook: ${nb.got} of ${nb.all} tastes found.</p>`;
       for (const [pl, plName] of PLACES) for (const v of VIDS.filter(x => VILLAGERS[x].place === pl)) {
         const V = VILLAGERS[v];
         if (v === VIDS.find(x => VILLAGERS[x].place === pl)) h += `<h4 class="sec">${plName}</h4>`;
@@ -2950,8 +3607,8 @@ function renderSheet(kind, data) {
         if (S.talked[v] === dayKey()) chips.push('Chatted'); if (S.gifted[v] === dayKey()) chips.push('Gift given');
         if (isBday(v)) chips.unshift('Birthday today!');
         if (v === S.spouse) chips.unshift('Married'); else if (S.wedding && S.wedding.v === v) chips.unshift('Engaged'); else if (v === S.dating) chips.unshift('Dating');
-        if (!inValley(v)) chips.unshift(`On the road. Back ${nextMarket()}`);
-        h += `<button class="vrow" type="button" data-act="vopen" data-id="${v}">${portrait(v, isBday(v) ? 'happy' : 'neutral', 52)}<div class="info"><span class="name">${V.name} <span class="role">· ${V.role}</span></span>${hearts(heartsOf(v), v)}<span class="meta">${chips.length ? chips.join(' · ') : 'Hasn\'t seen you today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+        const at = where(v); chips.unshift(V.market && at === 'away' ? `On the road. Back ${nextMarket()}` : cap(placeLabel(at)));
+        h += `<button class="vrow" type="button" data-act="vopen" data-from="journal" data-id="${v}">${portrait(v, isBday(v) ? 'happy' : 'neutral', 52)}<div class="info"><span class="name">${V.name} <span class="role">· ${V.role}</span></span>${hearts(heartsOf(v), v)}<span class="meta">${chips.length ? chips.join(' · ') : 'Hasn\'t seen you today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
       }
     } else {
       h += `<p class="sub">Year ${S.year}. Each season lasts ${DAYS} days. Crops still in the ground when their season ends will wither, unless they grow in the next season too or sit under the greenhouse glass.</p><div class="cal">`;
@@ -3013,19 +3670,22 @@ function renderSheet(kind, data) {
     if (data.line) h += `<div class="bubble">${data.line}</div>`;
     if (data.gifts && data.gifts.length) h += `<ul class="lines">${data.gifts.map(t => `<li class="gift">${t}</li>`).join('')}</ul>`;
     const talked = S.talked[v] === dayKey(), gifted = S.gifted[v] === dayKey(), anyItem = Object.entries(S.inv).some(([k, n]) => n > 0 && !NOGIFT[k]);
-    if (!inValley(v)) h += `<p class="sub">${V.name}'s cart is out on the road. It comes back ${nextMarket()}. Her cart comes every seventh day: days 5, 12, 19 and 26.</p>`;
+    if (data.from) vFrom = data.from;
+    const mb = meetBox(v);
+    h += `<p class="sub where">${mb.note}</p>`;
+    if (!mb.ok) { if (mb.seek) h += `<div class="cta-row"><button class="btn" data-act="seek" data-id="${v}" type="button">${mb.seek}</button></div>`; }
     else h += `<div class="cta-row"><button class="btn" data-act="talk" data-id="${v}" type="button" ${talked ? 'disabled' : ''}>${talked ? 'Chatted today' : 'Chat'}</button><button class="btn alt" data-act="vgift" data-id="${v}" type="button" ${gifted || !anyItem ? 'disabled' : ''}>${gifted ? 'Gift given today' : (anyItem ? 'Give a gift' : 'Nothing to give')}</button></div>`;
-    const known = S.known[v] || {};
-    const byR = r => Object.keys(known).filter(k => known[k] === r).map(itemName);
-    const lines = ['love', 'like', 'hate'].filter(r => byR(r).length).map(r => `<li class="${r === 'hate' ? 'bad' : (r === 'love' ? 'gift' : '')}">${REACT_LABEL[r]}: ${byR(r).join(', ')}</li>`);
-    h += `<p class="sub">${lines.length ? 'What you\'ve learned about their tastes:' : 'Give gifts to learn what ' + V.name + ' likes. A birthday gift counts three times over.'}</p>`;
-    if (lines.length) h += `<ul class="lines">${lines.join('')}</ul>`;
+    for (const id of questsFor(v)) h += questCard(id, v);
+    h += notebook(v);
     const rb = romanceBox(v);
     if (rb.note) h += `<p class="sub rom">${rb.note}</p>`;
     if (rb.acts) h += `<div class="cta-row">${rb.acts}</div>`;
     const nextGift = hs < 3 ? 3 : (hs < 6 ? 6 : 0), nextScene = [2, 4, 6, 8].concat(isPartner(v) && ROMANCE[v] ? [9, 10] : []).find(l => !S.scenes[v + l]);
     h += `<p class="sub">${nextScene ? `Something happens at ${nextScene} hearts.` : 'You\'ve shared every story with them.'}${nextGift ? ` A favour waits at ${nextGift} hearts.` : ''}</p>`;
-    h += data.from === 'garden' ? `<button class="btn alt" data-act="close" type="button">Close</button>` : `<button class="btn alt" data-act="jback" type="button">Back to village</button>`;
+    h += vFrom === 'garden' || vFrom === 'village' ? `<button class="btn alt" data-act="close" type="button">Close</button>`
+      : vFrom === 'place' && VPLACES[vPlace] ? `<button class="btn alt" data-act="placeopen" data-id="${vPlace}" type="button">Back to ${VPLACES[vPlace].name}</button>`
+      : vFrom === 'calendar' ? `<button class="btn alt" data-act="calopen" type="button">Back to the calendar</button>`
+      : `<button class="btn alt" data-act="jback" type="button">Back to the village list</button>`;
   } else if (kind === 'vgift') {
     const v = data.v, V = VILLAGERS[v], known = S.known[v] || {};
     title = `A gift for ${V.name}`;
@@ -3039,6 +3699,65 @@ function renderSheet(kind, data) {
     h += `<div class="vhead">${portrait(data.v, 'love', 96)}<div class="info">${hearts(heartsOf(data.v), data.v)}</div></div><p class="scene">${data.text}</p>`;
     if (data.gifts && data.gifts.length) h += `<ul class="lines">${data.gifts.map(t => `<li class="gift">${t}</li>`).join('')}</ul>`;
     h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Close</button></div>`;
+  } else if (kind === 'qscene') {
+    const Q = QUESTS[data.id]; title = Q.title;
+    h += `<div class="crowd">${data.who.filter(Boolean).map(v => portrait(v, 'happy', 56)).join('')}</div><p class="scene">${data.text}</p>`;
+    if (data.lines.length) h += `<ul class="lines">${data.lines.map(l => `<li class="${l.c || ''}">${l.t}</li>`).join('')}</ul>`;
+    h += `<div class="cta-row"><button class="btn" data-act="close" type="button">${data.done ? 'The end' : 'Close'}</button></div>`;
+  } else if (kind === 'event') {
+    const E = EVENTS[data.id], wet = S.rain && !VPLACES[E.place].indoor; title = E.name;
+    h += `<p class="scene">${wet ? E.wet : E.intro}</p><div class="crowd">${data.here.map(v => portrait(v, 'happy', 44)).join('')}</div><h4 class="sec">Everyone's here</h4>`;
+    for (const v of data.here) h += `<div class="vrow">${portrait(v, 'happy', 40)}<div class="info"><span class="name">${VILLAGERS[v].name}</span><span class="meta">${E.lines[v]}</span></div></div>`;
+    h += `<ul class="lines">${data.lines.map(t => `<li class="gift">${t}</li>`).join('')}</ul><div class="cta-row"><button class="btn" data-act="close" type="button">What a lovely time</button></div>`;
+  } else if (kind === 'gate') {
+    title = 'The garden gate';
+    const n = VIDS.filter(v => VPLACES[where(v)]).length, finds = (S.wood && S.wood.key === dayKey() ? S.wood.spots.length : 5);
+    h += `<p class="sub">The lane forks just past the gate. Where to?</p>`;
+    h += `<button class="vrow" data-act="govillage" type="button"><div class="info"><span class="name">Down to the village</span><span class="meta">${n ? `${n} ${n === 1 ? 'person is' : 'people are'} about right now` : 'Quiet. Everyone is home'}${S.rain ? '. Most are indoors out of the rain' : ''}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+    h += `<button class="vrow" data-act="gowood" type="button"><div class="info"><span class="name">Into the Old Wood</span><span class="meta">${finds ? `${finds} find${finds === 1 ? '' : 's'} glinting today` : 'Picked clean for today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+    h += `<button class="btn alt" data-act="close" type="button">Stay in the garden</button>`;
+  } else if (kind === 'place') {
+    const p = data.p, P = VPLACES[p]; vPlace = p;
+    title = P.title;
+    h += `<p class="sub">${P.sub}</p>`;
+    { const e = evNow(); if (e && evPlace(EVENTS[e.id], S.rain) === p && !S.events[evKey(e.id)]) { const E = EVENTS[e.id], on = S.time >= E.from && S.time < E.to;
+      h += `<article class="card fest"><h4>${E.name}</h4><p class="sub">${on ? `It's on now, until ${fmtTime(E.to)}. Everyone here will be glad to see you.` : (S.time < E.from ? `It starts at ${fmtTime(E.from)}.` : "It's over for this year.")}</p>${on ? `<div class="foot"><span class="due">Joining takes a couple of hours.</span><button class="btn" data-act="evjoin" type="button" style="margin-left:auto">Join in</button></div>` : ''}</article>`; } }
+    for (const id of questsAt(p)) h += questCard(id);
+    const here = folkAt(p);
+    if (here.length) h += `<h4 class="sec">Here now</h4>`;
+    else h += `<p class="sub">Nobody's here right now.</p>`;
+    for (const v of here) h += vRow(v, 'place');
+    const later = [];
+    for (const v of VIDS) { if (here.includes(v)) continue; for (let t = Math.floor(S.time / 10) * 10 + 10; t < passOut(); t += 10) if (where(v, t) === p) { later.push(`${VILLAGERS[v].name} from ${fmtTime(t)}`); break; } }
+    if (later.length) h += `<p class="sub">Later today: ${later.join(', ')}.</p>`;
+    if (p === 'square') h += `<button class="btn alt" data-act="calopen" type="button">Read the noticeboard calendar</button>`;
+    h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
+  } else if (kind === 'calendar') {
+    const si = calSeason, known = v => S.year > 1 || VILLAGERS[v].arrive <= S.season;
+    title = `${SEASONS[si]} calendar`;
+    h += `<div class="tabs" role="tablist">${SEASONS.map((sn, i) => `<button class="tab" role="tab" aria-selected="${i === si}" data-act="calseason" data-id="${i}" type="button">${sn}</button>`).join('')}</div>`;
+    if (si === S.season && isFestDay() && !festState().home) h += `<article class="card fest"><h4>Tonight: ${FEST[si].name}</h4><div class="foot"><button class="btn" data-act="gofest" type="button" style="margin-left:auto">Go to the festival</button></div></article>`;
+    { const e = si === S.season ? evNow() : null; if (e && !S.events[evKey(e.id)] && S.time < EVENTS[e.id].to) { const E = EVENTS[e.id], p = evPlace(E, S.rain);
+      h += `<article class="card fest"><h4>Today: ${E.name}</h4><p class="sub">${cap(VPLACES[p].name)}, ${evTime(E)}.</p>${S.scene === 'farm' || S.scene === 'village' ? `<div class="foot"><button class="btn" data-act="goplace" data-id="${p}" type="button" style="margin-left:auto">Go to ${VPLACES[p].name}</button></div>` : ''}</article>`; } }
+    const bds = VIDS.filter(v => known(v) && VILLAGERS[v].bday[0] === si);
+    h += `<div class="calg">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => `<span class="wd">${d}</span>`).join('')}`;
+    for (let d = 1; d <= DAYS; d++) {
+      const who = bds.filter(v => VILLAGERS[v].bday[1] === d), today = si === S.season && d === S.day, past = si < S.season || (si === S.season && d < S.day);
+      const evd = EIDS.find(id => EVENTS[id].season === si && EVENTS[id].day === d);
+      const cls = `d${today ? ' today' : ''}${past ? ' past' : ''}${d === FEST_DAY || evd ? ' fest' : ''}`;
+      const inner = `<span class="n">${d}</span>${who.map(v => portrait(v, 'happy', 22)).join('')}${d === FEST_DAY ? '<span class="tag">Festival</span>' : ''}${evd ? `<span class="tag">${EVENTS[evd].short}</span>` : ''}${d % 7 === 5 && known('zara') ? '<i class="mk" aria-label="market day"></i>' : ''}`;
+      h += who.length ? `<button class="${cls}" type="button" data-act="vopen" data-from="calendar" data-id="${who[0]}" aria-label="${SEASONS[si]} ${d}: ${who.map(v => VILLAGERS[v].name).join(' and ')}'s birthday">${inner}</button>` : `<div class="${cls}">${inner}</div>`;
+    }
+    h += `</div><ul class="lines">`;
+    const ev = bds.map(v => ({ d:VILLAGERS[v].bday[1], t:`${VILLAGERS[v].name}'s birthday${si === S.season && VILLAGERS[v].bday[1] === S.day ? ' (today!)' : ''}`, c:'gift' }));
+    ev.push({ d:FEST_DAY, t:`${FEST[si].name}, in the evening`, c:'gold' });
+    for (const id of EIDS) if (EVENTS[id].season === si) ev.push({ d:EVENTS[id].day, t:evCalLine(id), c:'gold' });
+    for (const e of ev.sort((a, b) => a.d - b.d)) h += `<li class="${e.c}">Day ${e.d}: ${e.t}</li>`;
+    if (known('zara')) h += `<li>Market days, when Zara's cart comes: 5, 12, 19 and 26 (the dots)</li>`;
+    h += `<li>Days 7, 21 and 28 are rest days. No school, and people keep different hours.</li></ul>`;
+    const unknown = VIDS.filter(v => !known(v)).length;
+    if (unknown) h += `<p class="sub">${unknown === 1 ? 'Someone new arrives' : 'Some new faces arrive'} later this year. Their birthdays will show once you meet them.</p>`;
+    h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
   } else if (kind === 'spells') {
     title = 'Spellbook';
     h += `<div class="pl"><span>Mana</span><span class="bar mana"><i style="width:${S.manaMax ? Math.min(100, S.mana / S.manaMax * 100) : 0}%"></i></span><span class="n">${S.mana} / ${S.manaMax}</span></div><p class="sub">Mana refills each night while you sleep.${S.grove ? ' The shrine in the grove refills it once a day.' : ''}</p>`;
@@ -3153,10 +3872,19 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'pace') { if (PACES[id]) { S.pace = id; save(); } renderSheet('clock'); return; }
   else if (act === 'clockopen') { sheetOpen = 'clock'; renderSheet('clock'); return; }
   else if (act === 'jtab') { journalTab = id; renderSheet('journal'); }
-  else if (act === 'vopen') { sheetOpen = 'villager'; renderSheet('villager', { v:id }); return; }
+  else if (act === 'vopen') { if (b.dataset.from) vFrom = b.dataset.from; sheetOpen = 'villager'; renderSheet('villager', { v:id }); return; }
+  else if (act === 'seek') { seekVillager(id); return; }
+  else if (act === 'qdo') { questDo(id, b.dataset.v); return; }
+  else if (act === 'goplace') { seekPlace(id); return; }
+  else if (act === 'evjoin') { joinEvent(); return; }
+  else if (act === 'placeopen') { sheetOpen = 'place'; renderSheet('place', { p:id }); return; }
+  else if (act === 'calseason') { calSeason = +id; renderSheet('calendar'); return; }
+  else if (act === 'calopen') { sheetOpen = 'calendar'; renderSheet('calendar'); return; }
+  else if (act === 'govillage') { closeSheet(); enterVillage(); return; }
+  else if (act === 'gowood') { closeSheet(); enterWood(); return; }
   else if (act === 'jback') { journalTab = 'village'; sheetOpen = 'journal'; renderSheet('journal'); return; }
-  else if (act === 'talk') { if (inValley(id)) talkTo(id); return; }
-  else if (act === 'vgift') { if (!inValley(id)) return; sheetOpen = 'vgift'; renderSheet('vgift', { v:id }); return; }
+  else if (act === 'talk') { if (canMeet(id)) talkTo(id); return; }
+  else if (act === 'vgift') { if (!canMeet(id)) return; sheetOpen = 'vgift'; renderSheet('vgift', { v:id }); return; }
   else if (act === 'givegift') { giveGift(id, b.dataset.item); return; }
   else if (act === 'buy') { const n = +b.dataset.n, cost = seedPrice(id) * n; if (S.coins >= cost) { S.coins -= cost; S.seeds[id] = (S.seeds[id] || 0) + n; if (S.sel !== 'sprinkler' && !S.sel.startsWith('spell:') && !(S.seeds[S.sel] > 0)) S.sel = id; blip(700, 500, .05); } renderSheet('market'); }
   else if (act === 'sell') { const n = Math.min(+b.dataset.n, S.inv[id] || 0); S.inv[id] -= n; SND.coin(); earn(itemValue(id) * n); renderSheet('market'); }
@@ -3224,6 +3952,7 @@ $('shClose').addEventListener('click', closeSheet);
 $('scrim').addEventListener('click', () => { if ((fishing && fishing.phase === 'reel') || sheetOpen === 'festival') return; closeSheet(); });
 const play = fn => () => { if (mode === 'play' && !sheetOpen) fn(); };
 $('clock').addEventListener('click', play(() => openSheet('clock')));
+$('calBtn').addEventListener('click', play(() => { calSeason = S.season; openSheet('calendar'); }));
 $('bSeeds').addEventListener('click', play(() => openSheet('seeds')));
 $('bMarket').addEventListener('click', play(() => { marketTab = Object.values(S.inv).some(n => n > 0) ? 'sell' : 'buy'; openSheet('market'); }));
 $('bBoard').addEventListener('click', play(() => openSheet('board')));
