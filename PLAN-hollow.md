@@ -117,10 +117,12 @@ The design rule "1 to 3 hits" holds for ordinary creatures. Wardens are the only
 ## Pace and the lift
 - Goal: once she's set up, a dive covers about **5 to 8 floors**, so reaching floor 100 takes roughly 15 to 25 dives. That's a goal for year 2, not a single season.
 - Lift stops every 5 floors she has reached, shown as a tidy grid grouped by band (the current row of buttons won't fit 20+ stops).
-- Mana is what makes deeper dives possible. Ways to grow it (pick in Part 2):
-  - a few new spells (more spells already raise max mana by 5 each)
-  - a **Hollow pouch**: 1 to 3 potions she can drink mid-dive with one tap (new mana or energy potions brewed from deep drops)
-  - a mana upgrade bought with deep materials (like the gold can uses crystals)
+- Mana is what makes deeper dives possible. Decided Nov 8, 2026:
+  - **A floor never costs more mana deeper down** (creature counts and hits stay level). Part 1.
+  - **Lift stops every 5 floors**, so she never re-fights old floors. Part 1.
+  - **A mana spring on every 5th floor**: a quarter of her mana, once a dive. Part 1.
+  - **Mana potions** brewed from deep drops, up to 3 in a **Hollow pouch**, drunk with one tap. Part 2.
+  - **Crystal Focus** upgrades at the Market (coins + band materials), +10 max mana each, about 45 → 90 by the late floors. Part 2.
 
 ## Rewards (keep the farm economy safe)
 - Hollow coins and drop prices rise by band but **level off**, so diving never beats farming for the season charters. The sims will check the coins per dive against the charter goals, like `spousesim.js` does for spouses.
@@ -137,7 +139,13 @@ The design rule "1 to 3 hits" holds for ordinary creatures. Wardens are the only
 
 ## Parts (one session each)
 
-### Part 1: the engine and floors 1–30
+### Part 1: the engine and floors 1–30 — DONE Nov 8, 2026
+Shipped as planned, with these choices:
+- Mana: a floor never costs more as she goes deeper (bands 2+ have 3 to 6 creatures), lift stops every 5 floors, and a spring on every 5th floor. Potions and Crystal Focus wait for Part 2.
+- Little Slimes from a split, and the Puffball's Puffcaps, give mana but no loot.
+- `hollowsim.js` at 45 mana: about 7 dives from a new Hollow to beating the Crystal Queen, 5 to 8 floors per later dive, and about 1,200 to 1,450 coins of value per dive in every band.
+- The bestiary lives on the rope lift sheet, not in the Journal.
+
 - Band data (`BANDS`), per-band creature stats and counts, drawn per band. Replace the formulas that grow with the floor.
 - Glowcap Grotto and Crystal Caves: 6 new creatures, their traits, drops and recipes. The shared body shapes and the trait code, and the Journal bestiary.
 - Wardens at 10, 20 and 30. Lift stops every 5 floors, as a grid.
@@ -146,7 +154,7 @@ The design rule "1 to 3 hits" holds for ordinary creatures. Wardens are the only
 
 ### Part 2: floors 31–70 and growing stronger
 - Underriver, The Roots, Ember Deep, Frozen Reach: 12 new creatures, and their Wardens.
-- The mana growth from "Pace and the lift", the Hollow pouch, and the relic shelf.
+- Mana potions and the Hollow pouch, Crystal Focus upgrades, and the relic shelf.
 
 ### Part 3: floors 71–100, the finale, and beyond
 - Guild Ruins, Starfall, Heart of the Bramble: 9 new creatures, and their Wardens.

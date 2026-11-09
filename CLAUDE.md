@@ -4,7 +4,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 
 - Live site: https://mfleshner.github.io/brambleroot/ (GitHub Pages, deploys from `main` root)
 - The villager plan (**PLAN-villagers.md**) is finished: all three parts shipped Nov 8, 2026.
-- **Next: PLAN-hollow.md** (the deep Hollow, 100 floors plus the Endless Below, in 3 parts). Decided Nov 8, 2026; no part built yet. Start with Part 1.
+- **The deep Hollow (PLAN-hollow.md)**: 100 floors plus the Endless Below, in 3 parts. **Part 1 shipped Nov 8, 2026** (floors 1–30). Next is Part 2.
 
 ## Files
 - `src/brambleroot.html`: **the source** (about 250 KB, one file: HTML, CSS and JS in one IIFE). Cloud keys are empty here.
@@ -95,13 +95,20 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - The grove opens after 12 finds.
   - The shrine refills mana once a day.
   - The cave is at grove tile (7,1).
-- **Hollow:**
-  - `MOBS`, `HOLLOW_BOTTOM = 15`, `hollowFloor`
-  - `hollowMilestone`: Frost Ring at floor 5, satchel at floor 10, 1,500 coins at floor 15
+- **Hollow (deep Hollow Part 1, Nov 8, 2026):**
+  - `BANDS` (10 floors each; `bandIdx(f)`): Mossy Hollow 1–10, Glowcap Grotto 11–20, Crystal Caves 21–30. Each has `mix` (creature weights; band 0 keeps the old floor-based mix), `friends` (who comes with the Warden) and `look` (colours for `buildHollow`, plus `shrooms`/`manyCrys`). `HOLLOW_BOTTOM = 30` for now: floor 30 has no stairs.
+  - `MOBS`: 9 creatures + 3 Wardens. Fields: hp, speed, col, drop, p (drop chance), `body` (blob, flyer, crawler, crab, cap, worm, wisp: shared shapes in `drawMob`), one `trait` (hops, zigzags, slow, sleepy, hides, splits, shielded, blinks; Wardens: lunges, puffs, plus `reshell`), `tip` (shown once, the first time she meets it, one per floor), extras `spots`, `gems`, `moss`, `size`.
+    - Traits: `asleep` (wakes within 2.5 tiles or when hit), `mobLit` (Glowworms glow 1.8 s of every 3.2; tapping a dark one costs nothing), splits (two `small` Slimes: mana but no loot), `shield` (first hit only cracks it; `effHp` counts it so bolts aren't wasted), blinks (`bt` timer).
+  - Numbers level off: `touchDmg`, `speedMul`, `crystalChance` (caps at floor 10), `coinFind`. Bands 2+ have 3 to 6 creatures a floor (a band starts gently).
+  - Wardens (`WARDENS[f]`: 10 Old Mossback, 20 the Great Puffball, 30 the Crystal Queen): full health first try, half from the second try (`S.hollow.tries`), wounds kept for the day (`S.hollow.wh`). Lunge = walk → glow 1 s → lunge 0.7 s. The Puffball puffs out up to 3 Puffcaps; the Queen's shell regrows after 8 s. Beating one: coins + items, a journal page (`page`), `wardenBeaten`. Floor 10 is an ordinary floor after that. HP bar in `drawHollowLight`.
+  - `S.hollow = hollowState()` (`HS()`): wardens, wh, tries, met (beaten counts), seen (tips shown), pages. `migrate` gives old saves past floor 10 Mossback and page 10 for free, and marks Slime/Bat/Beetle as seen.
+  - Lift: `liftStops()` = 1, every 5th floor reached, and the deepest floor. The `cave` sheet groups them by band (⚔ = unbeaten Warden) and lists creatures met and journal pages (`hpage` → page, `hlift` back).
+  - Springs: every 5th floor has one at `SPRING_TILE` (1,11): +25% of max mana (`LIFT_SPRING`), once per floor per dive (`HV.dive.springs`). Visit kind `hollowspring` → `useSpring()`.
+  - New drops `spore` (20), `prism` (35); potions Glowcap Brew (3 spores, 140), Prism Elixir (2 prisms, 170). Theo likes spores, Zara prisms, Juno Prism Elixir.
+  - `hollowMilestone`: Frost Ring at floor 5, satchel at floor 10, Grotto intro at 11, 1,500 coins at floor 15, Caves intro at 21. Juno's "deep" story step is pinned to floor 15 (not `HOLLOW_BOTTOM`).
   - `firebolt` (2 mana, retargets so no bolt is wasted), `frostRing` (6 mana)
   - Aggro range is 6 tiles.
   - `MANA_PER_KILL = 1`, `SPRING_FRAC = .1` (a cleared floor gives back 10% of max mana)
-  - The lift offers floors 1, 5, 10 and 15, plus her deepest floor reached.
 - **Play time:** `S.play = { first, last, sessions, days:{ 'YYYY-MM-DD': seconds } }` (her local dates, last 120 days), counted by `trackPlay()` in `frame()` from wall-clock time, only while playing and visible; `startGame` counts sessions. Matt has a standalone `brambleroot-stats.html` (not in this repo, so it isn't published) that lists every cloud save with a Google access token, or looks saves up by name, and reads this field. Keep `S.play`'s shape stable.
 - **Saves:** see below.
 
@@ -157,6 +164,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
     - `spousesim.js` (headless): value of each spouse's help per season against the charter earning goals.
     - `romancetest.js` (36 phone checks, iPhone 13 and Pixel 7): bouquet → dating → ring → proposal → wedding → married morning. Pass a folder for screenshots.
     - `gallery.js` writes gallery.html with every portrait in every mood; screenshot it to eyeball new faces.
+  - `hollowtest.js` (headless, 51 checks: every trait, Wardens, springs, lift, old saves), `hollowsim.js` (bot dives floors 1–30; args: mana max, energy, runs; reports dives needed, Warden tries, floors and value per dive by band), `hollowshots.js` (iPhone screenshots of the bands, Wardens and lift).
   - `choretest.js` (headless, 39 checks: sprinkler heads, trowel, board) and `choreshots.js` (13 phone checks + screenshots).
   - Tests: `savesuite.js` (32 save checks), `clocktest.js` (12 clock checks on iPhone 13 and Pixel 7), `filetest.js`, `pastetest.js`, `fishtest.js`/`spelltest.js` (these need an exposed `__pond`/`__spells` hook; see how fishtest.html was made), `shot-save.json` (a realistic mid-game save, summer day 14).
   - A failed proxy connection to fonts.googleapis.com during tests is harmless.
@@ -185,3 +193,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 10. Villager plan, Part 3: schedules, the walkable village, gift notebook, calendar, six story quests and three group events (Nov 8, 2026).
 11. Play-time tracking in the save, for Matt's stats page (Nov 8, 2026).
 12. Silver sprinkler heads, the trowel, and the notice board staying open after Give (Nov 8, 2026).
+13. Deep Hollow Part 1: bands, six new creatures, Wardens at 10/20/30, lift every 5 floors with springs, bestiary and journal pages (Nov 8, 2026).
