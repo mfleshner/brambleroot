@@ -32,7 +32,11 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - `CROPS` (11 crops, by season)
   - `POTIONS` (base, wild forage and Hollow potions)
   - `FISH`, `FORAGE`, `MISC`, `ITEMS`
-  - `UPGRADES`: watering cans can, can2, can3 (gold can, gated on the Hollow), cauldron upgrades pot2 to pot4, rod, sprinkler
+  - `UPGRADES`: watering cans can, can2, can3 (gold can, gated on the Hollow), cauldron upgrades pot2 to pot4, rod, sprinkler, sprhead
+- **Garden tools (Nov 8, 2026):**
+  - Silver sprinkler heads (`UPGRADES.sprhead`, 1,000 coins, from summer year 1, `S.up.sprhead`): every sprinkler waters all 8 beds around it instead of 4. `sprReach()`, `sprBeds()` (text), drawn with a silver top and a wider spray. The brass sprinkler's `desc` is a getter so its text follows.
+  - Trowel (`S.sel === 'trowel'`, a row at the top of the seed pouch): tap a plant to dig it up (`dig` in `predict`/`doField`). A seed with `d === 0` goes back in the pouch; otherwise it's just cleared. The bed stays tilled and watered. Ripe crops are harvested instead, sprinklers still pick up, empty soil gives a toast (`nodig`). Dragging never digs. No energy cost.
+  - Notice board stays open after Give: the card turns into a thank-you card in the same spot (`boardOrder`, `boardDone`, cleared when the board opens or closes). Heart gifts list on the card; a heart scene waits behind "See the N-heart scene" (`boardscene`), which has "Back to requests" (`boardback`) and keeps the scroll position.
 - **Clock:** `S.time` is minutes since midnight. A day starts at 360 (6 am); `passOut()` is midnight (later with the lantern or the longday perk).
   - In `update()`, time moves `7.2 × paceMul()` game minutes per real second, and **only while she's busy** (queue, walking, acting, or a firebolt in flight). Standing still and open sheets both stop it.
   - `S.pace` is 'brisk' (×1, default), 'gentle' (×½) or 'slow' (×⅓), in `PACES`. Change it by tapping the clock in the HUD or "Clock speed" in the sleep sheet.
@@ -152,6 +156,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
     - `spousesim.js` (headless): value of each spouse's help per season against the charter earning goals.
     - `romancetest.js` (36 phone checks, iPhone 13 and Pixel 7): bouquet → dating → ring → proposal → wedding → married morning. Pass a folder for screenshots.
     - `gallery.js` writes gallery.html with every portrait in every mood; screenshot it to eyeball new faces.
+  - `choretest.js` (headless, 39 checks: sprinkler heads, trowel, board) and `choreshots.js` (13 phone checks + screenshots).
   - Tests: `savesuite.js` (32 save checks), `clocktest.js` (12 clock checks on iPhone 13 and Pixel 7), `filetest.js`, `pastetest.js`, `fishtest.js`/`spelltest.js` (these need an exposed `__pond`/`__spells` hook; see how fishtest.html was made), `shot-save.json` (a realistic mid-game save, summer day 14).
   - A failed proxy connection to fonts.googleapis.com during tests is harmless.
 - The sandbox can't reach `*.github.io`. Check a deploy with `gh run list -R mfleshner/brambleroot -L 1`, or with a real browser if one is linked.
@@ -178,3 +183,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 9. Villager plan, Part 2: 10 hearts, dating, the kind goodbye, the Witch's Ring, weddings and married life (Nov 8, 2026).
 10. Villager plan, Part 3: schedules, the walkable village, gift notebook, calendar, six story quests and three group events (Nov 8, 2026).
 11. Play-time tracking in the save, for Matt's stats page (Nov 8, 2026).
+12. Silver sprinkler heads, the trowel, and the notice board staying open after Give (Nov 8, 2026).

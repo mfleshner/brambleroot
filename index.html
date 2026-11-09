@@ -348,8 +348,14 @@ const UPGRADES = {
   pot3:  { name:'Third cauldron', desc:'Brew three potions each night.', cost:600, needs:'pot2' },
   pot4:  { name:'Fourth cauldron', desc:'Brew four potions each night.', cost:1200, needs:'pot3', season:1 },
   rod:   { name:'Fishing rod', desc:'Fish at the pond.', cost:300, once:'rod' },
-  sprinkler: { name:'Brass sprinkler', desc:'Waters the four beds around it every morning. Place it from your seed pouch.', cost:150, repeat:true }
+  sprinkler: { name:'Brass sprinkler', get desc() { return `Waters ${sprBeds()} every morning. Place it from your seed pouch.`; }, cost:150, repeat:true },
+  sprhead: { name:'Silver sprinkler heads', desc:'Every sprinkler you own sprays wider: it waters all 8 beds around it, corners too.', cost:1000, season:1 }
 };
+// Silver heads (S.up.sprhead) widen every sprinkler from the 4 beds beside it to all 8 around it.
+const sprWide = () => !!(S && S.up && S.up.sprhead);
+const SPR_REACH4 = [[1, 0], [-1, 0], [0, 1], [0, -1]], SPR_REACH8 = [...SPR_REACH4, [1, 1], [1, -1], [-1, 1], [-1, -1]];
+const sprReach = () => sprWide() ? SPR_REACH8 : SPR_REACH4;
+const sprBeds = () => sprWide() ? 'all 8 beds around it' : 'the four beds around it';
 
 const PROJECTS = {
   greenhouse: { short:'Greenhouse', season:1, name:'Restore the greenhouse', desc:"Aunt Bramble's old glasshouse over the two bottom rows. Once restored, anything grows there in any season, even winter.", coins:1500, items:{ pepper:8, star:4 }, reward:'The bottom two rows of the garden grow any crop, any season.' },
@@ -1056,11 +1062,13 @@ function drawPlot(p, c, r, i) {
 function drawSprinkler(x, y) {
   const u = T / 16, cx = x + T / 2, cy = y + T * .62;
   ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(cx, cy + 3 * u, 4 * u, 1.3 * u, 0, 0, 7); ctx.fill();
+  const wide = sprWide();
   R(ctx, cx - 3 * u, cy, 6 * u, 3 * u, '#9a7a3a'); R(ctx, cx - 1 * u, cy - 5 * u, 2 * u, 5 * u, '#c9a24a');
-  circ(ctx, cx, cy - 5.5 * u, 2 * u, '#e8c66a');
+  circ(ctx, cx, cy - 5.5 * u, 2 * u, wide ? '#dfe6ee' : '#e8c66a');
+  if (wide) circ(ctx, cx - .6 * u, cy - 6.1 * u, .7 * u, '#ffffff');
   if (S && S.time < 480 && !reduceMotion) {
-    const a = clock * 5;
-    for (let k = 0; k < 4; k++) { const ang = a + k * Math.PI / 2; circ(ctx, cx + Math.cos(ang) * 6 * u, cy - 5 * u + Math.sin(ang) * 3 * u, u * .9, 'rgba(160,210,250,.8)'); }
+    const a = clock * 5, n = wide ? 8 : 4, rad = wide ? 10 : 6;
+    for (let k = 0; k < n; k++) { const ang = a + k * 2 * Math.PI / n; circ(ctx, cx + Math.cos(ang) * rad * u, cy - 5 * u + Math.sin(ang) * rad * .5 * u, u * .9, 'rgba(160,210,250,.8)'); }
   }
 }
 function drawCrop(x, y, p) {
@@ -1193,7 +1201,7 @@ function drawWitch() {
   const act = witch.act > 0 ? Math.sin(witch.act * 18) * 2 * u : 0;
   R(ctx, px + d * 2.5 * u - (d < 0 ? 1.6 * u : 0), fy - 8 * u + act, 1.6 * u, 4 * u, shade(robe, -22));
   if (witch.act > 0 && witch.tool === 'water') R(ctx, px + d * 4 * u - (d < 0 ? 3 * u : 0), fy - 5 * u + act, 3 * u, 2.2 * u, '#7fa3b8');
-  if (witch.act > 0 && witch.tool === 'till') { R(ctx, px + d * 4 * u - (d < 0 ? .8 * u : 0), fy - 9 * u + act, .8 * u, 7 * u, '#8a6440'); R(ctx, px + d * 3 * u - (d < 0 ? 2.5 * u : 0), fy - 2.5 * u + act, 2.5 * u, 1.2 * u, '#9aa0a8'); }
+  if (witch.act > 0 && (witch.tool === 'till' || witch.tool === 'dig')) { R(ctx, px + d * 4 * u - (d < 0 ? .8 * u : 0), fy - 9 * u + act, .8 * u, 7 * u, '#8a6440'); R(ctx, px + d * 3 * u - (d < 0 ? 2.5 * u : 0), fy - 2.5 * u + act, 2.5 * u, 1.2 * u, '#9aa0a8'); }
   circ(ctx, px + d * .4 * u, fy - 11 * u, 2.8 * u, LK.skin);
   R(ctx, px - d * 3 * u - (d > 0 ? 0 : 1.5 * u), fy - 12 * u, 1.5 * u, 4.5 * u, LK.hair);
   circ(ctx, px + d * 1.4 * u, fy - 11 * u, .55 * u, '#2a1a20');
@@ -1311,6 +1319,7 @@ function predict(p) {
   if (p.s) return 'pickup';
   if (S.sel.startsWith('spell:')) { const sp = S.sel.slice(6); if (sp === 'quicken') return p.c && !p.ready ? 'cast' : 'nocast'; if (sp === 'bounty') return p.c && !p.b ? 'cast' : 'nocast'; return 'nocast'; }
   if (S.sel === 'sprinkler' && !p.c) return 'place';
+  if (S.sel === 'trowel') return p.c ? (p.ready ? 'harvest' : 'dig') : 'nodig';
   if (!p.t) return 'till';
   if (!p.c) return 'plant';
   if (p.ready) return 'harvest';
@@ -1360,6 +1369,12 @@ function doField(c, r) {
     if (!(S.sprinklers > 0)) { toast('No sprinklers left in your pouch.'); return false; }
     S.sprinklers--; p.s = true; p.t = 0; burst(c, r, '#e8c66a', 6, 30);
     if (!(S.sprinklers > 0)) autoSelect();
+  } else if (a === 'dig') {
+    // Dig up an unwanted plant. A seed that hasn't sprouted yet goes back in the pouch.
+    const cr = CROPS[p.c], back = p.d === 0;
+    if (back) S.seeds[p.c] = (S.seeds[p.c] || 0) + 1;
+    p.c = null; p.d = 0; p.ready = false; p.b = false; burst(c, r, '#7a5638', 8, 40);
+    floatText(c, r, back ? `+1 ${cr.name} seed` : 'Dug up', back ? cr.col : '#c9a675');
   } else if (a === 'pickup') {
     p.s = false; S.sprinklers++; floatText(c, r, 'Sprinkler picked up', '#e8c66a'); toast('Sprinkler back in your pouch. Select it in Seeds to place it again.');
   }
@@ -1396,7 +1411,7 @@ function visit(k, q) {
   }
 }
 function infoFor(p, i) {
-  if (p.s) return 'A brass sprinkler. It waters the four beds around it every morning. Select it in your seed pouch to pick it up.';
+  if (p.s) return `A brass sprinkler${sprWide() ? ' with a silver head' : ''}. It waters ${sprBeds()} every morning. Select it in your seed pouch to pick it up.`;
   const cr = CROPS[p.c], left = cr.grow - p.d;
   const where = isGH(i) ? ' Under glass.' : '';
   if (cr.noWater) return `${cr.name}: ${left} day${left === 1 ? '' : 's'} to go. Needs no water.${where}`;
@@ -1416,7 +1431,8 @@ function enqueue(t, fromDrag) {
   if (queue.some(q => q.c === t.c && q.r === t.r && q.kind === 'field')) return;
   if (inField(t.c, t.r)) {
     const i = plotIdx(t.c, t.r), p = S.plots[i], a = predict(p);
-    if (a === 'pickup' && fromDrag) return;
+    if ((a === 'pickup' || a === 'dig') && fromDrag) return;
+    if (a === 'nodig') { if (!fromDrag) toast('Nothing growing here to dig up. Pick seeds in your pouch to go back to planting.'); return; }
     if (a === 'nocast') { if (!fromDrag) toast(S.sel === 'spell:quicken' ? 'Quicken needs a bed with a growing crop.' : 'Bountiful needs a bed with a crop that is not already blessed.'); return; }
     if (a === 'info' || a === 'sinfo') { if (!fromDrag) { toast(infoFor(p, i)); if (a === 'info') floatText(t.c, t.r, `${CROPS[p.c].grow - p.d}d`, '#f2e8dc'); } return; }
     if (queue.length < 40) queue.push({ c:t.c, r:t.r, kind:'field' });
@@ -1456,7 +1472,7 @@ function blip(f0, f1, d, type, vol) {
   o.type = type || 'triangle'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + d);
   g.gain.setValueAtTime(vol || .05, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d + .02);
 }
-const SND = { till:() => blip(180, 90, .08, 'square', .03), plant:() => blip(500, 700, .06), water:() => blip(900, 500, .12, 'sine', .04), harvest:() => { blip(600, 900, .08); setTimeout(() => blip(900, 1200, .08), 70); }, place:() => blip(300, 500, .1, 'square', .03), cast:() => { blip(500, 1400, .3, 'sine', .05); setTimeout(() => blip(900, 1800, .2, 'sine', .03), 90); }, coin:() => { blip(1200, 1600, .07, 'square', .025); setTimeout(() => blip(1600, 2000, .09, 'square', .025), 60); }, gift:() => { [700, 900, 1200].forEach((f, i) => setTimeout(() => blip(f, f * 1.2, .12, 'sine', .05), i * 110)); } };
+const SND = { till:() => blip(180, 90, .08, 'square', .03), plant:() => blip(500, 700, .06), water:() => blip(900, 500, .12, 'sine', .04), harvest:() => { blip(600, 900, .08); setTimeout(() => blip(900, 1200, .08), 70); }, place:() => blip(300, 500, .1, 'square', .03), dig:() => blip(220, 110, .1, 'square', .03), cast:() => { blip(500, 1400, .3, 'sine', .05); setTimeout(() => blip(900, 1800, .2, 'sine', .03), 90); }, coin:() => { blip(1200, 1600, .07, 'square', .025); setTimeout(() => blip(1600, 2000, .09, 'square', .025), 60); }, gift:() => { [700, 900, 1200].forEach((f, i) => setTimeout(() => blip(f, f * 1.2, .12, 'sine', .05), i * 110)); } };
 
 /* ================= update ================= */
 let last = performance.now();
@@ -1539,7 +1555,7 @@ function endDay(passedOut) {
   S.plots.forEach((p, i) => {
     if (!p.s) return;
     const c = plotCol(i), r = plotRow(i);
-    for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    for (const [dc, dr] of sprReach()) {
       if (!inField(c + dc, r + dr)) continue;
       const q = S.plots[plotIdx(c + dc, r + dr)];
       if (q.t && !q.w) { q.w = true; sprinkled++; }
@@ -3413,6 +3429,7 @@ function updateHUD() {
   $('goalTxt').innerHTML = goal;
   if (S.sel.startsWith('spell:')) { const sp = SPELLS[S.sel.slice(6)]; $('seedSw').style.background = sp.col; $('seedLbl').textContent = sp.name.split(' ').pop(); }
   else if (S.sel === 'sprinkler') { $('seedSw').style.background = '#e8c66a'; $('seedLbl').textContent = `Sprinkler ×${S.sprinklers}`; }
+  else if (S.sel === 'trowel') { $('seedSw').style.background = '#9aa0a8'; $('seedLbl').textContent = 'Trowel'; }
   else { const cr = CROPS[S.sel] || CROPS.mint; $('seedSw').style.background = cr.col; $('seedLbl').textContent = `${cr.name.split('-')[0].split(' ')[0].replace('Hollowgourd', 'Gourd').replace('Thornberry', 'Thorn')} ×${S.seeds[S.sel] || 0}`; }
   const rb = $('reqBadge'); const ready = S.reqs.filter(q => (S.inv[q.item] || 0) >= q.n).length;
   rb.hidden = !S.reqs.length; rb.textContent = S.reqs.length; rb.style.background = ready ? 'var(--moss)' : '';
@@ -3424,8 +3441,9 @@ function updateHUD() {
 }
 
 /* ================= sheets ================= */
-let marketTab = 'buy', journalTab = 'charters', lastSheetKey = '', backupCode = '', calSeason = 0, vFrom = '', vPlace = '';
+let boardDone = [], boardOrder = [], boardScroll = 0, marketTab = 'buy', journalTab = 'charters', lastSheetKey = '', backupCode = '', calSeason = 0, vFrom = '', vPlace = '';
 function openSheet(kind, data) {
+  if (kind === 'board') { boardDone = []; boardOrder = []; }
   sheetOpen = kind; queue = [];
   $('scrim').hidden = false; $('sheet').hidden = false;
   renderSheet(kind, data);
@@ -3435,7 +3453,7 @@ function closeSheet() {
   if (sheetOpen === 'wedding') return;
   const was = sheetOpen;
   if (sheetOpen === 'festival') endFestival();
-  if (sheetOpen === 'board') S.reqs.forEach(q => q.fresh = false);
+  if (sheetOpen === 'board') { S.reqs.forEach(q => q.fresh = false); boardDone = []; boardOrder = []; }
   if (sheetOpen === 'fish') stopFishing();
   sheetOpen = null; lastSheetKey = ''; $('scrim').hidden = true; $('sheet').hidden = true; if (mode === 'play') { updateHUD(); save(); }
   if (was === 'morning' || was === 'gift') maybeWedding();
@@ -3484,7 +3502,8 @@ function renderSheet(kind, data) {
     title = 'Seed pouch';
     h += `<p class="sub">Pick what to plant. ${S.greenhouse ? 'Out-of-season seeds grow under the greenhouse glass.' : `It's ${SEASONS[S.season].toLowerCase()}, so only ${SEASONS[S.season].toLowerCase()} crops grow outdoors.`}</p>`;
     { const placed = S.plots.filter(p => p.s).length, has = S.sprinklers > 0 || S.sel === 'sprinkler';
-      const meta = S.sprinklers > 0 ? `${S.sprinklers} in pouch${placed ? `, ${placed} placed` : ''} · select, then tap an empty bed to place it. Tap a placed one to pick it up.` : `None in pouch${placed ? ` (${placed} placed in the garden; tap one to pick it up)` : ''}. Buy them at the Market under Upgrades, or befriend Mara.`;
+      const meta = S.sprinklers > 0 ? `${S.sprinklers} in pouch${placed ? `, ${placed} placed` : ''} · waters ${sprBeds()} · select, then tap an empty bed to place it. Tap a placed one to pick it up.` : `None in pouch${placed ? ` (${placed} placed in the garden; tap one to pick it up)` : ''}. Buy them at the Market under Upgrades, or befriend Mara.`;
+      h += row('#9aa0a8', 'Trowel', 'Tap a plant to dig it up. Seeds that haven\'t sprouted go back in your pouch. Ripe crops get harvested.', `<button class="btn ${S.sel === 'trowel' ? '' : 'alt'}" data-act="sel" data-id="trowel" type="button">${S.sel === 'trowel' ? 'Selected' : 'Use'}</button>`, S.sel === 'trowel' ? 'sel' : '');
       h += row('#e8c66a', 'Brass sprinkler', meta, has || placed ? `<button class="btn ${S.sel === 'sprinkler' ? '' : 'alt'}" data-act="sel" data-id="sprinkler" type="button">${S.sel === 'sprinkler' ? 'Selected' : 'Use'}</button>` : '', (S.sel === 'sprinkler' ? 'sel ' : '') + (has ? '' : 'dim')); }
     for (const [id, cr] of Object.entries(CROPS)) {
       const n = S.seeds[id] || 0;
@@ -3530,14 +3549,19 @@ function renderSheet(kind, data) {
   } else if (kind === 'board') {
     title = 'Village requests';
     if (isFestDay()) { const F = FEST[S.season], f = festState(); h += `<article class="card fest"><h4>Tonight: ${F.name}</h4><p class="sub">${f.home ? 'You had a lovely evening. See you there next year.' : F.board}</p>${f.home ? '' : `<div class="foot"><span class="due">Going ends your working day.</span><button class="btn" data-act="gofest" type="button" style="margin-left:auto">Go to the festival</button></div>`}</article>`; }
-    if (!S.reqs.length) h += `<p class="sub">Nothing pinned right now. New requests go up in the morning.</p>`;
-    S.reqs.forEach((q, i) => {
+    if (!S.reqs.length && !boardDone.length) h += `<p class="sub">Nothing pinned right now. New requests go up in the morning.</p>`;
+    // Filled requests stay put as thank-you cards until the board is closed, so nothing jumps under her finger.
+    const doneCard = d => `<article class="card"><div class="who">${portrait(d.v, d.scene ? 'love' : 'happy', 44)}<div><div class="nm">${VILLAGERS[d.v].name}</div><div class="role">Done · thank you!</div></div><span class="rw">+${fmt(d.reward)} coins</span></div>
+        <q>${d.line}</q>${d.gifts.length ? `<ul class="lines">${d.gifts.map(t => `<li class="gift">${t}</li>`).join('')}</ul>` : ''}${d.scene && !d.seen ? `<div class="foot"><span class="need">${VILLAGERS[d.v].name} has something to tell you.</span><button class="btn" data-act="boardscene" data-i="${d.k}" type="button" style="margin-left:auto">See the ${d.scene.lvl}-heart scene</button></div>` : ''}</article>`;
+    boardOrder = boardOrder.filter(x => x.done || S.reqs.includes(x)); for (const q of S.reqs) if (!boardOrder.includes(q)) boardOrder.push(q);
+    const reqCard = (q, i) => {
       const v = VILLAGERS[q.v], have = S.inv[q.item] || 0, left = q.due - S.day;
-      h += `<article class="card"><div class="who">${portrait(q.v, 'neutral', 44)}<div><div class="nm">${v.name}</div><div class="role">${v.role}${q.odd ? ' · odd job' : ''}</div></div><span class="rw">${fmt(q.reward)} coins</span></div>
+      return `<article class="card"><div class="who">${portrait(q.v, 'neutral', 44)}<div><div class="nm">${v.name}</div><div class="role">${v.role}${q.odd ? ' · odd job' : ''}</div></div><span class="rw">${fmt(q.reward)} coins</span></div>
         <q>${q.text}</q>
         <div class="foot"><span class="need">${q.n} × ${itemName(q.item)} <span style="color:var(--muted)">(you have ${have})</span></span><span class="due ${left <= 1 ? 'hot' : ''}">${left <= 0 ? 'Due today' : `Due in ${left} day${left === 1 ? '' : 's'}`}</span>
         <button class="btn" data-act="give" data-i="${i}" type="button" ${have < q.n ? 'disabled' : ''} style="margin-left:auto">Give</button></div></article>`;
-    });
+    };
+    h += boardOrder.map(x => x.done ? doneCard(x) : reqCard(x, S.reqs.indexOf(x))).join('');
     h += `<p class="sub">Every request you fill earns a heart with that villager. At 3 and 6 hearts they bring you a gift.</p>`;
   } else if (kind === 'cauldron') {
     title = 'Cauldron';
@@ -3698,7 +3722,7 @@ function renderSheet(kind, data) {
     title = data.title || `${V.name} · ${data.lvl} hearts`;
     h += `<div class="vhead">${portrait(data.v, 'love', 96)}<div class="info">${hearts(heartsOf(data.v), data.v)}</div></div><p class="scene">${data.text}</p>`;
     if (data.gifts && data.gifts.length) h += `<ul class="lines">${data.gifts.map(t => `<li class="gift">${t}</li>`).join('')}</ul>`;
-    h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Close</button></div>`;
+    h += data.back === 'board' ? `<div class="cta-row"><button class="btn" data-act="boardback" type="button">Back to requests</button></div>` : `<div class="cta-row"><button class="btn" data-act="close" type="button">Close</button></div>`;
   } else if (kind === 'qscene') {
     const Q = QUESTS[data.id]; title = Q.title;
     h += `<div class="crowd">${data.who.filter(Boolean).map(v => portrait(v, 'happy', 56)).join('')}</div><p class="scene">${data.text}</p>`;
@@ -3867,7 +3891,7 @@ function giftName(g) { return { sprinkler:`${g.n} sprinklers`, rod:'a fishing ro
 $('shBody').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const act = b.dataset.act, id = b.dataset.id;
-  if (act === 'sel') { S.sel = id; closeSheet(); }
+  if (act === 'sel') { S.sel = id; closeSheet(); if (id === 'trowel') toast('Tap a plant to dig it up. Pick seeds again to go back to planting.'); }
   else if (act === 'tab') { marketTab = id; renderSheet('market'); }
   else if (act === 'pace') { if (PACES[id]) { S.pace = id; save(); } renderSheet('clock'); return; }
   else if (act === 'clockopen') { sheetOpen = 'clock'; renderSheet('clock'); return; }
@@ -3886,7 +3910,7 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'talk') { if (canMeet(id)) talkTo(id); return; }
   else if (act === 'vgift') { if (!canMeet(id)) return; sheetOpen = 'vgift'; renderSheet('vgift', { v:id }); return; }
   else if (act === 'givegift') { giveGift(id, b.dataset.item); return; }
-  else if (act === 'buy') { const n = +b.dataset.n, cost = seedPrice(id) * n; if (S.coins >= cost) { S.coins -= cost; S.seeds[id] = (S.seeds[id] || 0) + n; if (S.sel !== 'sprinkler' && !S.sel.startsWith('spell:') && !(S.seeds[S.sel] > 0)) S.sel = id; blip(700, 500, .05); } renderSheet('market'); }
+  else if (act === 'buy') { const n = +b.dataset.n, cost = seedPrice(id) * n; if (S.coins >= cost) { S.coins -= cost; S.seeds[id] = (S.seeds[id] || 0) + n; if (S.sel !== 'sprinkler' && S.sel !== 'trowel' && !S.sel.startsWith('spell:') && !(S.seeds[S.sel] > 0)) S.sel = id; blip(700, 500, .05); } renderSheet('market'); }
   else if (act === 'sell') { const n = Math.min(+b.dataset.n, S.inv[id] || 0); S.inv[id] -= n; SND.coin(); earn(itemValue(id) * n); renderSheet('market'); }
   else if (act === 'up') {
     const up = UPGRADES[id]; if (S.coins >= upCost(up) && !(up.items && Object.entries(up.items).some(([k, n]) => (S.inv[k] || 0) < n))) {
@@ -3899,8 +3923,20 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'give') {
     const i = +b.dataset.i, q = S.reqs[i]; if (!q || (S.inv[q.item] || 0) < q.n) return;
     S.inv[q.item] -= q.n; for (const c of openCharters()) c.reqs++; earn(q.reward); S.helped++; if (!q.odd) { S.steps[q.v]++; if (Math.random() < .4) S.thanks.push({ v:q.v, k:S.helped, n:40 + Math.round(Math.random() * 60) }); } addFr(q.v, 100); S.reqs.splice(i, 1); SND.coin();
-    celebrate(q.v, 'happy', `Thank you, witch! Here's the ${fmt(q.reward)} coins I promised.`);
+    // Stay on the board: the card becomes a thank-you in the same spot. Gifts show on it; a heart scene waits behind a button.
+    const gifts = []; applyGifts(q.v, gifts); if (gifts.length) SND.gift();
+    checkStars(); const sc = nextScene(q.v); updateHUD(); save();
+    const d = { done:true, k:boardDone.length, v:q.v, reward:q.reward, line:`Thank you, witch! Here's the ${fmt(q.reward)} coins I promised.`, gifts, scene:sc, seen:false };
+    boardDone.push(d); const pos = boardOrder.indexOf(q); if (pos >= 0) boardOrder[pos] = d; else boardOrder.push(d);
+    renderSheet('board');
     return;
+  }
+  else if (act === 'boardscene') {
+    const d = boardDone[+b.dataset.i]; if (!d || !d.scene) return; d.seen = true; boardScroll = $('shBody').scrollTop;
+    sheetOpen = 'scene'; renderSheet('scene', { v:d.v, lvl:d.scene.lvl, text:d.scene.text, back:'board' });
+    return;
+  }
+  else if (act === 'boardback') { sheetOpen = 'board'; renderSheet('board'); $('shBody').scrollTop = boardScroll; lastSheetKey = 'board||'; return;
   }
   else if (act === 'bouq') { if (S.coins >= BOUQUET_COST) { S.coins -= BOUQUET_COST; S.inv.bouquet = (S.inv.bouquet || 0) + 1; SND.coin(); } renderSheet('market'); }
   else if (act === 'brewring') { if (S.slots - S.brewing.length > 0 && Object.entries(RING_NEED).every(([k, n]) => (S.inv[k] || 0) >= n)) { for (const [k, n] of Object.entries(RING_NEED)) S.inv[k] -= n; S.brewing.push('ring'); blip(300, 900, .35, 'sine', .05); } renderSheet('cauldron'); }
