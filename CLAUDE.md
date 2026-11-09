@@ -97,6 +97,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - Aggro range is 6 tiles.
   - `MANA_PER_KILL = 1`, `SPRING_FRAC = .1` (a cleared floor gives back 10% of max mana)
   - The lift offers floors 1, 5, 10 and 15, plus her deepest floor reached.
+- **Play time:** `S.play = { first, last, sessions, days:{ 'YYYY-MM-DD': seconds } }` (her local dates, last 120 days), counted by `trackPlay()` in `frame()` from wall-clock time, only while playing and visible; `startGame` counts sessions. Matt has a standalone `brambleroot-stats.html` (not in this repo, so it isn't published) that lists every cloud save with a Google access token, or looks saves up by name, and reads this field. Keep `S.play`'s shape stable.
 - **Saves:** see below.
 
 ## Gotchas found so far (important)
@@ -176,3 +177,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 8. Villager plan, Part 1: ten new villagers, a village list grouped by place, 1 to 3 garden visits a day, Zara's market days (Nov 8, 2026).
 9. Villager plan, Part 2: 10 hearts, dating, the kind goodbye, the Witch's Ring, weddings and married life (Nov 8, 2026).
 10. Villager plan, Part 3: schedules, the walkable village, gift notebook, calendar, six story quests and three group events (Nov 8, 2026).
+11. Play-time tracking in the save, for Matt's stats page (Nov 8, 2026).
