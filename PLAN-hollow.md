@@ -164,7 +164,14 @@ Shipped as planned, with these choices:
 - Underriver, The Roots, Ember Deep, Frozen Reach: 12 new creatures, and their Wardens.
 - Mana potions and the Hollow pouch, Crystal Focus upgrades, and the relic shelf.
 
-### Part 3: floors 71–100, the finale, and beyond
+### Part 3: floors 71–100, the finale, and beyond — DONE Nov 9, 2026
+Shipped as planned, with these choices:
+- The Heart is calmed, not fought: Firebolts turn to soft pink light on floor 100, it never moves, and its beat (a glow, then a ring) only costs energy if she stands close.
+- Finale: a scene sheet with the aunt's last page, 5,000 coins, 3 Heartstones, 3 Starshards, the Heartseed relic and the Heartbloom. Hettie writes the next morning; Aldous writes at 75.
+- Wardrobe pieces (from Part 2's list) are five treasures tied to Wardens 30, 70, 80, 90, 100, toggled at the mirror. Old saves get the ones they've earned.
+- Endless Below: bands 0–8 repeat ten floors at a time in a fixed shuffled order, one more creature a floor, 30 energy a touch, and a Warden rematch every tenth floor (800 coins, no page). Record on the lift sheet and in the Almanac.
+- `hollowsim.js` (20 runs, 45 base mana): about 29 dives from a new Hollow to calming the Heart with no Focus, about 18 buying Focus as it goes, about 10 with Focus and 3 draughts. Later dives level off at 1,200 to 2,000 coins (flat), 2,300 to 3,700 (Focus), 3,100 to 5,100 (Focus + draughts) in every band, the Endless Below included. Farm sims unchanged.
+
 - Guild Ruins, Starfall, Heart of the Bramble: 9 new creatures, and their Wardens.
 - Floor 100: the last journal page and the end of the aunt's story, a big reward, and a scene.
 - The Endless Below (101+), with her record shown in the Journal.

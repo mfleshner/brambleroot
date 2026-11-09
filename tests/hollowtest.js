@@ -15,7 +15,7 @@ fresh();
 const only = (f, kinds) => { S.scene = 'wood'; t.enterHollow(f); while (t.sheet) t.closeSheet(); t.HV.mobs = []; t.HV.warden = null; return kinds.map((k, i) => t.addMob(k, 1 + i * 2.5, 2, { asleep:k === 'puffcap' ? true : undefined })); };
 
 // numbers level off
-ok(t.BANDS.length === 7 && t.liftStops().join() === '1,5,10,15,20,25,30', 'seven bands, lift every fifth floor');
+ok(t.BANDS.length === 10 && t.liftStops().join() === '1,5,10,15,20,25,30', 'ten bands, lift every fifth floor');
 // draw every creature on its band's floor without errors
 for (const k of Object.keys(t.MOBS)) { const f = { mossback:10, puffball:20, queen:30, whiskers:40, briar:50, emberback:60, owl:70 }[k] || Math.max(0, t.BANDS.findIndex(B => B.mix && B.mix[k])) * 10 + 2; only(f, [k]); try { t.buildStatic(); t.draw(); ok(true); } catch (e) { ok(false, 'draw ' + k + ': ' + e.message); } }
 
@@ -78,9 +78,9 @@ t.hollowFloor(15); ok(!t.HV.spring, 'no second sip in the same dive');
 S.scene = 'wood'; t.enterHollow(15); while (t.sheet) t.closeSheet(); ok(t.HV.spring, 'a new dive, a fresh spring');
 S.scene = 'wood'; t.enterHollow(16); ok(!t.HV.spring, 'no spring on floor 16');
 
-// floor 70 is the bottom for now
+// since Part 3 floor 70 has stairs on to the Guild Ruins
 S.hollow.wardens[70] = true; S.scene = 'wood'; t.enterHollow(70); while (t.sheet) t.closeSheet(); for (const m of t.HV.mobs.slice()) t.killMob(m);
-ok(!t.HV.stairs, 'no stairs below floor 70 yet');
+ok(!!t.HV.stairs, 'stairs below floor 70 now');
 
 // lift sheet
 S.scene = 'wood'; S.hollowMax = 23; t.openSheet('cave');

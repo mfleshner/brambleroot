@@ -16,8 +16,8 @@ fresh();
 const only = (f, kinds) => { S.scene = 'wood'; t.enterHollow(f); close(); t.HV.mobs = []; t.HV.warden = null; return kinds.map((k, i) => t.addMob(k, 1 + i * 2.5, 2)); };
 
 // 1. data: 7 bands, 21 creatures + 7 Wardens, bottom at 70, every drop and potion exists
-ok(t.BANDS.length === 7 && t.HOLLOW_BOTTOM === 70, 'seven bands, bottom 70');
-const mobs = Object.keys(t.MOBS); ok(mobs.filter(k => !t.MOBS[k].warden).length === 21 && mobs.filter(k => t.MOBS[k].warden).length === 7, 'creature counts ' + mobs.length);
+ok(t.BANDS.length === 10 && t.HOLLOW_BOTTOM === 100, 'ten bands since Part 3, finale at 100');
+const mobs = Object.keys(t.MOBS); ok(mobs.filter(k => !t.MOBS[k].warden).length === 30 && mobs.filter(k => t.MOBS[k].warden).length === 10, 'creature counts (Part 3 totals) ' + mobs.length);
 for (const k of mobs) { const M = t.MOBS[k]; ok(!!S && M.drop && t.POTIONS && (globalThis.__t.MOBS[k].hp <= 3 || M.warden), 'hit rule ' + k); }
 for (const B of t.BANDS.slice(3)) for (const k in B.mix) ok(!!t.MOBS[k], 'mix has ' + k);
 for (const f of [40, 50, 60, 70]) { const W = t.WARDENS[f]; ok(W && t.MOBS[W.k] && W.page && W.beat && W.note, 'warden ' + f); }
@@ -80,10 +80,10 @@ S.hollowMax = 70; fresh(); S.hollow.relics = { lantern:true, bell:true, trowel:t
 ok(['Underriver', 'The Roots', 'Ember Deep', 'Frozen Reach'].every(x => h.includes(x)) && /Floor 70/.test(h) && clean(h), 'lift sheet shows all bands to 70'); close();
 ok(t.liftStops().join() === '1,5,10,15,20,25,30,35,40,45,50,55,60,65,70', 'lift stops to 70');
 S.scene = 'farm'; t.openSheet('sleep'); ok(/The relic shelf \(3\)/.test(body()), 'relic shelf button'); close();
-t.openSheet('relics'); h = body(); ok(/Pearl Bell/.test(h) && /An empty spot/.test(h) && /3 of 14/.test(h) && clean(h), 'relic shelf'); close();
+t.openSheet('relics'); h = body(); ok(/Pearl Bell/.test(h) && /An empty spot/.test(h) && /3 of 20/.test(h) && clean(h), 'relic shelf'); close();
 S.hollowMax = 5; S.hollow.relics = { lantern:true }; t.openSheet('relics'); h = body(); ok(!/Underriver/.test(h) && /Mossy Hollow/.test(h), 'shelf hides bands not reached'); close();
 // bottom
-S.hollowMax = 70; fresh(); S.hollow.wardens[70] = true; S.scene = 'wood'; t.enterHollow(70); close(); for (const m of t.HV.mobs.slice()) t.killMob(m); ok(!t.HV.stairs, 'floor 70 is the bottom');
+S.hollowMax = 70; fresh(); S.hollow.wardens[70] = true; S.scene = 'wood'; t.enterHollow(70); close(); for (const m of t.HV.mobs.slice()) t.killMob(m); ok(!!t.HV.stairs, 'floor 70 leads on since Part 3');
 // save round trip
 const back = t.migrate(JSON.parse(JSON.stringify(S))); ok(back.hollow.relics && back.up && back.inv.manadraught >= 0, 'save round trip');
 console.log(`hollow2test: ${pass} passed, ${bad} failed`);
