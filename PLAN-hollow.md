@@ -24,21 +24,80 @@ Ship it in 3 parts, deploying after each one. Her save must load at every step, 
 So Part 1 replaces these with **per-band numbers** that level off.
 
 ## The shape: ten bands of ten floors
-Each band has its own look (wall colours, crystals, light), 2 or 3 creatures, one new drop and one new potion recipe. Floor 10 of each band has a **Warden** (see below), and beating it opens a lift stop.
+Each band has its own look (wall colours, crystals, light), 3 creatures (see the roster below), one new drop and one new potion recipe. Floor 10 of each band has a **Warden** (see below), and beating it opens a lift stop.
 
-| Floors | Band | Creatures (idea) | New drop | Feel |
+| Floors | Band | Creatures | New drop | Feel |
 |---|---|---|---|---|
-| 1–10 | Mossy Hollow (today's) | slime, bat, beetle | jelly, wing, shell | as now |
-| 11–20 | Glowcap Grotto | puffcap, glowworm | spore | blue mushrooms, soft light |
-| 21–30 | Crystal Caves | shard crab, prism sprite | prism | glittering, the crystal floor |
-| 31–40 | Underriver | cave frog, eel | pearl | water and little bridges |
-| 41–50 | The Roots | thornling, sapwisp | heartwood | the roots of the bramble itself |
-| 51–60 | Ember Deep | salamander, cinder moth | ember glass | warm, glowing cracks |
-| 61–70 | Frozen Reach | frost hare, ice wisp | rime | snow underground |
-| 71–80 | Guild Ruins | lantern ghost, stone golem | old coin, relics | the old Guild's lost halls |
-| 81–90 | Starfall | star moth, comet slime | stardust | night sky in the rock |
-| 91–100 | Heart of the Bramble | the oldest creatures, all bands mixed | heartstone | the finale |
+| 1–10 | Mossy Hollow (today's) | Slime, Cave Bat, Stone Beetle | jelly, wing, shell | as now |
+| 11–20 | Glowcap Grotto | Puffcap, Glowworm, Spore Slime | spore | blue mushrooms, soft light |
+| 21–30 | Crystal Caves | Shard Crab, Prism Sprite, Geode Beetle | prism | glittering, the crystal floor |
+| 31–40 | Underriver | Cave Frog, River Eel, Pearl Snail | pearl | water and little bridges |
+| 41–50 | The Roots | Thornling, Sapwisp, Rootworm | heartwood | the roots of the bramble itself |
+| 51–60 | Ember Deep | Salamander, Cinder Moth, Magma Slime | ember glass | warm, glowing cracks |
+| 61–70 | Frozen Reach | Frost Hare, Ice Wisp, Snow Golem | rime | snow underground |
+| 71–80 | Guild Ruins | Lantern Ghost, Stone Golem, Mimic Chest | old coin, relics | the old Guild's lost halls |
+| 81–90 | Starfall | Star Moth, Comet Slime, Void Bat | stardust | night sky in the rock |
+| 91–100 | Heart of the Bramble | Heartwisp, Bramble Hound, Elder Slime, plus all bands mixed | heartstone | the finale |
 | 101+ | The Endless Below | bands repeat, a little tougher | stays rare | for after |
+
+### Creature roster: 30 kinds and 10 Wardens
+Today there are 3 (Slime, Cave Bat, Stone Beetle). The plan adds 27, three per band, so each band feels new. Earlier creatures still turn up deeper, mixed in, so floors get more varied as she goes down.
+
+| Band | Creature | Hits | Trait | Drop |
+|---|---|---|---|---|
+| Mossy Hollow | Slime | 1 | hops | jelly |
+| | Cave Bat | 2 | zigzags | bat wing |
+| | Stone Beetle | 3 | slow | shell |
+| Glowcap Grotto | Puffcap | 1 | sleepy | spore |
+| | Glowworm | 2 | hides (hit it while it glows) | spore |
+| | Spore Slime | 2 | splits into two Slimes | jelly |
+| Crystal Caves | Shard Crab | 2 | shielded | prism |
+| | Prism Sprite | 1 | blinks to a new spot | prism |
+| | Geode Beetle | 3 | slow, drops extra crystals | crystal |
+| Underriver | Cave Frog | 1 | leaps | pearl |
+| | River Eel | 2 | hides (hit it when it surfaces) | pearl |
+| | Pearl Snail | 3 | shy (runs off, rich drop) | pearl |
+| The Roots | Thornling | 2 | sleepy | heartwood |
+| | Sapwisp | 1 | shy | heartwood |
+| | Rootworm | 3 | burrows (hides) | heartwood |
+| Ember Deep | Salamander | 2 | dashes | ember glass |
+| | Cinder Moth | 1 | comes in threes | ember glass |
+| | Magma Slime | 3 | splits | ember glass |
+| Frozen Reach | Frost Hare | 1 | shy | rime |
+| | Ice Wisp | 2 | hides (fades in and out) | rime |
+| | Snow Golem | 3 | shielded | rime |
+| Guild Ruins | Lantern Ghost | 2 | hides (hit it while lit) | old coin |
+| | Stone Golem | 3 | slow, shielded | relic chance |
+| | Mimic Chest | 2 | sleepy (looks like treasure), drops coins | old coin |
+| Starfall | Star Moth | 1 | comes in threes | stardust |
+| | Comet Slime | 2 | splits | stardust |
+| | Void Bat | 3 | blinks | stardust |
+| Heart of the Bramble | Heartwisp | 1 | shy, rare drop | heartstone |
+| | Bramble Hound | 3 | dashes | heartstone |
+| | Elder Slime | 3 | splits | heartstone |
+
+Wardens (floor 10 of each band):
+
+| Floor | Warden |
+|---|---|
+| 10 | Old Mossback, a huge beetle |
+| 20 | The Great Puffball, which puffs out Puffcaps |
+| 30 | The Crystal Queen, a shielded crab |
+| 40 | Old Whiskers, a giant cave catfish that dives and surfaces |
+| 50 | The Briar Knot, roots that pop up around the room |
+| 60 | Emberback, a lava tortoise |
+| 70 | The Rime Owl, which fades in and out |
+| 80 | The Clockwork Steward of the Guild |
+| 90 | The Moon Moth, with a swarm of Star Moths |
+| 100 | The Heart of the Bramble. It is calmed, not killed: the cozy ending to the aunt's story. |
+
+After 100, the Endless Below picks bands at random, with a Warden rematch every 10 floors.
+
+**Keeping 27 new creatures buildable:**
+- **Shared body shapes.** Each creature is drawn from a few body shapes (blob, flyer, crawler, wisp, golem), with its own colours and one or two features (eyes, shell, cap, glow). They aren't 27 separate drawings.
+- **Traits are written once and reused:** hops, zigzags, slow, sleepy, hides, splits, shielded, shy, blinks, dashes, leaps, comes in threes.
+- **One trait per creature,** shown by how it looks or moves, plus a one-line tip the first time she meets it (for example, "Glowworms can only be hit while they glow").
+- **A bestiary in the Journal** fills in as she meets each creature. It gives her one more thing to complete, and it's where those tips live.
 
 ### Creatures stay tap-to-fire
 Every creature is still "tap it to throw a Firebolt". Deeper ones get **one** simple, readable trait each, never a combo, for example:
@@ -80,17 +139,17 @@ The design rule "1 to 3 hits" holds for ordinary creatures. Wardens are the only
 
 ### Part 1: the engine and floors 1–30
 - Band data (`BANDS`), per-band creature stats and counts, drawn per band. Replace the formulas that grow with the floor.
-- Glowcap Grotto and Crystal Caves, their creatures and traits, drops and recipes.
+- Glowcap Grotto and Crystal Caves: 6 new creatures, their traits, drops and recipes. The shared body shapes and the trait code, and the Journal bestiary.
 - Wardens at 10, 20 and 30. Lift stops every 5 floors, as a grid.
 - Floor 15's "bottom of the Hollow" text changes (it isn't the bottom any more); its 1,500 coins stay.
 - `hollowsim.js`: a headless bot that dives to floor 30 at different mana levels. It reports dives needed, faints, and coins per dive against the charter goals.
 
 ### Part 2: floors 31–70 and growing stronger
-- Underriver, The Roots, Ember Deep, Frozen Reach, and their Wardens.
+- Underriver, The Roots, Ember Deep, Frozen Reach: 12 new creatures, and their Wardens.
 - The mana growth from "Pace and the lift", the Hollow pouch, and the relic shelf.
 
 ### Part 3: floors 71–100, the finale, and beyond
-- Guild Ruins, Starfall, Heart of the Bramble.
+- Guild Ruins, Starfall, Heart of the Bramble: 9 new creatures, and their Wardens.
 - Floor 100: the last journal page and the end of the aunt's story, a big reward, and a scene.
 - The Endless Below (101+), with her record shown in the Journal.
 
