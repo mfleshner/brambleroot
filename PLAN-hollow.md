@@ -152,7 +152,15 @@ Shipped as planned, with these choices:
 - Floor 15's "bottom of the Hollow" text changes (it isn't the bottom any more); its 1,500 coins stay.
 - `hollowsim.js`: a headless bot that dives to floor 30 at different mana levels. It reports dives needed, faints, and coins per dive against the charter goals.
 
-### Part 2: floors 31–70 and growing stronger
+### Part 2: floors 31–70 and growing stronger — DONE Nov 9, 2026
+Shipped as planned, with these choices:
+- Mana Draught: 2 Slime Jelly + 1 Glowcap Spore, +15 mana, sells for 40 (less than its makings). Up to 3 a dive from the Pouch button, which takes the Board's place in the tray while she's in the Hollow.
+- Crystal Focus I–IV: +10 max mana each (45 → 85), 1,200 to 4,000 coins plus band materials.
+- Springs and cleared floors give back shares of her mana *without* Focus. With the full Focus share, a floor paid for itself and the bot's dives ran 30+ floors.
+- Relic shelf from the Sleep sheet: 14 relics so far (7 from Wardens, 7 rare). Old saves get relics for Wardens already beaten.
+- Letters at 25 (Juno) and 50 (Bertram, with 2 Mana Draughts); depth chat from Juno, Bertram and Aldous. Wardrobe pieces wait for Part 3.
+- `hollowsim.js` (perfect-aim bot, 20 runs): at a flat 45 mana, about 17 dives from a new Hollow to beating the Rime Owl, 5 to 10 floors per later dive, 1,300 to 2,100 coins per dive. Buying Focus as it goes: about 12 dives. Focus plus 3 draughts every dive: about 7 dives, 9 to 24 floors and 3,200 to 5,400 coins per later dive (before the cauldron nights the draughts cost).
+
 - Underriver, The Roots, Ember Deep, Frozen Reach: 12 new creatures, and their Wardens.
 - Mana potions and the Hollow pouch, Crystal Focus upgrades, and the relic shelf.
 

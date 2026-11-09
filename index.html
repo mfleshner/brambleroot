@@ -237,6 +237,7 @@ h4.nbh{font-size:17px}
   <button class="tb" id="bSeeds" type="button"><span class="sw" id="seedSw"></span><span class="lbl" id="seedLbl">Mint ×6</span></button>
   <button class="tb" id="bMarket" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="#f2b84b" stroke-width="1.8" stroke-linejoin="round"><path d="M5 9h14l-1.2 11H6.2z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/></svg><span class="lbl">Market</span></button>
   <button class="tb" id="bBoard" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="#f2e8dc" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="13" rx="1.5"/><path d="M8 17v4M16 17v4M8 9h8M8 12.5h5"/></svg><span class="lbl">Board</span><span class="badge" id="reqBadge" hidden>0</span></button>
+  <button class="tb" id="bPouch" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="#8fb8ff" stroke-width="1.8" stroke-linejoin="round"><path d="M10 3h4M10.5 3v5.2L6 17a3 3 0 0 0 2.7 4h6.6A3 3 0 0 0 18 17l-4.5-8.8V3"/><path d="M7.6 14h8.8"/></svg><span class="lbl" id="pouchLbl">Pouch</span><span class="badge" id="pouchBadge" hidden>0</span></button>
   <button class="tb" id="bPot" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="#8fcf6a" stroke-width="1.8" stroke-linejoin="round"><path d="M4 10h16c0 6-3.5 9-8 9s-8-3-8-9z"/><path d="M3 10h18M7 19l-1 2M17 19l1 2"/><circle cx="10" cy="6" r="1.2"/><circle cx="14" cy="4.5" r="1"/></svg><span class="lbl">Brew</span><span class="badge" id="potBadge" hidden>0</span></button>
   <button class="tb" id="bSpells" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="#c9b6ff" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 19l-5-3-5 3 1.4-6.2L4 9l5.8-.7z"/></svg><span class="lbl">Spells</span></button>
   <button class="tb" id="bJournal" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="#ef7a8c" stroke-width="1.8" stroke-linejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M10 7.5l1.5 1.5 3-3"/></svg><span class="lbl">Journal</span><span class="badge" id="mailBadge" hidden>0</span></button>
@@ -341,6 +342,7 @@ const NOGIFT = { bouquet:1, ring:1 }, BOUQUET_COST = 200, RING_NEED = { crystal:
 const itemName = id => ITEMS[id] ? ITEMS[id].name : id;
 const itemValue = id => ITEMS[id] ? ITEMS[id].sell : 0;
 const itemCol = id => ITEMS[id] ? ITEMS[id].col : '#888';
+const itemsTxt = items => Object.entries(items).map(([k, n]) => `${n} ${itemName(k)}${n > 1 && !(ITEMS[k] && ITEMS[k].noPl) ? 's' : ''}`).join(' and ');
 
 const UPGRADES = {
   can:   { name:'Copper watering can', desc:'Holds 40 waterings.', cost:180 },
@@ -895,6 +897,7 @@ function migrate(s) {
       if ((s.hollowMax || 0) > 10) { n.hollow.wardens[10] = true; n.hollow.pages[10] = true; }
       if (s.hollowMax) for (const k of ['slime', 'bat', 'beetle']) n.hollow.seen[k] = true;
     }
+    n.hollow.relics = Object.assign({}, n.hollow.relics || {}); for (const f in n.hollow.wardens) { const r = wardenRelic(f); if (r) n.hollow.relics[r] = true; }
     if (!s.charters) buildCharters(n, { debt:s.debt === undefined ? 2000 : n.debt, proj:s.proj, done:s.done });
     else n.charters = s.charters;
     n.debt = 0;
@@ -1849,6 +1852,12 @@ function celebrate(v, mood, line) {
   if (sc) { sheetOpen = 'scene'; renderSheet('scene', { v, lvl:sc.lvl, text:sc.text, gifts }); }
   else { sheetOpen = 'villager'; renderSheet('villager', { v, mood, line, gifts }); }
 }
+// What a few villagers say once she's gone past the Crystal Caves.
+const DEEP_TALK = {
+  juno:f => f >= 61 ? `Floor ${f}? There's SNOW down there? I'm coming with you. ...I'm not coming with you. Bring me a snowball.` : f >= 41 ? `Floor ${f}! Is it true there are roots down there as thick as a house? I knew it. I KNEW it.` : `Floor ${f}. You've beaten my record twice over. I'm not jealous. I'm a little jealous.`,
+  bertram:f => f >= 51 ? `Floor ${f}. The old keepers swore the valley was warm underneath. Seems they were right. Mind your eyebrows.` : `A river under the hills, floor ${f}. The old charts call it the Underriver. I thought it was a sailor's yarn.`,
+  aldous:f => `Floor ${f}! I've written to the Guild about it. Officially. Three pages. They haven't written back. I think they're embarrassed.`
+};
 function talkTo(v) {
   if (S.talked[v] === dayKey()) return;
   S.talked[v] = dayKey();
@@ -1857,6 +1866,8 @@ function talkTo(v) {
   let line = V.talk[tier][(Math.random() * V.talk[tier].length) | 0];
   if (v === 'aldous' && Math.random() < .5) { const st = Object.values(S.charters).filter(c => c.s === S.season && c.y === S.year).reduce((n, c) => n + c.stars.filter(x => x.done).length, 0);
     line = st >= 3 ? 'Three stars! Three! I have told the whole Guild. Twice. They asked me to stop writing.' : st > 0 ? `${st} star${st === 1 ? '' : 's'} on this season's charter already. The Guild will be pleased. I'm pleased. I've told everyone.` : "No stars on the charter yet this season, but there's time. There's always time. Within reason."; }
+  if (DEEP_TALK[v] && (S.hollowMax || 0) >= 31 && Math.random() < .35) { const deep = S.hollowMax;
+    line = DEEP_TALK[v](deep); }
   if (isPartner(v) && ROMANCE[v] && Math.random() < .7) { const pool = v === S.spouse ? ROMANCE[v].wed : ROMANCE[v].date; line = pool[(Math.random() * pool.length) | 0]; }
   if (isBday(v)) line = "It's my birthday today! " + line;
   blip(500, 650, .08, 'sine', .04);
@@ -2175,7 +2186,7 @@ const SPELL_HINT = {
   errand:'Hidden somewhere deep in the Old Wood.',
   kin:"Granny Hettie knows a secret about your aunt (a story, from 4 hearts)."
 };
-const manaMaxFor = () => 20 + 5 * S.spells.length;
+const manaMaxFor = () => 20 + 5 * S.spells.length + 10 * focusLevel();
 const ONCE = { hearth:1, rain:1, bounty:1, errand:1, whisper:1, kin:1 };
 const castToday = id => (S.castDay || {})[id] === dayKey();
 const markCast = id => { S.castDay = Object.assign({}, S.castDay, { [id]:dayKey() }); };
@@ -2351,6 +2362,11 @@ function sendLetter(id, from, title, text, gift) {
   const m = { id, from, title, text, gift:gift || null, read:false, day:`${SEASONS[S.season]} ${S.day}` };
   S.mail.unshift(m); if (S.mail.length > 40) S.mail.length = 40; return m;
 }
+// Letters about how deep she has gone (PLAN-hollow.md: floors 25 and 50 now, 75 and 100 in Part 3).
+const DEEP_LETTERS = {
+  25:`Word in the village is you've been down to floor twenty-five. TWENTY-FIVE. The deepest I ever got was fifteen, and I came up with a crab on my boot.\n\nIf you see a river down there, tell it I said hello. Then tell me everything.\n\nJuno`,
+  50:`Fifty floors. When I was a boy, the old keeper said the valley sits on a lantern, and if you dug far enough you'd find the flame. I always thought it was a story.\n\nI asked Theo to brew you something for the long climb back. Mind the stairs.\n\nBertram`
+};
 function mailMorning(lines) {
   const fresh = [], send = (...a) => { const m = sendLetter(...a); if (m) fresh.push(m); };
   const past = (s, d) => S.year > 1 || S.season > s || (S.season === s && S.day >= d);
@@ -2359,6 +2375,8 @@ function mailMorning(lines) {
   if (S.day >= FEST_DAY - 2 && S.day < FEST_DAY) send(`fest${festKey()}`, 'odile', `You're invited: ${FEST[S.season].name}`, FEST[S.season].invite);
   for (const v of VIDS) if (arrived(v)) { const b = VILLAGERS[v].bday; if (b[0] === S.season && b[1] === S.day + 1) send(`bd${v}y${S.year}`, v, 'Tomorrow is my birthday', BDAY_NOTES[v]); }
   for (const [v, L] of Object.entries(HEART_LETTERS)) if (arrived(v) && heartsOf(v) >= 4 && !S.sent[`h4${v}`]) send(`h4${v}`, v, L.title, L.text, L.gift());
+  if ((S.hollowMax || 0) >= 25 && arrived('juno')) send('deep25', 'juno', 'Floor twenty-five!', DEEP_LETTERS[25]);
+  if ((S.hollowMax || 0) >= 50 && arrived('bertram')) send('deep50', 'bertram', 'Fifty floors down', DEEP_LETTERS[50], { kind:'items', items:{ manadraught:2 } });
   for (const t of S.thanks || []) send(`thx${t.v}${t.k}`, t.v, 'Thank you', THANKS[t.v], { kind:'coins', n:t.n });
   S.thanks = [];
   if (lines) for (const m of fresh) lines.push({ t:`A letter from ${m.from === 'guild' ? "the Witches' Guild" : VILLAGERS[m.from].name}: "${m.title}". Tap the mailbox by the cottage to read it.`, c:'gift', v:m.from === 'guild' ? null : m.from });
@@ -2972,14 +2990,24 @@ const HOLLOW_DROPS = {
   shell:   { name:'Beetle Shell',    sell:35, col:'#5a7aaa' },
   crystal: { name:'Glowing Crystal', sell:90, col:'#9ff0ff' },
   spore:   { name:'Glowcap Spore',   sell:20, col:'#6fd0ff' },
-  prism:   { name:'Prism Shard',     sell:35, col:'#ff9ae8' }
+  prism:   { name:'Prism Shard',     sell:35, col:'#ff9ae8' },
+  pearl:   { name:'River Pearl',     sell:30, col:'#e8f0f8' },
+  heartwood:{ name:'Heartwood Chip', sell:30, col:'#a0683a' },
+  emberglass:{ name:'Ember Glass',   sell:35, col:'#ff7a3a', noPl:true },
+  rime:    { name:'Rime Shard',      sell:35, col:'#cfefff' }
 };
 const HOLLOW_POTIONS = {
   bounce:    { name:'Bounce Draught',  need:{ jelly:3 },   sell:110, col:'#7fe07a', wild:true },
   nightwing: { name:'Nightwing Tonic', need:{ batwing:2 }, sell:120, col:'#9a7ac0', wild:true },
   ironshell: { name:'Ironshell Salve', need:{ shell:2 },   sell:150, col:'#5a7aaa', wild:true },
   sporebrew: { name:'Glowcap Brew',    need:{ spore:3 },   sell:140, col:'#6fd0ff', wild:true },
-  prismel:   { name:'Prism Elixir',    need:{ prism:2 },   sell:170, col:'#ff9ae8', wild:true }
+  prismel:   { name:'Prism Elixir',    need:{ prism:2 },   sell:170, col:'#ff9ae8', wild:true },
+  pearlbalm: { name:'Pearl Balm',      need:{ pearl:2 },   sell:160, col:'#e8f0f8', wild:true },
+  roottonic: { name:'Rootwood Tonic',  need:{ heartwood:2 }, sell:160, col:'#a0683a', wild:true },
+  embercord: { name:'Ember Cordial',   need:{ emberglass:2 }, sell:175, col:'#ff7a3a', wild:true },
+  rimetea:   { name:'Rime Tea',        need:{ rime:2 },    sell:175, col:'#cfefff', wild:true },
+  // Drunk in the Hollow from the pouch (+MANA_DRAUGHT mana, up to POUCH_MAX a dive). Sells for less than its makings.
+  manadraught:{ name:'Mana Draught',   need:{ jelly:2, spore:1 }, sell:40, col:'#8fb8ff', wild:true }
 };
 Object.assign(POTIONS, HOLLOW_POTIONS); Object.assign(ITEMS, HOLLOW_DROPS, HOLLOW_POTIONS);
 Object.assign(SPELLS, {
@@ -2990,9 +3018,12 @@ SPELL_HINT.firebolt = 'Somewhere beneath the Old Wood.'; SPELL_HINT.frost = 'Dee
 UPGRADES.can3 = { name:'Gold watering can', desc:'Holds 120 waterings.', cost:800, needs:'can2', items:{ crystal:3 }, hollow:true };
 VILLAGERS.fen.likes.push('shell', 'ironshell'); VILLAGERS.pip.likes.push('jelly', 'bounce'); VILLAGERS.odile.likes.push('crystal');
 VILLAGERS.theo.likes.push('spore', 'sporebrew'); VILLAGERS.zara.likes.push('prism', 'prismel'); VILLAGERS.juno.likes.push('prismel');
+VILLAGERS.juno.likes.push('pearl', 'pearlbalm'); VILLAGERS.hettie.likes.push('heartwood', 'roottonic'); VILLAGERS.rowan.likes.push('emberglass', 'embercord'); VILLAGERS.bertram.likes.push('rime', 'rimetea');
 // Every creature is still "tap to throw a Firebolt". Each has one body shape (drawn by drawMob) and at most one trait:
 // hops, zigzags, slow, sleepy (dozes until she's close or it's hit), hides (only hittable while it glows),
 // splits (two Slimes pop out), shielded (the first bolt knocks off a shell), blinks (jumps to a new spot).
+// Part 2 adds: leaps (still, then a big jump), shy (runs away, never touches her, drops double), dashes (quick bursts),
+// threes (always comes as a trio). "hides" creatures (glowworm, eel, rootworm, ice wisp) have their own hideMsg.
 // Wardens (warden:true) are big, slow and glow just before they lunge (or puff, for the Puffball).
 const MOBS = {
   slime:     { name:'Slime',        hp:1, speed:.7,  col:'#7fe07a', drop:'jelly',   p:1,   body:'blob',    trait:'hops',     tip:'Slimes hop towards you. One Firebolt does it.' },
@@ -3006,7 +3037,28 @@ const MOBS = {
   geode:     { name:'Geode Beetle', hp:3, speed:.4,  col:'#9a88b4', drop:'crystal', p:1,   body:'crawler', trait:'slow',     gems:true, tip:'Geode Beetles are slow, and always carry a crystal. Three Firebolts.' },
   mossback:  { name:'Old Mossback', hp:12, speed:.4, col:'#5f7f4a', drop:'crystal', p:1,   body:'crawler', trait:'lunges',   moss:true, size:2.2, warden:true },
   puffball:  { name:'The Great Puffball', hp:15, speed:.12, col:'#4f7fe8', drop:'spore', p:1, body:'cap', trait:'puffs',      size:2.4, warden:true },
-  queen:     { name:'The Crystal Queen',  hp:18, speed:.38, col:'#e08ad0', drop:'prism', p:1, body:'crab', trait:'lunges',     reshell:true, size:2.3, warden:true }
+  queen:     { name:'The Crystal Queen',  hp:18, speed:.38, col:'#e08ad0', drop:'prism', p:1, body:'crab', trait:'lunges',     reshell:true, size:2.3, warden:true },
+  // Underriver (31-40)
+  frog:      { name:'Cave Frog',    hp:1, speed:.8,  col:'#5fbf8a', drop:'pearl',   p:.35, body:'frog',    trait:'leaps',    tip:'Cave Frogs sit still, then leap. One Firebolt.' },
+  eel:       { name:'River Eel',    hp:2, speed:.6,  col:'#4a8aa8', drop:'pearl',   p:.45, body:'worm',    trait:'hides',    fin:true, hideMsg:'is under the water. Wait for it to surface, then tap.', tip:'River Eels dive under the water. Hit them when they surface.' },
+  snail:     { name:'Pearl Snail',  hp:3, speed:.45, col:'#d8c8e8', drop:'pearl',   p:1,   body:'snail',   trait:'shy',      rich:true, tip:'Pearl Snails are shy: they run from you and never bite. Catch one for two pearls.' },
+  // The Roots (41-50)
+  thornling: { name:'Thornling',    hp:2, speed:.7,  col:'#8aa04a', drop:'heartwood', p:.55, body:'thorn', trait:'sleepy',   tip:'Thornlings doze among the roots until you come close. Two Firebolts.' },
+  sapwisp:   { name:'Sapwisp',      hp:1, speed:.85, col:'#e8d070', drop:'heartwood', p:1,  body:'wisp',  trait:'shy',      rich:true, tip:'Sapwisps are shy and never touch you. Catch one for two Heartwood Chips.' },
+  rootworm:  { name:'Rootworm',     hp:3, speed:.5,  col:'#a0683a', drop:'heartwood', p:.5, body:'worm',  trait:'hides',    hideMsg:'has burrowed into the soil. Wait for it to pop up, then tap.', tip:'Rootworms burrow. Hit them when they pop up. Three Firebolts.' },
+  // Ember Deep (51-60)
+  salamander:{ name:'Salamander',   hp:2, speed:.55, col:'#ff6a3a', drop:'emberglass', p:.55, body:'worm', trait:'dashes',   spots:true, tip:'Salamanders stop, then dash. Two Firebolts.' },
+  cindermoth:{ name:'Cinder Moth',  hp:1, speed:.75, col:'#ffb04a', drop:'emberglass', p:.35, body:'flyer', trait:'threes', tip:'Cinder Moths always come in threes. One Firebolt each.' },
+  magmaslime:{ name:'Magma Slime',  hp:3, speed:.5,  col:'#e8502a', drop:'emberglass', p:.7,  body:'blob', trait:'splits',   spots:true, tip:'Magma Slimes split into two little Slimes. Three Firebolts, then two more.' },
+  // Frozen Reach (61-70)
+  hare:      { name:'Frost Hare',   hp:1, speed:.95, col:'#e8f4ff', drop:'rime',    p:1,   body:'hare',    trait:'shy',      rich:true, tip:'Frost Hares are shy and never touch you. Catch one for two Rime Shards.' },
+  icewisp:   { name:'Ice Wisp',     hp:2, speed:.7,  col:'#a8e6ff', drop:'rime',    p:.55, body:'wisp',    trait:'hides',    hideMsg:'has faded into the frost. Wait for it to shine, then tap.', tip:'Ice Wisps fade in and out. Hit them while they shine.' },
+  golem:     { name:'Snow Golem',   hp:3, speed:.4,  col:'#dfe8f0', drop:'rime',    p:.75, body:'golem',   trait:'shielded', tip:'Snow Golems wear a coat of ice. Your first Firebolt knocks it off, then three more.' },
+  // Wardens 40-70
+  whiskers:  { name:'Old Whiskers', hp:18, speed:.4, col:'#5a7a8a', drop:'pearl', p:1, body:'fish', trait:'lunges', dives:true, size:2.3, warden:true },
+  briar:     { name:'The Briar Knot', hp:20, speed:.08, col:'#6a8a3a', drop:'heartwood', p:1, body:'thorn', trait:'sprouts', size:2.5, warden:true },
+  emberback: { name:'Emberback',    hp:20, speed:.32, col:'#7a4a3a', drop:'emberglass', p:1, body:'crawler', trait:'lunges', reshell:true, lava:true, size:2.4, warden:true },
+  owl:       { name:'The Rime Owl', hp:20, speed:.3, col:'#cfe8ff', drop:'rime', p:1, body:'flyer', trait:'blinks', dives:true, owl:true, size:2.3, warden:true }
 };
 // Ten floors per band. Part 1 of PLAN-hollow.md ships three bands (floors 1-30).
 const BANDS = [
@@ -3015,7 +3067,15 @@ const BANDS = [
   { name:'Glowcap Grotto', mix:{ puffcap:1, glowworm:.7, sporeslime:.6, bat:.25, slime:.2 }, friends:['glowworm'],
     look:{ bg:'#07111a', rock:['#0f1f2b', '#142834'], tile:['#1a2932', '#1d2e38'], speck:['#294150', '#13202a'], crys:['#6fd0ff', '#9dff7a'], stone:['#23384a', '#2e4659'], dark:'3,8,14', shrooms:true } },
   { name:'Crystal Caves', mix:{ shardcrab:1, sprite:.8, geode:.5, glowworm:.25, beetle:.2 }, friends:['sprite', 'sprite'],
-    look:{ bg:'#110a1b', rock:['#1f132d', '#291a39'], tile:['#2a1f39', '#2f2442'], speck:['#4a3466', '#20152d'], crys:['#ff9ae8', '#9ff0ff', '#c8a8ff'], stone:['#3a2a50', '#4a3864'], dark:'10,4,18', manyCrys:true } }
+    look:{ bg:'#110a1b', rock:['#1f132d', '#291a39'], tile:['#2a1f39', '#2f2442'], speck:['#4a3466', '#20152d'], crys:['#ff9ae8', '#9ff0ff', '#c8a8ff'], stone:['#3a2a50', '#4a3864'], dark:'10,4,18', manyCrys:true } },
+  { name:'Underriver', mix:{ frog:.8, eel:.8, snail:.25, shardcrab:.2, sprite:.15 }, friends:['frog', 'frog'],
+    look:{ bg:'#051219', rock:['#0c2028', '#102832'], tile:['#16303a', '#193540'], speck:['#2a4a58', '#0f2229'], crys:['#8fe8ff', '#e8f0f8'], stone:['#264452', '#30525f'], dark:'2,10,16', water:true } },
+  { name:'The Roots', mix:{ thornling:1, rootworm:.7, sapwisp:.25, puffcap:.2, frog:.15 }, friends:['sapwisp'],
+    look:{ bg:'#120e08', rock:['#211a10', '#2a2114'], tile:['#2e2618', '#33291b'], speck:['#4a3a22', '#1c160d'], crys:['#9dd06a', '#e8d070'], stone:['#3e3220', '#4b3d28'], dark:'10,7,3', roots:true } },
+  { name:'Ember Deep', mix:{ salamander:1, magmaslime:.6, cindermoth:.5, rootworm:.15 }, friends:['salamander'],
+    look:{ bg:'#160806', rock:['#2a0f0a', '#34140d'], tile:['#33181a', '#381c1c'], speck:['#5a2418', '#1e0c08'], crys:['#ff8a4a', '#ffd04a'], stone:['#4a2018', '#5a2a1e'], dark:'16,4,2', cracks:true } },
+  { name:'Frozen Reach', mix:{ icewisp:.8, golem:.7, hare:.5, sprite:.2, salamander:.1 }, friends:['icewisp', 'hare'],
+    look:{ bg:'#0c1420', rock:['#1a2638', '#203046'], tile:['#2a3a50', '#2e4058'], speck:['#d8e8f8', '#1c2a3c'], crys:['#cfefff', '#ffffff', '#a8c8ff'], stone:['#4a5a70', '#5a6c84'], dark:'6,10,18', snow:true } }
 ];
 const WARDENS = {
   10:{ k:'mossback', coins:300, items:{ crystal:3 },
@@ -3026,19 +3086,63 @@ const WARDENS = {
     page:'The grotto is all light and spores. I sneezed for a week. Under the big puffball there is a draught of warm air from below, warm in the middle of winter, as if something down there were breathing. I have told no one. Fen would only worry. B.' },
   30:{ k:'queen', coins:1000, items:{ starshard:2 },
     beat:'The Crystal Queen folds her claws, rings once like a struck glass, and sidles back to her crack in the floor. She is guarding it, not you.',
-    page:'The crystal caves sing when you walk through them. The Queen guards a crack in the floor, and far below it I could see a river, glowing. I could not get through. Not yet. I think the bramble\'s roots go all the way down. I think that is what I am looking for. B.' }
+    page:'The crystal caves sing when you walk through them. The Queen guards a crack in the floor, and far below it I could see a river, glowing. I could not get through. Not yet. I think the bramble\'s roots go all the way down. I think that is what I am looking for. B.' },
+  40:{ k:'whiskers', coins:1200, items:{ pearl:3, starshard:1 }, note:'It dives under the water now and then, so wait for it to surface. It glows before it lunges.',
+    beat:'Old Whiskers rolls over with a tremendous splash and floats on his back, whiskers waving. He seems to want his belly scratched. You scratch it.',
+    page:'The Underriver. A catfish the size of Fen\'s ferry lives under the old bridge, and all he wanted was the crusts off my sandwich. The river runs warm. It comes from below, from the roots. And down here I hear something, slow and steady, like a heartbeat. B.' },
+  50:{ k:'briar', coins:1400, items:{ heartwood:3, starshard:1 }, note:'It sprouts little Thornlings around the room. It barely moves, so take your time.',
+    beat:'The Briar Knot shivers, then loosens, root by root, until a little path opens through the middle. It hums as you pass.',
+    page:'These are the bramble\'s roots. I\'m sure of it now: the same thorns as the hedge by my gate, only thick as a house. The Knot was only frightened. I sang to it, badly, and it let me through. The heartbeat is louder here. B.' },
+  60:{ k:'emberback', coins:1600, items:{ emberglass:3, starshard:2 }, note:'Its glowing shell regrows, and it glows before it lunges, so step aside.',
+    beat:'Emberback lowers his great glowing shell with a sigh like a kettle, and goes back to sleep on his warm stone.',
+    page:'Ember Deep, warm as a bread oven. The old tortoise sleeps on the hottest stone and grumbles if you move him. I found Guild marks scratched in the rock here. They came this far, once, and turned back. Cowards, or wise. Probably both. B.' },
+  70:{ k:'owl', coins:1800, items:{ rime:3, starshard:2 }, note:'She fades into the frost and blinks from perch to perch. Hit her while she shines.',
+    beat:'The Rime Owl settles on a ledge of ice, blinks her huge pale eyes at you once, and tucks her head under her wing.',
+    page:'Snow, underground, and an owl made of frost who watches everything. Past her roost the passage is paved with old Guild stone: their lost halls. The heartbeat comes from beyond them. I am going on. Don\'t worry about me, whoever reads this. I took a good scarf. B.' }
 };
-const HOLLOW_BOTTOM = 30, MANA_PER_KILL = 1, SPRING_FRAC = .1, LIFT_SPRING = .25, SPRING_TILE = [1, 11];
+// Relics for the shelf in the cottage: one from each Warden, and one rare find per band. Not items: they can't be sold.
+const RELICS = {
+  lantern:  { name:"Bramble's Moss Lantern", band:0, warden:10, col:'#7fbf5a', desc:'It was under Old Mossback. It still smells of the garden.' },
+  fossil:   { name:'Snail Fossil', band:0, col:'#c9b28a', desc:'A spiral snail in stone, older than the valley.' },
+  jar:      { name:'Glowcap in a Jar', band:1, warden:20, col:'#6fd0ff', desc:'A Puffball pup. It glows when you hum to it.' },
+  globe:    { name:'Spore Globe', band:1, col:'#9dff7a', desc:'Shake it and the spores swirl like snow.' },
+  crown:    { name:"The Queen's Old Crown", band:2, warden:30, col:'#ff9ae8', desc:'She grows a new one every year. This was last year\'s.' },
+  singing:  { name:'Singing Shard', band:2, col:'#c8a8ff', desc:'It hums one clear note whenever the room goes quiet.' },
+  bell:     { name:'Pearl Bell', band:3, warden:40, col:'#e8f0f8', desc:"From Old Whiskers' riverbed. It rings like rain." },
+  bottle:   { name:'Message in a Bottle', band:3, col:'#8fd0c8', desc:'"If found, return to B., Bramble Cottage. Or keep it. B."' },
+  seedpod:  { name:'Bramble Seedpod', band:4, warden:50, col:'#a0683a', desc:'The Briar Knot let it fall as you passed. It\'s warm.' },
+  trowel:   { name:"Bramble's Old Trowel", band:4, col:'#a0a8b0', desc:'Her initials are on the handle. She lost it down here.' },
+  egg:      { name:'Ember Egg', band:5, warden:60, col:'#ff8a4a', desc:'A smooth stone that stays warm all night.' },
+  rose:     { name:'Cinder Rose', band:5, col:'#ff5a3a', desc:'A rose of black glass with a glowing heart.' },
+  feather:  { name:'Rime Owl Feather', band:6, warden:70, col:'#cfefff', desc:'Frost never melts off it.' },
+  snowflake:{ name:'Everlasting Snowflake', band:6, col:'#f4f8ff', desc:'Six perfect points, cold to the touch, forever.' }
+};
+const RELIC_P = .006;
+const wardenRelic = f => Object.keys(RELICS).find(k => RELICS[k].warden === +f);
+const rareRelic = bi => Object.keys(RELICS).find(k => RELICS[k].band === bi && !RELICS[k].warden);
+// Crystal Focus: +10 max mana each, four steps, paid in coins and band materials.
+const FOCUS = ['focus1', 'focus2', 'focus3', 'focus4'], focusLevel = () => FOCUS.filter(k => S.up && S.up[k]).length;
+Object.assign(UPGRADES, {
+  focus1:{ name:'Crystal Focus I', desc:'+10 max mana, for longer dives.', cost:1200, items:{ crystal:3, prism:3 }, hollow:true },
+  focus2:{ name:'Crystal Focus II', desc:'+10 more max mana.', cost:2000, items:{ pearl:4, crystal:2 }, needs:'focus1', hollow:true },
+  focus3:{ name:'Crystal Focus III', desc:'+10 more max mana.', cost:3000, items:{ heartwood:4, emberglass:3 }, needs:'focus2', hollow:true },
+  focus4:{ name:'Crystal Focus IV', desc:'+10 more max mana.', cost:4000, items:{ rime:4, crystal:3 }, needs:'focus3', hollow:true }
+});
+const MANA_DRAUGHT = 15, POUCH_MAX = 3;
+// Springs and cleared floors give back a share of her mana without Crystal Focus, so Focus adds mana to spend
+// but never makes a floor pay for itself (at 85 mana the old shares made dives run 30+ floors).
+const refundBase = () => Math.min(S.manaMax, 20 + 5 * S.spells.length);
+const HOLLOW_BOTTOM = 70, MANA_PER_KILL = 1, SPRING_FRAC = .1, LIFT_SPRING = .25, SPRING_TILE = [1, 11];
 const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
 const bandIdx = f => Math.min(BANDS.length - 1, Math.floor((f - 1) / 10));
-function hollowState() { return { wardens:{}, wh:{}, tries:{}, met:{}, seen:{}, pages:{} }; }
+function hollowState() { return { wardens:{}, wh:{}, tries:{}, met:{}, seen:{}, pages:{}, relics:{} }; }
 const HS = () => S.hollow || (S.hollow = hollowState());
 // The numbers that used to grow with the floor now level off.
 const touchDmg = f => 6 + Math.min(f, 12) + Math.floor(f / 10);
 const speedMul = f => (1 + .03 * Math.min(f, 12)) * (1 + .02 * bandIdx(f));
 const crystalChance = f => .06 + .01 * Math.min(f, 10);
 const coinFind = f => 10 * Math.min(f, 15) + 2 * Math.max(0, f - 15);
-const mobLit = m => MOBS[m.k].trait !== 'hides' || (m.ph % 3.2) < 1.8;
+const mobLit = m => { const M = MOBS[m.k]; if (M.trait === 'hides') return (m.ph % 3.2) < 1.8; if (M.dives) return (m.ph % 6) < 4.2; return true; };
 const effHp = m => m.hp + (m.shield ? 1 : 0);
 let HV = null;
 function addMob(k, x, y, extra) {
@@ -3047,7 +3151,7 @@ function addMob(k, x, y, extra) {
   if (M.trait === 'shielded' || M.reshell) m.shield = true;
   if (M.trait === 'blinks') m.bt = 1.5 + Math.random() * 2;
   if (M.trait === 'lunges') { m.st = 'walk'; m.stt = 2.5 + Math.random(); }
-  if (M.trait === 'puffs') m.pt = 3;
+  if (M.trait === 'puffs' || M.trait === 'sprouts') m.pt = 3;
   HV.mobs.push(m); return m;
 }
 function pickMob(f) {
@@ -3068,10 +3172,12 @@ function hollowFloor(f) {
     H.tries[f] = tries + 1;
     HV.warden = addMob(wd.k, 3.6, 2.5, { hp });
     for (const k of BANDS[bi].friends) addMob(k, 1 + Math.random() * 7, 4 + Math.random() * 3);
-    notes.push(hp < M.hp ? `${M.name} is here, and still tired from your last visit.` : `A Warden guards floor ${f}: ${M.name}. ${M.trait === 'puffs' ? 'It puffs out little Puffcaps.' : 'It glows just before it lunges, so step aside.'}`);
+    notes.push(hp < M.hp ? `${M.name} is here, and still tired from your last visit.` : `A Warden guards floor ${f}: ${M.name}. ${wd.note || (M.trait === 'puffs' ? 'It puffs out little Puffcaps.' : 'It glows just before it lunges, so step aside.')}`);
   } else {
     const n = bi === 0 ? Math.min(8, 2 + Math.ceil(f / 2)) : 3 + Math.floor(((f - 1) % 10) / 2.5); // a new band starts gently: 3 creatures, up to 6
-    for (let i = 0; i < n; i++) addMob(pickMob(f), Math.random() * 8, Math.random() * 7);
+    for (let i = 0; i < n; i++) { const k = pickMob(f), x = Math.random() * 7 + .5, y = Math.random() * 6.5;
+      if (MOBS[k].trait === 'threes') for (let j = 0; j < 3; j++) addMob(k, clampN(x + (j - 1) * .8, 0, 8), clampN(y + (j % 2) * .6, 0, 8)); // a trio counts as one pick
+      else addMob(k, x, y); }
   }
   // One new creature's tip per floor, so the note stays short; any others get theirs on a later floor.
   const fresh = HV.mobs.find(m => !MOBS[m.k].warden && !H.seen[m.k]);
@@ -3087,12 +3193,17 @@ function hollowMilestone(f) {
   if (f === 11) openSheet('gift', ['The stair opens into a cave full of soft blue light: the Glowcap Grotto. Mushrooms glow along the walls, and new creatures stir among them.', 'Every fifth floor has a little spring of magic by the ladder. Tap it to get back a quarter of your mana, once a dive. The rope lift stops at every fifth floor you reach, too.']);
   if (f === 15) { earn(1500); openSheet('gift', ['Deep in the Glowcap Grotto, in a niche of crystal, sits a purse of old Guild coins: 1,500 of them.']); }
   if (f === 21) openSheet('gift', ['The walls begin to sparkle, then to sing. This is the Crystal Caves, where everything glitters and some of it walks.']);
+  if (f === 31) openSheet('gift', ['Below the Queen\'s crack, the stair comes out beside a warm, glowing river, with little bridges of old planks. This is the Underriver.', 'You can brew Mana Draughts now, from 2 Slime Jelly and 1 Glowcap Spore (+15 mana each). Carry up to three a dive and tap the Pouch to drink one.']);
+  if (f === 41) openSheet('gift', ['The river sinks into the earth, and the walls turn to roots, thick as tree trunks and covered in thorns. The Roots. These are the bramble\'s own.']);
+  if (f === 51) openSheet('gift', ['The air turns warm, then hot. Cracks in the floor glow like a hearth. This is Ember Deep.']);
+  if (f === 61) openSheet('gift', ['Your breath steams. Snow lies on the cave floor, deep underground, and the walls are furred with frost: the Frozen Reach.']);
 }
 function wardenBeaten(f) {
-  const W = WARDENS[f], H = HS(); H.wardens[f] = true; H.pages[f] = true; delete H.wh[f];
+  const W = WARDENS[f], H = HS(), rel = wardenRelic(f), newRel = rel && !(H.relics = H.relics || {})[rel]; H.wardens[f] = true; H.pages[f] = true; delete H.wh[f];
   earn(W.coins); for (const [k, n] of Object.entries(W.items)) S.inv[k] = (S.inv[k] || 0) + n;
+  if (rel) H.relics[rel] = true;
   SND.gift(); HV.bolts = [];
-  openSheet('gift', [W.beat, `You found ${fmt(W.coins)} coins and ${Object.entries(W.items).map(([k, n]) => `${n} ${itemName(k)}${n > 1 ? 's' : ''}`).join(' and ')}.`, `Tucked under where it lay, a page of Aunt Bramble's journal: "${W.page}"`, 'You can read it again at the rope lift.']);
+  openSheet('gift', [W.beat, `You found ${fmt(W.coins)} coins and ${itemsTxt(W.items)}.`].concat(newRel ? [`And something for your shelf at home: ${RELICS[rel].name}. ${RELICS[rel].desc}`] : [], [`Tucked under where it lay, a page of Aunt Bramble's journal: "${W.page}"`, 'You can read it again at the rope lift.']));
 }
 function caveVisit() {
   if (!S.spells.includes('firebolt')) {
@@ -3109,13 +3220,23 @@ function caveVisit() {
 }
 // The rope lift stops at floor 1, every fifth floor she has reached, and her deepest floor.
 function liftStops() { const deep = Math.min(S.hollowMax || 1, HOLLOW_BOTTOM), s = [1]; for (let f = 5; f <= deep; f += 5) s.push(f); if (!s.includes(deep)) s.push(deep); return s; }
-function enterHollow(f) { S.scene = 'hollow'; HV = null; hollowFloor(f); if (S.mana < 2) toast("You're out of mana. Firebolt needs 2. Rest a night or visit the shrine first."); }
+function enterHollow(f) { S.scene = 'hollow'; HV = null; hollowFloor(f); updateHUD(); if (S.mana < 2) toast("You're out of mana. Firebolt needs 2. Rest a night or visit the shrine first."); }
+// The Hollow pouch: drink a Mana Draught from her basket, up to POUCH_MAX a dive.
+const pouchLeft = () => HV ? Math.max(0, Math.min(S.inv.manadraught || 0, POUCH_MAX - (HV.dive.drunk || 0))) : 0;
+function drinkDraught() {
+  if (!HV) return false;
+  if (!(S.inv.manadraught > 0)) { toast(potionKnown('manadraught') ? 'No Mana Draughts in your basket. Brew them at the cauldron from 2 Slime Jelly and 1 Glowcap Spore.' : 'Your pouch is empty. Beat a few Slimes and Puffcaps, and you\'ll learn to brew Mana Draughts.'); return false; }
+  if ((HV.dive.drunk || 0) >= POUCH_MAX) { toast(`Your pouch only holds ${POUCH_MAX} draughts a dive. Head home to refill it.`); return false; }
+  if (S.mana >= S.manaMax) { toast('Your mana is already full.'); return false; }
+  S.inv.manadraught--; HV.dive.drunk = (HV.dive.drunk || 0) + 1; const back = Math.min(MANA_DRAUGHT, S.manaMax - S.mana); S.mana += back;
+  floatText(witch.x, witch.y - 1, `+${back} mana`, '#8fb8ff'); blip(600, 1200, .25, 'sine', .05); updateHUD(); return true;
+}
 function leaveHollow() { S.scene = 'wood'; HV = null; witch.x = 6; witch.y = 1; cat.x = 6.4; cat.y = 1.5; cat.trail = []; queue = []; }
 function faint() { S.fainted = true; HV = null; endDay(true); }
 function giveDrop(id, x, y) { S.inv[id] = (S.inv[id] || 0) + 1; S.found[id] = (S.found[id] || 0) + 1; floatText(x, y, `+1 ${itemName(id)}`, itemCol(id)); }
 function useSpring() {
   if (!HV || !HV.spring) return;
-  const back = Math.min(S.manaMax - S.mana, Math.round(S.manaMax * LIFT_SPRING));
+  const back = Math.min(S.manaMax - S.mana, Math.round(refundBase() * LIFT_SPRING));
   S.mana += back; HV.dive.springs[HV.floor] = true; HV.spring = null;
   burst(SPRING_TILE[0], SPRING_TILE[1], '#8fb8ff', 14, 60); blip(500, 1100, .3, 'sine', .05);
   floatText(witch.x, witch.y - 1, back > 0 ? `+${back} mana` : 'Mana already full', '#8fb8ff'); updateHUD();
@@ -3127,6 +3248,8 @@ function killMob(m) {
   // Little slimes from a split (and the Puffball's puffcaps) give mana, but no drops, crystals or coins.
   const loot = !m.small;
   if (loot && Math.random() < M.p) giveDrop(M.drop, m.x, m.y);
+  if (loot && M.rich) giveDrop(M.drop, m.x + .3, m.y - .6);
+  if (loot && !M.warden) { const rr = rareRelic(HV.band); if (rr && !H.relics[rr] && Math.random() < RELIC_P) { H.relics[rr] = true; SND.gift(); floatText(m.x, m.y - 1.4, 'A relic!', '#f2b84b'); toast(`Something rare glints where the ${M.name} was: ${RELICS[rr].name}. It goes on your shelf at home.`, 5000); } }
   if (m.k === 'geode' && Math.random() < .5) giveDrop('prism', m.x + .3, m.y - .6);
   if (M.trait === 'splits') for (const s of [-1, 1]) addMob('slime', clampN(m.x + s * .7, 0, 8), clampN(m.y + .2, 0, 11), { kb:.3, small:true });
   if (S.mana < S.manaMax) { S.mana = Math.min(S.manaMax, S.mana + MANA_PER_KILL); floatText(m.x + .3, m.y - 1.1, `+${MANA_PER_KILL} mana`, '#8fb8ff'); }
@@ -3134,10 +3257,10 @@ function killMob(m) {
   if (loot && Math.random() < .07) { const n = coinFind(f) + Math.round(Math.random() * 30); earn(n); floatText(m.x, m.y - .8, `+${n} coins`, '#f2b84b'); }
   if (M.warden) { HV.warden = null; wardenBeaten(f); }
   if (!HV.mobs.length) {
-    if (f >= HOLLOW_BOTTOM) { toast("Floor clear. Below the Queen's crack a river glows, far down, but the way is choked with crystal. Not yet. The ladder leads home.", 6000); return; }
+    if (f >= HOLLOW_BOTTOM) { toast("Floor clear. Past the owl's roost, a stair of old Guild stone leads down into the dark, sealed with frost. Not yet. The ladder leads home.", 6000); return; }
     const free = []; for (let r = 1; r <= 8; r++) for (let c = 0; c < COLS; c++) if (Math.hypot(c - witch.x, r - witch.y) > 2) free.push([c, r]);
     HV.stairs = free[(Math.random() * free.length) | 0] || [4, 2];
-    const back = Math.min(S.manaMax - S.mana, Math.round(S.manaMax * SPRING_FRAC)); S.mana += back;
+    const back = Math.min(S.manaMax - S.mana, Math.round(refundBase() * SPRING_FRAC)); S.mana += back;
     if (back > 0) floatText(witch.x, witch.y - 1, `+${back} mana`, '#8fb8ff');
     if (!sheetOpen) toast(`Floor clear! A little spring of magic bubbles up${back > 0 ? ` (+${back} mana)` : ''}. Stairs lead down, or take the ladder home.`);
   }
@@ -3146,7 +3269,7 @@ function killMob(m) {
 function hitMob(m, n) {
   if (!HV || !HV.mobs.includes(m)) return;
   const M = MOBS[m.k]; m.hit = .18; m.kb = M.warden ? .08 : .25; m.asleep = false;
-  if (m.shield) { m.shield = false; m.rs = 8; burst(m.x, m.y - .5, '#ffd0f4', 10, 50); blip(1400, 900, .08, 'square', .03); floatText(m.x, m.y - 1, 'Shell cracked!', '#ffd0f4'); return; }
+  if (m.shield) { m.shield = false; m.rs = 8; burst(m.x, m.y - .5, '#ffd0f4', 10, 50); blip(1400, 900, .08, 'square', .03); floatText(m.x, m.y - 1, M.body === 'golem' ? 'Ice cracked!' : 'Shell cracked!', '#ffd0f4'); return; }
   m.hp -= n;
   if (M.warden) HS().wh[HV.floor] = { hp:Math.max(0, m.hp), day:dayKey() };
   if (m.hp <= 0) killMob(m);
@@ -3169,7 +3292,7 @@ function hollowTap(px, py) {
   let best = null, bd = 9;
   for (const m of HV.mobs) { const sc = MOBS[m.k].size || 1, d = Math.hypot(m.x - gx, m.y - .2 * sc - gy) / (sc > 1 ? sc * .75 : 1); if (d < .95 && d < bd) { bd = d; best = m; } }
   if (best) {
-    if (!mobLit(best)) { if (!HV.hideTip) { HV.hideTip = true; toast(`The ${MOBS[best.k].name} is hiding in the dark. Wait for it to glow, then tap.`); } return; }
+    if (!mobLit(best)) { if (HV.hideTip !== best.k) { HV.hideTip = best.k; const Mb = MOBS[best.k]; toast(`${Mb.warden ? Mb.name : `The ${Mb.name}`} ${Mb.hideMsg || (Mb.owl ? 'has faded into the frost. Wait for her to shine, then tap.' : Mb.dives ? 'has dived under. Wait for it to surface, then tap.' : 'is hiding in the dark. Wait for it to glow, then tap.')}`); } return; }
     return firebolt(best);
   }
   if (Math.hypot(witch.x - gx, witch.y - .3 - gy) < .75 && S.spells.includes('frost')) return frostRing();
@@ -3193,6 +3316,10 @@ function updateHollow(dt) {
       m.bt = 2 + Math.random() * 1.5; burst(m.x, m.y - .3, M.col, 8, 30);
       for (let k = 0; k < 8; k++) { const nx = Math.random() * 8, ny = Math.random() * 8; if (Math.hypot(nx - witch.x, ny - witch.y) > 2.2) { m.x = nx; m.y = ny; break; } }
     }
+    if (M.trait === 'sprouts' && (m.pt -= dt) <= 0) {
+      m.pt = 4.5; m.hit = .3;
+      if (HV.mobs.filter(x => x.k === 'thornling').length < 3) { addMob('thornling', clampN(1 + Math.random() * 6, 0, 8), clampN(4 + Math.random() * 4, 0, 10), { asleep:false, kb:.3, small:true }); burst(m.x, m.y, '#9dd06a', 14, 40); }
+    }
     if (M.trait === 'puffs' && (m.pt -= dt) <= 0) {
       m.pt = 5; m.hit = .3;
       if (HV.mobs.filter(x => x.k === 'puffcap').length < 3) { addMob('puffcap', clampN(m.x + (Math.random() - .5) * 3, 0, 8), clampN(m.y + 1.5, 0, 10), { asleep:false, kb:.4, small:true }); burst(m.x, m.y - 1, '#9fd0ff', 16, 40); }
@@ -3204,13 +3331,19 @@ function updateHollow(dt) {
       if (m.st === 'walk') { mv = M.speed * speedMul(f) * dt; if (m.stt <= 0) { m.st = 'glow'; m.stt = 1; } }
       else if (m.st === 'glow') { if (m.stt <= 0) { m.st = 'lunge'; m.stt = .7; m.lx = dx / d; m.ly = dy / d; } }
       else { m.x += m.lx * M.speed * 7 * dt; m.y += m.ly * M.speed * 7 * dt; if (m.stt <= 0) { m.st = 'walk'; m.stt = 3 + Math.random() * 1.5; } }
+    } else if (M.trait === 'shy') {
+      // Shy creatures keep their distance: they run when she's close and wander otherwise.
+      if (d < 4) { m.x -= dx / d * M.speed * dt; m.y -= dy / d * M.speed * dt; m.x += Math.cos(m.ph * 3) * dt * .5; }
+      else { m.x += Math.cos(m.ph * .9 + m.y) * dt * .4; m.y += Math.sin(m.ph * .7 + m.x) * dt * .4; }
     } else if (!m.asleep && d < 6) {
       mv = M.speed * speedMul(f) * dt;
       if (M.trait === 'hops') mv *= Math.max(0, Math.sin(m.ph * 5)) * 2;
+      if (M.trait === 'leaps') mv *= (m.ph % 1.8) < .35 ? 5 : 0;
+      if (M.trait === 'dashes') mv *= (m.ph % 2.2) < .45 ? 3.2 : .3;
     } else if (!m.asleep) { m.x += Math.cos(m.ph * .9 + m.y) * dt * .3; m.y += Math.sin(m.ph * .7 + m.x) * dt * .3; }
     if (mv) { m.x += dx / d * mv; m.y += dy / d * mv; if (M.trait === 'zigzags') m.x += Math.cos(m.ph * 6) * dt * .8; }
     m.x = clampN(m.x, 0, 8); m.y = clampN(m.y, 0, 11.5);
-    if (d < .55 * (sc > 1 ? sc * .75 : 1) && HV.hurt <= 0 && !m.asleep) {
+    if (d < .55 * (sc > 1 ? sc * .75 : 1) && HV.hurt <= 0 && !m.asleep && M.trait !== 'shy') {
       const dmg = touchDmg(f) + (M.warden ? 3 : 0); S.energy = Math.max(0, S.energy - dmg); HV.hurt = 1; m.kb = M.warden ? .3 : .5;
       if (m.st === 'lunge') { m.st = 'walk'; m.stt = 3; }
       floatText(witch.x, witch.y - .4, `-${dmg} energy`, '#ef7a8c'); blip(220, 110, .15, 'square', .04); updateHUD();
@@ -3245,6 +3378,15 @@ function buildHollow(g) {
     } else if (i % (L.manyCrys ? 2 : 3) === 0) { g.fillStyle = L.crys[Math.floor(hash(i, sd, 23) * L.crys.length)]; for (let k = 0; k < 3; k++) { const kx = x + (k - 1) * 3 * u, h = (5 + k % 2 * 3) * u; g.beginPath(); g.moveTo(kx, y - h); g.lineTo(kx + 1.6 * u, y); g.lineTo(kx - 1.6 * u, y); g.closePath(); g.fill(); } }
     else { g.fillStyle = L.stone[0]; g.beginPath(); g.ellipse(x, y, (3 + hash(i, sd, 24) * 3) * u, 2.4 * u, 0, 0, 7); g.fill(); g.fillStyle = L.stone[1]; g.beginPath(); g.ellipse(x - u, y - u, 1.6 * u, .9 * u, 0, 0, 7); g.fill(); }
   }
+  if (L.water) for (const wr of [3, 7]) { // a warm river across the room, with a plank bridge
+    R(g, ox, oy + wr * T + T * .2, COLS * T, T * .6, '#1c5a72'); for (let c = 0; c < COLS; c++) R(g, ox + c * T + hash(c, wr, sd) * T * .6, oy + wr * T + T * (.35 + hash(c, wr, 3) * .3), T * .3, u, '#5ab8d8');
+    const bc = 1 + Math.floor(hash(wr, sd, 5) * 7); for (let k = 0; k < 4; k++) R(g, ox + bc * T + k * 4 * u, oy + wr * T + T * .12, 3.2 * u, T * .76, '#8a6440'); }
+  if (L.roots) { g.strokeStyle = '#4a3420'; g.lineWidth = 3 * u; g.lineCap = 'round';
+    for (let i = 0; i < 6; i++) { const y0 = oy + (.5 + hash(i, sd, 31) * 11) * T; g.beginPath(); g.moveTo(ox, y0); g.bezierCurveTo(ox + 3 * T, y0 - T * (hash(i, sd, 32) - .5) * 3, ox + 6 * T, y0 + T * (hash(i, sd, 33) - .5) * 3, ox + 9 * T, y0 + T * (hash(i, sd, 34) - .5) * 2); g.stroke();
+      for (let k = 1; k < 9; k += 2) { const tx = ox + k * T, ty = y0 + (hash(i, k, 35) - .5) * T; g.fillStyle = '#6a5030'; g.beginPath(); g.moveTo(tx, ty - 2.5 * u); g.lineTo(tx + 1.5 * u, ty); g.lineTo(tx - 1.5 * u, ty); g.fill(); } } g.lineCap = 'butt'; }
+  if (L.cracks) { g.strokeStyle = 'rgba(255,122,58,.5)'; g.lineWidth = 1.1 * u; g.lineJoin = 'round';
+    for (let i = 0; i < 9; i++) { let x = ox + (.5 + hash(i, sd, 41) * 8) * T, y = oy + (.5 + hash(i, sd, 42) * 11) * T; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (hash(i, k, 43) - .5) * T * .9; y += (hash(i, k, 44) - .3) * T * .6; g.lineTo(x, y); } g.stroke(); } g.lineJoin = 'miter'; }
+  if (L.snow) for (let i = 0; i < 16; i++) { g.fillStyle = 'rgba(240,248,255,.55)'; g.beginPath(); g.ellipse(ox + (.3 + hash(i, sd, 51) * 8.4) * T, oy + (.4 + hash(i, sd, 52) * 11) * T, (4 + hash(i, sd, 53) * 6) * u, (1.6 + hash(i, sd, 54) * 1.6) * u, 0, 0, 7); g.fill(); }
   const lx = ox + 4 * T, ly = oy + 12 * T;
   g.fillStyle = 'rgba(255,236,190,.10)'; g.fillRect(lx + u, ly - T * .5, T - 2 * u, T * 1.5);
   R(g, lx + 3.5 * u, ly - 2 * u, 1.5 * u, T + 2 * u, '#8a6440'); R(g, lx + 11 * u, ly - 2 * u, 1.5 * u, T + 2 * u, '#8a6440');
@@ -3272,6 +3414,7 @@ function drawMob(m) {
     circ(ctx, px, by, 3.4 * u, col);
     ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(px - 2.6 * u, by - 2 * u); ctx.lineTo(px - 1.6 * u, by - 5 * u); ctx.lineTo(px - .6 * u, by - 2.6 * u); ctx.moveTo(px + 2.6 * u, by - 2 * u); ctx.lineTo(px + 1.6 * u, by - 5 * u); ctx.lineTo(px + .6 * u, by - 2.6 * u); ctx.fill();
     ey = by - .5 * u;
+    if (M.owl && !white) { for (const s of [-1, 1]) { circ(ctx, px + s * 1.5 * u, by - .4 * u, 1.5 * u, '#ffffff'); } ctx.fillStyle = '#f2b84b'; ctx.beginPath(); ctx.moveTo(px - .6 * u, by + 1 * u); ctx.lineTo(px + .6 * u, by + 1 * u); ctx.lineTo(px, by + 2.2 * u); ctx.fill(); }
   } else if (M.body === 'crawler' || M.body === 'crab') {
     const crab = M.body === 'crab';
     ctx.strokeStyle = '#1c2230'; ctx.lineWidth = u; ctx.beginPath(); for (const s of [-1, 1]) for (const k of [-2, 0, 2]) { ctx.moveTo(px + s * 3 * u, py - 2 * u + k * .6 * u); ctx.lineTo(px + s * (crab ? 7 : 6.5) * u, py + k * .8 * u + Math.sin(m.ph * 12 + k) * .6 * u); } ctx.stroke();
@@ -3280,7 +3423,7 @@ function drawMob(m) {
     if (!crab) { ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.moveTo(px, py - 7 * u); ctx.lineTo(px, py + u); ctx.stroke(); }
     circ(ctx, px - 2 * u, py - 5 * u, 1.2 * u, 'rgba(255,255,255,.35)');
     if (M.moss && !white) for (const [sx, sy] of [[-3, -5.5], [0, -6.6], [3, -5.4], [-1.5, -3.5], [2, -3]]) circ(ctx, px + sx * u, py + sy * u, 1.5 * u, '#7fbf5a');
-    if ((M.gems || m.shield) && !white) { ctx.fillStyle = M.gems ? '#9ff0ff' : '#ffd0f4'; for (const s of [-2.6, 0, 2.6]) { ctx.beginPath(); ctx.moveTo(px + s * u, py - (s ? 8.2 : 9.6) * u); ctx.lineTo(px + (s + 1.4) * u, py - 5.5 * u); ctx.lineTo(px + (s - 1.4) * u, py - 5.5 * u); ctx.closePath(); ctx.fill(); } }
+    if ((M.gems || m.shield) && !white) { ctx.fillStyle = M.gems ? '#9ff0ff' : (M.lava ? '#ff8a3a' : '#ffd0f4'); for (const s of [-2.6, 0, 2.6]) { ctx.beginPath(); ctx.moveTo(px + s * u, py - (s ? 8.2 : 9.6) * u); ctx.lineTo(px + (s + 1.4) * u, py - 5.5 * u); ctx.lineTo(px + (s - 1.4) * u, py - 5.5 * u); ctx.closePath(); ctx.fill(); } }
     if (crab) ey = py - 4.6 * u;
     else { circ(ctx, px, py - 7 * u, 2.4 * u, white ? '#ffffff' : shade(M.col, -45)); ey = py - 7.4 * u; }
   } else if (M.body === 'cap') {
@@ -3291,7 +3434,46 @@ function drawMob(m) {
     ey = py - 2.8 * u + bob;
   } else if (M.body === 'worm') {
     for (let k = 3; k >= 0; k--) circ(ctx, px + (k - 1.5) * 2.6 * u, py - 2.6 * u - Math.abs(Math.sin(m.ph * 4 + k)) * 1.6 * u, (k === 3 ? 2.8 : 2.3) * u, k === 3 ? col : shade(M.col, -15 - k * 8));
+    if (M.fin && !white) { ctx.fillStyle = shade(M.col, 25); ctx.beginPath(); ctx.moveTo(px - 4 * u, py - 5 * u); ctx.lineTo(px + 2 * u, py - 7 * u); ctx.lineTo(px + 3 * u, py - 4.6 * u); ctx.closePath(); ctx.fill(); }
+    if (M.spots && !white) for (let k = 0; k < 3; k++) circ(ctx, px + (k - 1.5) * 2.6 * u, py - 3.2 * u - Math.abs(Math.sin(m.ph * 4 + k)) * 1.6 * u, .8 * u, '#ffd04a');
     ex = px + 3.9 * u; ey = py - 3.4 * u - Math.abs(Math.sin(m.ph * 4 + 3)) * 1.6 * u;
+  } else if (M.body === 'frog') {
+    const jump = M.trait === 'leaps' && (m.ph % 1.8) < .35 ? -3 * u : 0, by = py + jump;
+    ctx.fillStyle = white ? '#ffffff' : shade(M.col, -25); for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(px + s * 4.2 * u, by - 1 * u, 2.6 * u, 1.4 * u, 0, 0, 7); ctx.fill(); }
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(px, by - 3 * u, 5.2 * u, 3.6 * u, 0, 0, 7); ctx.fill();
+    for (const s of [-1, 1]) circ(ctx, px + s * 2.2 * u, by - 6.2 * u, 1.9 * u, col);
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.ellipse(px, by - 1.8 * u, 3 * u, 1.4 * u, 0, 0, 7); ctx.fill();
+    ex = px; ey = by - 6.2 * u;
+  } else if (M.body === 'snail') {
+    ctx.fillStyle = white ? '#ffffff' : '#b8a8c8'; ctx.beginPath(); ctx.ellipse(px, py - 1.2 * u, 6.5 * u, 1.8 * u, 0, 0, 7); ctx.fill();
+    circ(ctx, px - 1 * u, py - 5 * u, 4.4 * u, col); ctx.strokeStyle = 'rgba(90,60,110,.55)'; ctx.lineWidth = u; ctx.beginPath();
+    for (let a = 0; a < 9; a += .3) { const r = 4 * u * (1 - a / 10); ctx[a ? 'lineTo' : 'moveTo'](px - u + Math.cos(a) * r, py - 5 * u + Math.sin(a) * r); } ctx.stroke();
+    circ(ctx, px - 2.4 * u, py - 7 * u, 1 * u, '#fff8ff');
+    ex = px + 5 * u; ey = py - 3.6 * u;
+  } else if (M.body === 'thorn') {
+    const by = py - 4 * u + Math.sin(m.ph * 3) * .4 * u;
+    ctx.fillStyle = white ? '#ffffff' : shade(M.col, -30);
+    for (let k = 0; k < 10; k++) { const a = k * Math.PI / 5 + m.ph * .2; ctx.beginPath(); ctx.moveTo(px + Math.cos(a) * 7.2 * u, by + Math.sin(a) * 6 * u); ctx.lineTo(px + Math.cos(a + .25) * 4 * u, by + Math.sin(a + .25) * 3.4 * u); ctx.lineTo(px + Math.cos(a - .25) * 4 * u, by + Math.sin(a - .25) * 3.4 * u); ctx.closePath(); ctx.fill(); }
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(px, by, 4.8 * u, 4.2 * u, 0, 0, 7); ctx.fill();
+    if (M.warden && !white) for (const [sx, sy] of [[-2, -2], [2.4, 1], [-.5, 2.2]]) circ(ctx, px + sx * u, by + sy * u, .9 * u, '#d84a6a');
+    ey = by - .5 * u;
+  } else if (M.body === 'hare') {
+    const hop = Math.abs(Math.sin(m.ph * 5)) * 1.2 * u, by = py - hop;
+    for (const s of [-1, 1]) { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(px + s * 1.6 * u, by - 9 * u, 1.1 * u, 3.4 * u, s * .2, 0, 7); ctx.fill(); ctx.fillStyle = '#f8c8d8'; ctx.beginPath(); ctx.ellipse(px + s * 1.6 * u, by - 9 * u, .5 * u, 2.2 * u, s * .2, 0, 7); ctx.fill(); }
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(px, by - 3.2 * u, 4.6 * u, 3.8 * u, 0, 0, 7); ctx.fill(); circ(ctx, px - 4.2 * u, by - 2 * u, 1.6 * u, '#ffffff');
+    ex = px + .6 * u; ey = by - 5 * u;
+  } else if (M.body === 'golem') {
+    R(ctx, px - 5 * u, py - 5 * u, 10 * u, 5 * u, col); R(ctx, px - 3.8 * u, py - 9.4 * u, 7.6 * u, 4.6 * u, white ? '#ffffff' : shade(M.col, 8));
+    for (const s of [-1, 1]) R(ctx, px + s * 5 * u - (s < 0 ? 2 : 0) * u, py - 6 * u, 2 * u, 4 * u, white ? '#ffffff' : shade(M.col, -20));
+    if (m.shield && !white) { ctx.fillStyle = 'rgba(190,230,255,.7)'; for (const s of [-3, 0, 3]) { ctx.beginPath(); ctx.moveTo(px + s * u, py - 13 * u + Math.abs(s) * .5 * u); ctx.lineTo(px + (s + 1.4) * u, py - 9.4 * u); ctx.lineTo(px + (s - 1.4) * u, py - 9.4 * u); ctx.closePath(); ctx.fill(); } }
+    ey = py - 7.4 * u;
+  } else if (M.body === 'fish') {
+    const by = py - 4 * u + Math.sin(m.ph * 2) * .6 * u, tail = Math.sin(m.ph * 6) * 1.6 * u;
+    ctx.fillStyle = white ? '#ffffff' : shade(M.col, -20); ctx.beginPath(); ctx.moveTo(px - 5 * u, by); ctx.lineTo(px - 9 * u, by - 3 * u + tail); ctx.lineTo(px - 9 * u, by + 3 * u + tail); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(px, by, 6.4 * u, 3.6 * u, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.beginPath(); ctx.ellipse(px, by + 1.6 * u, 4.4 * u, 1.2 * u, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = white ? '#ffffff' : '#c8d8c0'; ctx.lineWidth = .6 * u; ctx.beginPath(); for (const s of [-1, 1]) { ctx.moveTo(px + 5.6 * u, by + .8 * u); ctx.quadraticCurveTo(px + 8 * u, by + s * 3 * u, px + 9.5 * u, by + s * 2 * u + tail * .5); } ctx.stroke();
+    ex = px + 3.2 * u; ey = by - 1.2 * u;
   } else if (M.body === 'wisp') {
     const by = py - 6 * u + Math.sin(m.ph * 3) * u, a = m.ph * 1.5;
     ctx.fillStyle = col; ctx.beginPath(); for (let k = 0; k < 4; k++) { const ang = a + k * Math.PI / 2, r = (k % 2 ? 2.6 : 4.4) * u; ctx[k ? 'lineTo' : 'moveTo'](px + Math.cos(ang) * r, by + Math.sin(ang) * r); } ctx.closePath(); ctx.fill();
@@ -3664,6 +3846,8 @@ function updateHUD() {
   const pb = $('potBadge'); pb.hidden = !S.brewing.length; pb.textContent = S.brewing.length;
   $('manaM').hidden = !S.spells.length; if (S.manaMax) $('manaBar').style.width = Math.min(100, S.mana / S.manaMax * 100) + '%';
   $('bSpells').hidden = !S.spells.length;
+  { const inH = S.scene === 'hollow' && !!HV, n = inH ? pouchLeft() : 0; $('bBoard').hidden = inH; $('bPouch').hidden = !inH;
+    if (inH) { $('pouchLbl').textContent = 'Pouch'; $('pouchBadge').hidden = !n; $('pouchBadge').textContent = n; $('bPouch').style.opacity = n ? '' : '.55'; } }
   const um = S.mail.filter(m => !m.read).length; $('mailBadge').hidden = !um; $('mailBadge').textContent = um;
   updateClock();
 }
@@ -3903,7 +4087,7 @@ function renderSheet(kind, data) {
     if (S.spouse) h += `<li>${VILLAGERS[S.spouse].name} has left the lamp on for you.</li>`;
     if (S.wedding && !S.spouse && S.wedding.at === absDay() + 1) h += `<li class="gold">Tomorrow is your wedding day.</li>`;
     h += `<li>You'll wake at 6:00 am with full energy.</li></ul>`;
-    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button><button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>`;
+    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button>${S.hollowMax ? `<button class="btn alt" data-act="relics" type="button">The relic shelf${Object.keys(HS().relics || {}).length ? ` (${Object.keys(HS().relics).length})` : ''}</button>` : ''}<button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>`;
   } else if (kind === 'clock') {
     title = 'The clock';
     h += `<p class="sub">Time only moves while you're walking or working. Stand still, and it waits for you.</p>`;
@@ -4041,7 +4225,7 @@ function renderSheet(kind, data) {
       const fl = stops.filter(f => bandIdx(f) === bi); if (!fl.length) return;
       h += `<h4 class="band">${B.name} <span>· floors ${bi * 10 + 1} to ${bi * 10 + 10}</span></h4><div class="cta-row lift">${fl.map(f => `<button class="btn ${f === 1 ? 'alt' : ''}" data-act="hollowgo" data-id="${f}" type="button">Floor ${f}${WARDENS[f] && !Hs.wardens[f] ? ' ⚔' : ''}</button>`).join('')}</div>`;
     });
-    h += `<p class="sub">Every fifth floor has a spring by the ladder that gives back a quarter of your mana, once a dive. ⚔ marks a Warden you haven't beaten yet.</p>`;
+    h += `<p class="sub">Every fifth floor has a spring by the ladder that gives back a quarter of your mana, once a dive. ⚔ marks a Warden you haven't beaten yet.${potionKnown('manadraught') ? ` Your pouch carries up to ${POUCH_MAX} Mana Draughts a dive (you have ${S.inv.manadraught || 0}).` : ''}</p>`;
     const met = Object.keys(MOBS).filter(k => Hs.seen[k] || Hs.met[k] || (MOBS[k].warden && Object.keys(WARDENS).some(f => WARDENS[f].k === k && (Hs.wardens[f] || Hs.tries[f]))));
     if (met.length) {
       h += `<h4 class="band">Creatures you've met <span>· ${met.length} of ${Object.keys(MOBS).length}</span></h4>`;
@@ -4052,6 +4236,17 @@ function renderSheet(kind, data) {
       h += `<h4 class="band">Aunt Bramble's journal <span>· ${pages.length} page${pages.length === 1 ? '' : 's'}</span></h4>`;
       for (const f of pages) h += row('#e8c66a', `The page from floor ${f}`, WARDENS[f].page.slice(0, 60) + '…', `<button class="btn alt" data-act="hpage" data-id="${f}" type="button">Read</button>`);
     }
+  } else if (kind === 'relics') {
+    title = 'The relic shelf';
+    const got = HS().relics || {}, n = Object.keys(RELICS).filter(k => got[k]).length;
+    h += `<p class="sub">Treasures from the Hollow: one from each Warden, and a rare find hidden somewhere in each part of it. ${n} of ${Object.keys(RELICS).length} on the shelf.</p>`;
+    BANDS.forEach((B, bi) => {
+      const ks = Object.keys(RELICS).filter(k => RELICS[k].band === bi);
+      if (!ks.length || (bi * 10 + 1 > (S.hollowMax || 0) && !ks.some(k => got[k]))) return;
+      h += `<h4 class="band">${B.name} <span>· floors ${bi * 10 + 1} to ${bi * 10 + 10}</span></h4>`;
+      for (const k of ks) { const R0 = RELICS[k]; h += got[k] ? row(R0.col, R0.name, R0.desc, '') : row('#3a3346', 'An empty spot', R0.warden ? `${MOBS[WARDENS[R0.warden].k].name} on floor ${R0.warden} guards something for this spot.` : `Something rare is hidden in the ${B.name}. Keep exploring.`, '', 'dim'); }
+    });
+    h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
   } else if (kind === 'hpage') {
     title = `Journal · floor ${data.f}`;
     h += `<p class="scene">${WARDENS[data.f].page}</p><div class="cta-row"><button class="btn" data-act="hlift" type="button">Back to the lift</button></div>`;
@@ -4167,7 +4362,8 @@ $('shBody').addEventListener('click', e => {
       S.coins -= upCost(up); SND.coin(); if (up.items) for (const [k, n] of Object.entries(up.items)) S.inv[k] -= n;
       if (id === 'sprinkler') { S.sprinklers++; toast('Sprinkler added to your seed pouch. Select it there to place it.'); }
       else if (id === 'rod') S.rod = true;
-      else { S.up[id] = true; if (id === 'can') { S.canMax = 40; S.can = 40; } if (id === 'can2') { S.canMax = 70; S.can = 70; } if (id === 'can3') { S.canMax = 120; S.can = 120; } if (id === 'pot2') S.slots = 2; if (id === 'pot3') S.slots = 3; if (id === 'pot4') S.slots = 4; }
+      else { S.up[id] = true; if (id === 'can') { S.canMax = 40; S.can = 40; } if (id === 'can2') { S.canMax = 70; S.can = 70; } if (id === 'can3') { S.canMax = 120; S.can = 120; } if (id === 'pot2') S.slots = 2; if (id === 'pot3') S.slots = 3; if (id === 'pot4') S.slots = 4;
+        if (FOCUS.includes(id)) { S.manaMax = manaMaxFor(); S.mana = Math.min(S.manaMax, S.mana + 10); toast(`Your crystal focus hums. Max mana is now ${S.manaMax}.`); } }
     } renderSheet('market');
   }
   else if (act === 'give') {
@@ -4204,6 +4400,7 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'mirror') { sheetOpen = 'wardrobe'; renderSheet('wardrobe'); return; }
   else if (act === 'look') { S.look = Object.assign(lookOf(), { [b.dataset.k]:b.dataset.c }); renderSheet('wardrobe'); }
   else if (act === 'hpage') { sheetOpen = 'hpage'; renderSheet('hpage', { f:+id }); return; }
+  else if (act === 'relics') { sheetOpen = 'relics'; renderSheet('relics'); return; }
   else if (act === 'hlift') { sheetOpen = 'cave'; renderSheet('cave'); return; }
   else if (act === 'hollowgo') { sheetOpen = null; lastSheetKey = ''; $('scrim').hidden = true; $('sheet').hidden = true; enterHollow(+id); return; }
   else if (act === 'backup') {
@@ -4247,6 +4444,7 @@ $('bBoard').addEventListener('click', play(() => openSheet('board')));
 $('bPot').addEventListener('click', play(() => openSheet('cauldron')));
 $('bJournal').addEventListener('click', play(() => openSheet('journal')));
 $('bSpells').addEventListener('click', play(() => openSheet('spells')));
+$('bPouch').addEventListener('click', play(() => { drinkDraught(); }));
 $('bSleep').addEventListener('click', play(() => openSheet('sleep')));
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape' && sheetOpen) closeSheet();

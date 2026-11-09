@@ -15,9 +15,9 @@ fresh();
 const only = (f, kinds) => { S.scene = 'wood'; t.enterHollow(f); while (t.sheet) t.closeSheet(); t.HV.mobs = []; t.HV.warden = null; return kinds.map((k, i) => t.addMob(k, 1 + i * 2.5, 2, { asleep:k === 'puffcap' ? true : undefined })); };
 
 // numbers level off
-ok(t.BANDS.length === 3 && t.liftStops().join() === '1,5,10,15,20,25,30', 'three bands, lift every fifth floor');
+ok(t.BANDS.length === 7 && t.liftStops().join() === '1,5,10,15,20,25,30', 'seven bands, lift every fifth floor');
 // draw every creature on its band's floor without errors
-for (const k of Object.keys(t.MOBS)) { const f = { mossback:10, puffball:20, queen:30 }[k] || 12; only(f, [k]); try { t.buildStatic(); t.draw(); ok(true); } catch (e) { ok(false, 'draw ' + k + ': ' + e.message); } }
+for (const k of Object.keys(t.MOBS)) { const f = { mossback:10, puffball:20, queen:30, whiskers:40, briar:50, emberback:60, owl:70 }[k] || Math.max(0, t.BANDS.findIndex(B => B.mix && B.mix[k])) * 10 + 2; only(f, [k]); try { t.buildStatic(); t.draw(); ok(true); } catch (e) { ok(false, 'draw ' + k + ': ' + e.message); } }
 
 // sleepy: a Puffcap doesn't move until she's close or it's hit
 let [pc] = only(12, ['puffcap']); const x0 = pc.x, y0 = pc.y; step(2);
@@ -73,14 +73,14 @@ step(8.2); ok(q.shield, 'Queen shell grows back after 8 seconds');
 
 // spring: a quarter of max mana, once a dive
 S.scene = 'wood'; S.mana = 10; t.enterHollow(15); while (t.sheet) t.closeSheet();
-ok(t.HV.spring, 'spring on floor 15'); t.useSpring(); ok(S.mana === 25 && !t.HV.spring, 'spring gives 15 of 60 mana');
+ok(t.HV.spring, 'spring on floor 15'); t.useSpring(); ok(S.mana === 18 && !t.HV.spring, 'spring gives a quarter of her mana without Crystal Focus (8 of 30)');
 t.hollowFloor(15); ok(!t.HV.spring, 'no second sip in the same dive');
 S.scene = 'wood'; t.enterHollow(15); while (t.sheet) t.closeSheet(); ok(t.HV.spring, 'a new dive, a fresh spring');
 S.scene = 'wood'; t.enterHollow(16); ok(!t.HV.spring, 'no spring on floor 16');
 
-// floor 30 is the bottom for now
-S.hollow.wardens[30] = true; S.scene = 'wood'; t.enterHollow(30); while (t.sheet) t.closeSheet(); for (const m of t.HV.mobs.slice()) t.killMob(m);
-ok(!t.HV.stairs, 'no stairs below floor 30 yet');
+// floor 70 is the bottom for now
+S.hollow.wardens[70] = true; S.scene = 'wood'; t.enterHollow(70); while (t.sheet) t.closeSheet(); for (const m of t.HV.mobs.slice()) t.killMob(m);
+ok(!t.HV.stairs, 'no stairs below floor 70 yet');
 
 // lift sheet
 S.scene = 'wood'; S.hollowMax = 23; t.openSheet('cave');
