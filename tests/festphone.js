@@ -29,6 +29,10 @@ const GAMES = [
   { id:'dance', season:0, tile:[4, 7], stage:(w, h, i) => ({ x:(i % 3 + .5) * w / 3, y:h * .7 }), every:110 },
   { id:'nightfish', season:1, tile:[2, 10], stage:(w, h) => ({ x:w / 2, y:h / 2 }), every:150 },
   { id:'ringtoss', season:2, tile:[7, 5], stage:(w, h) => ({ x:w / 2, y:h / 2 }), every:700 },
+  { id:'crowns', season:0, tile:[1, 5], stage:(w, h, i) => ({ x:(i % 4 + .5) * w / 4, y:h * .19 + (Math.floor(i / 4) % 4 + .5) * h * .76 / 4 }), every:350 },
+  { id:'petals', season:0, tile:[7, 5], stage:(w, h, i) => ({ x:((i * 37) % 9 + .5) * w / 9, y:h * (.3 + ((i * 13) % 6) * .1) }), every:80 },
+  { id:'fireflies', season:1, tile:[1, 5], stage:(w, h, i) => ({ x:((i * 37) % 9 + .5) * w / 9, y:h * (.2 + ((i * 13) % 7) * .1) }), every:80 },
+  { id:'ducks', season:1, tile:[6, 11], stage:(w, h, i) => ({ x:((i * 3) % 8 + .5) * w / 8, y:h * [.42, .6, .78][i % 3] }), every:90 },
   { id:'snowball', season:3, tile:[7, 5], stage:(w, h, i) => ({ x:(i % 3 + .5) * w / 3, y:h * .22 + ((Math.floor(i / 3) % 3) + .5) * h * .7 / 3 }), every:90 }
 ];
 (async () => {

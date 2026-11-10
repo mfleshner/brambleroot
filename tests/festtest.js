@@ -2,7 +2,7 @@
 // played by bots (scores, medals, no errors), old saves and sheets. Run from a folder with b.js and shot-save.json.
 // Usage: node festtest.js [runs per bot]
 const fs = require('fs');
-const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", "globalThis.__t={get S(){return S},set S(x){S=x},startGame,endDay,closeSheet,openSheet,renderSheet,get sheet(){return sheetOpen},get queue(){return queue},VILLAGERS,VIDS,where,villageFolk,enterVillage,leaveVillage,festOn,festBooths,festSpots,festBoothAt,festState,festPlayed,festAct,festMingle,hostBest,gameTier,boothHosts,boothRender,prizeStock,prizeBuy,FGAMES,fgStep,FEST,FEST_BOOTHS,FB_SPOT,VB,VSPOTS,DISHES,ITEMS,migrate,addFr,heartsOf,visit,update,draw,zaraAtCart,cartHere,openGame,fgStart,fgClose,get FG(){return FG},TIER_TICKETS,FEST_TICKET_PLAYS,FEST_MAIN_TICKETS,FEST_WEAR,KEEPSAKES,prizeOwned,festCard,ribbonYears,buildStatic,festDecor:()=>drawFestGrounds()};\n})();");
+const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", "globalThis.__t={get S(){return S},set S(x){S=x},startGame,endDay,closeSheet,openSheet,renderSheet,get sheet(){return sheetOpen},get queue(){return queue},VILLAGERS,VIDS,where,villageFolk,enterVillage,leaveVillage,festOn,festBooths,festSpots,festBoothAt,festState,festPlayed,festAct,festMingle,hostBest,gameTier,boothHosts,boothRender,prizeStock,prizeBuy,FGAMES,fgStep,FEST,FEST_BOOTHS,FB_SPOT,VB,VSPOTS,DISHES,ITEMS,migrate,addFr,heartsOf,visit,update,draw,zaraAtCart,cartHere,openGame,fgStart,fgClose,get FG(){return FG},TIER_TICKETS,FEST_TICKET_PLAYS,FEST_MAIN_TICKETS,FEST_WEAR,KEEPSAKES,prizeOwned,festCard,ribbonYears,buildStatic,witchSVG,wearingK:k=>wearing(k),witchSVGbare:n=>{const L=S.look;S.look=Object.assign({},L||{},{wear:[]});const r=witchSVG(n).length;S.look=L;return r},festDecor:()=>drawFestGrounds()};\n})();");
 const sim7 = fs.readFileSync('sim7.js', 'utf8').split('\n').slice(2, 7).join('\n'); eval(sim7);
 const store = {}; globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => store[k] = v, removeItem: k => delete store[k] };
 eval(src); const t = __t; t.startGame(true); let S = t.S;
@@ -121,6 +121,21 @@ const BOTS = {
     if (timed(st, lv, s => ahead(x => g.mark(x), s.rt, s.zc, .5))) g.tap(st, W / 2, H / 2, W, H);
   },
   ringtoss:(st, g, lv) => { if (st.ph !== 'aim') { st._at = undefined; st._tg = null; return; } st._tg = st._tg || (lv === LV.keen ? (Math.random() < .5 ? .5 : .31) : .12); if (timed(st, lv, s => ahead(x => g.mark(x), s.sw, s._tg, .5))) g.tap(st, 0, 0, W, H); },
+  crowns:(st, g, lv) => {
+    if (st._cards !== st.cards) { st._cards = st.cards; st._mem = {}; }
+    for (let i = 0; i < st.cards.length; i++) if (st.cards[i].up) st._mem[i] = st.cards[i].f;
+    if (busy(st, lv) || st.hold > 0 || st.redeal > 0) return;
+    if (Math.random() < (lv === LV.keen ? .02 : .06)) for (const k of Object.keys(st._mem)) if (Math.random() < .5) delete st._mem[k]; // forgetting
+    const down = [...Array(st.cards.length).keys()].filter(i => !st.cards[i].up && !st.cards[i].done), known = i => st._mem[i] !== undefined;
+    let pick;
+    if (st.open.length === 1) { const o = st.cards.indexOf(st.open[0]); pick = down.find(i => i !== o && known(i) && st._mem[i] === st.open[0].f); }
+    else { for (const i of down.filter(known)) { const j = down.find(z => z !== i && known(z) && st._mem[z] === st._mem[i]); if (j !== undefined) { pick = i; break; } } }
+    if (pick === undefined) { const unk = down.filter(i => !known(i)); pick = (unk.length ? unk : down)[(Math.random() * (unk.length || down.length)) | 0]; }
+    if (pick === undefined) return; const r = g.rect(pick, W, H); g.tap(st, r.x + r.w / 2, r.y + r.h / 2, W, H); st._busy = st.t + lv.gap * 2.2 * (.8 + Math.random() * .4); // looking and remembering takes longer than tapping
+  },
+  petals:(st, g, lv) => { if (busy(st, lv)) return; for (const q of st.ps) if (reacts(st, q.id, lv)) { if (Math.random() > lv.slip) g.tap(st, q.x, q.y, W, H); tapped(st, lv); break; } },
+  fireflies:(st, g, lv) => { if (busy(st, lv)) return; for (const q of st.ff) if (reacts(st, q.id, lv)) { const jx = gauss() * (lv === LV.keen ? 8 : 14), jy = gauss() * (lv === LV.keen ? 8 : 14); g.tap(st, q.x + jx, q.y + jy, W, H); tapped(st, lv); break; } },
+  ducks:(st, g, lv) => { if (busy(st, lv)) return; for (const d of st.dk) if (d.x > 10 && d.x < W - 10 && reacts(st, d.id, lv) && (d.star || Math.random() < lv.slip * .3)) { g.tap(st, d.x, g.lanes[d.lane] * H, W, H); tapped(st, lv); break; } },
   snowball:(st, g, lv) => { if (busy(st, lv)) return; for (const q of st.tg) { q._id = q._id || Math.random(); if (reacts(st, q._id, lv)) { const c = g.cell(q.i, W, H); if (Math.random() > lv.slip) g.tap(st, c.x, c.y, W, H); tapped(st, lv); break; } } },
 };
 const report = [], TK = {};
@@ -176,6 +191,20 @@ for (const y of [1, 2]) for (let s = 0; s < 4; s++) {
 // Zara sells her wares at the stall too
 setDay(2, 1, 14, 700); S.fest = {}; t.enterVillage(); ok(t.zaraAtCart(), 'zara at the prize stall'); t.openSheet('booth', { p:'prizes' }); ok(/Zara's wares/.test(body()), 'wares at the prize stall'); close();
 setDay(1, 0, 14, 700); S.fest = {}; t.enterVillage(); ok(t.boothHosts('prizes')[0] === 'aldous' && !t.cartHere(), 'aldous runs spring y1'); t.openSheet('booth', { p:'prizes' }); ok(/Aldous/.test(body()) && clean(body()), 'aldous prize table'); close();
+
+// --- festival wardrobe: bought with tickets, worn from the mirror, drawn in the mirror and the world ---
+for (let s = 0; s < 4; s++) {
+  setDay(2, s, 14, 700); S.fest = {}; S.tickets = 500; S.prizes = {}; S.look = null;
+  const wear = Object.keys(t.FEST_WEAR).filter(k => t.FEST_WEAR[k].fest === s); ok(wear.length === 2, 'two wardrobe pieces s' + s);
+  for (const k of wear) { ok(t.prizeStock().some(w => w.id === 'w:' + k), k + ' in stock'); ok(t.prizeBuy('w:' + k) && t.prizeOwned(k), k + ' bought'); ok(!t.prizeBuy('w:' + k), k + ' twice'); }
+  t.openSheet('wardrobe'); let h = body(); ok(wear.every(k => h.includes(t.FEST_WEAR[k].name)) && /Festival finery/.test(h), 'mirror lists finery s' + s); close();
+  for (const k of wear) { const L = Object.assign({}, S.look || {}); S.look = Object.assign(L, { wear:[k] }); ok(t.wearingK(k), k + ' worn'); const svg = t.witchSVG(100); ok(svg.length > t.witchSVGbare(100) && clean(svg), k + ' drawn in the mirror'); try { t.draw(); } catch (e) { ok(false, k + ' world draw ' + e.message); } }
+}
+{ S.prizes = {}; S.look = { wear:['crown'] }; ok(!t.wearingK('crown'), 'wearing a crown she does not own'); }
+// --- the Festivals page ---
+S.fbest = { ringtoss:14 }; S.ribbons = { ringtoss:[1, 2], crowns:[2] }; S.tickets = 9;
+t.openSheet('journal'); ok(true, 'journal'); t.renderSheet('festbook'); { const h = body(); ok(clean(h) && /Ring toss/.test(h) && /yours 14/.test(h) && /year 1, year 2/.test(h) && /Ribbons won: 3/.test(h), 'festbook'); } close();
+setDay(2, 2, 14, 700); S.fest = {}; t.festPlayed('ringtoss', 20); ok(S.fbest.ringtoss === 20, 'best ever updates'); t.festPlayed('ringtoss', 5); ok(S.fbest.ringtoss === 20, 'best ever kept');
 
 // --- festival dishes: cookable, sell below their makings, not on the recipe-card shelf ---
 for (const k of Object.keys(t.DISHES).filter(k => t.DISHES[k].from === 'fest')) {

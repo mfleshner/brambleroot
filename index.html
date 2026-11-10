@@ -888,7 +888,7 @@ function newState() {
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     hollow:hollowState(), helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
-    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{} };
+    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{}, fbest:{} };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -1235,6 +1235,7 @@ function drawWitch() {
   R(ctx, px + d * 2.5 * u - (d < 0 ? 1.6 * u : 0), fy - 8 * u + act, 1.6 * u, 4 * u, shade(robe, -22));
   if (witch.act > 0 && witch.tool === 'water') R(ctx, px + d * 4 * u - (d < 0 ? 3 * u : 0), fy - 5 * u + act, 3 * u, 2.2 * u, '#7fa3b8');
   if (witch.act > 0 && (witch.tool === 'till' || witch.tool === 'dig')) { R(ctx, px + d * 4 * u - (d < 0 ? .8 * u : 0), fy - 9 * u + act, .8 * u, 7 * u, '#8a6440'); R(ctx, px + d * 3 * u - (d < 0 ? 2.5 * u : 0), fy - 2.5 * u + act, 2.5 * u, 1.2 * u, '#9aa0a8'); }
+  drawFestWearBody(px, fy, u, d);
   circ(ctx, px + d * .4 * u, fy - 11 * u, 2.8 * u, LK.skin);
   R(ctx, px - d * 3 * u - (d > 0 ? 0 : 1.5 * u), fy - 12 * u, 1.5 * u, 4.5 * u, LK.hair);
   circ(ctx, px + d * 1.4 * u, fy - 11 * u, .55 * u, '#2a1a20');
@@ -1244,6 +1245,7 @@ function drawWitch() {
   if (wearing('brooch')) circ(ctx, px, fy - 7.6 * u, .9 * u, '#e8c66a');
   if (wearing('circlet')) for (const k of [-2, 0, 2]) { ctx.fillStyle = '#9ff0ff'; ctx.beginPath(); ctx.moveTo(px + k * u, fy - 15.6 * u); ctx.lineTo(px + (k + .6) * u, fy - 14.6 * u); ctx.lineTo(px + (k - .6) * u, fy - 14.6 * u); ctx.fill(); }
   if (wearing('plume')) { ctx.fillStyle = '#e8f6ff'; ctx.beginPath(); ctx.ellipse(px - d * 3 * u, fy - 17 * u, .9 * u, 2.8 * u, -d * .5, 0, 7); ctx.fill(); }
+  drawFestWearHead(px, fy, u, d);
   if (wearing('bloom')) { for (let k = 0; k < 5; k++) circ(ctx, px + d * 4.2 * u + Math.cos(k * 1.2566) * .7 * u, fy - 13.6 * u + Math.sin(k * 1.2566) * .7 * u, .6 * u, '#ff9ab8'); circ(ctx, px + d * 4.2 * u, fy - 13.6 * u, .45 * u, '#f2b84b'); }
   if (S && S.speed > 5 && witch.walk > 0 && !reduceMotion && Math.random() < .3) parts.push({ x:px - d * 4 * u, y:fy - 2 * u, vx:-d * 20, vy:-10, life:.4, max:.4, col:'#fff1a8', s:u * .7, g:0 });
 }
@@ -2198,7 +2200,7 @@ const TREASURES = {
   bloom:  { name:'Heartbloom', from:100, desc:'A bramble flower from the Heart, that never fades.' }
 };
 const treasuresOwned = () => Object.keys(TREASURES).filter(k => S && S.hollow && S.hollow.wardens[TREASURES[k].from]);
-const wearing = k => { const L = lookOf(); return (L.wear || []).includes(k) && treasuresOwned().includes(k); };
+const wearing = k => { const L = lookOf(); return (L.wear || []).includes(k) && (treasuresOwned().includes(k) || (!!FEST_WEAR[k] && prizeOwned(k))); };
 const paras = t => t.split('\n\n').map(x => `<p class="scene">${x}</p>`).join('');
 function heartBloomSVG(size) {
   const fl = [[16, 30], [62, 26], [24, 62], [58, 64], [40, 14], [10, 50], [70, 48]].map(([x, y], i) => `<g transform="translate(${x} ${y})">${[0, 72, 144, 216, 288].map(a => `<circle cx="${(Math.cos(a * Math.PI / 180) * 3).toFixed(1)}" cy="${(Math.sin(a * Math.PI / 180) * 3).toFixed(1)}" r="2.6" fill="${['#ffd0e0', '#ffffff', '#ff9ab8'][i % 3]}"/>`).join('')}<circle r="1.8" fill="#f2b84b"/></g>`).join('');
@@ -2213,6 +2215,7 @@ function witchSVG(size) {
     <ellipse cx="40" cy="94" rx="22" ry="4" fill="rgba(0,0,0,.3)"/>
     ${W('cloak') ? '<path d="M25 48 L55 48 L68 93 L12 93 Z" fill="#1c2350"/><circle cx="17" cy="84" r="1.2" fill="#fff6c8"/><circle cx="63" cy="80" r="1.2" fill="#fff6c8"/><circle cx="20" cy="66" r="1" fill="#fff6c8"/><circle cx="60" cy="62" r="1" fill="#fff6c8"/>' : ''}
     <path d="M18 92 L62 92 L52 50 L28 50 Z" fill="${L.robe}"/><rect x="18" y="86" width="44" height="4" fill="${L.band}"/>
+    ${festWearSVG(W)}
     ${W('brooch') ? '<circle cx="40" cy="57" r="3.2" fill="#e8c66a"/><circle cx="40" cy="57" r="1.3" fill="#6a4a1a"/>' : ''}
     <rect x="44" y="54" width="7" height="18" rx="3" fill="${shade(L.robe, -22)}"/>
     <path d="M24 34 q-6 14 -2 26 l8 -2 q-4 -10 -1 -22z" fill="${L.hair}"/>
@@ -2221,6 +2224,7 @@ function witchSVG(size) {
     <ellipse cx="40" cy="28" rx="25" ry="5" fill="${L.hat}"/>
     <path d="M27 28 L53 28 L46 10 L36 2 L40 12 Z" fill="${L.hat}"/><rect x="28" y="22" width="24" height="4" fill="${L.band}"/>
     ${W('plume') ? '<ellipse cx="53" cy="15" rx="2.6" ry="9" transform="rotate(28 53 15)" fill="#e8f6ff"/><path d="M50 23 L56 7" stroke="#a8c8e8" stroke-width=".8"/>' : ''}
+    ${festWearHatSVG(W)}
     ${W('circlet') ? '<path d="M31 26 l2 -4 l2 4 Z M38 26 l2 -5 l2 5 Z M45 26 l2 -4 l2 4 Z" fill="#9ff0ff"/>' : ''}
     ${W('bloom') ? `<g transform="translate(20 27)">${[0, 72, 144, 216, 288].map(a => `<circle cx="${(Math.cos(a * Math.PI / 180) * 2.6).toFixed(1)}" cy="${(Math.sin(a * Math.PI / 180) * 2.6).toFixed(1)}" r="2.2" fill="#ff9ab8"/>`).join('')}<circle r="1.5" fill="#f2b84b"/></g>` : ''}
   </svg>`;
@@ -2409,6 +2413,7 @@ function festPlayed(id, score) {
   const tk = n <= FEST_TICKET_PLAYS ? TIER_TICKETS[tier] : 0;
   S.tickets = (S.tickets || 0) + tk;
   const newBest = score > (f.best[id] || 0); if (newBest) f.best[id] = score;
+  S.fbest = S.fbest || {}; if (score > (S.fbest[id] || 0)) S.fbest[id] = score;
   const hb = hostBest(id); let ribbon = false, first = false, gifts = '';
   if (score > hb && hosts.length) {
     S.ribbons = S.ribbons || {}; const r = S.ribbons[id] = S.ribbons[id] || [];
@@ -2472,6 +2477,7 @@ function gameCard(id) {
   h += `<li>Bronze ${G.tiers[0]}, silver ${G.tiers[1]}, gold ${G.tiers[2]} ${G.unit}.${f.best[id] ? ` Your best today: <b>${f.best[id]}</b>.` : ''}</li>`;
   h += `<li>${left ? `Your next ${left} play${left === 1 ? '' : 's'} win${left === 1 ? 's' : ''} tickets.` : 'No more tickets from this game today, but you can play just for fun.'} Each play takes about half an hour.</li>`;
   if (rb.length) h += `<li class="gift">Ribbons won: ${rb.map(y => 'year ' + y).join(', ')}.</li>`;
+  if ((S.fbest || {})[id]) h += `<li>Your best ever: <b>${S.fbest[id]}</b>.</li>`;
   h += `</ul><div class="cta-row"><button class="btn" data-act="fplay" data-id="${id}" type="button" ${festOn() ? '' : 'disabled'}>${festOn() ? 'Play' : 'Closed'}</button></div>`;
   return h + `<p class="sub">You have ${S.tickets || 0} ticket${S.tickets === 1 ? '' : 's'}.</p>`;
 }
@@ -2821,6 +2827,200 @@ FGAMES.snowball = { name:'Snowball toss', fest:3, host:['odile'], unit:'points',
     }
     fgDrawPops(g, st);
   } };
+
+
+/* ---- Part 2 games: the Flower Dance and Lantern Night ---- */
+// Flower crowns (Flower Dance, Pip and Tilly): turn over pairs of flowers. A fresh table is dealt each time it's cleared.
+const CROWN_FACES = [['#ef9aac', 5], ['#cdbbff', 5], ['#f2d36b', 6], ['#8fd0ff', 4], ['#ffffff', 6], ['#ff8a5a', 4], ['#9fe0b0', 5], ['#c94a6a', 6]];
+FGAMES.crowns = { name:'Flower crowns', fest:0, host:['pip', 'tilly'], unit:'pairs', tiers:[8, 13, 18], best:21, step:1, max:50, secs:60, look:['#ef9aac', '✿'],
+  hostLine:'Pip: "Every crown needs two of the same flower. We hid them face down." Tilly: "Pip cheated last year." Pip: "I REMEMBERED."',
+  how:'Sixteen flowers, face down. Turn over two at a time: a matching pair goes in your crown, and the rest turn back. A new table comes once you clear it. One minute.',
+  beat:'Pip and Tilly gasp together. "That\'s more than we ever got!" Tilly puts a crown on your hat. Pip puts one on the cat.',
+  deal() { const ids = [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]; for (let i = ids.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [ids[i], ids[j]] = [ids[j], ids[i]]; } return ids.map(f => ({ f, up:false, done:false })); },
+  init() { return { t:0, score:0, cards:this.deal(), open:[], hold:0, redeal:0, over:false }; },
+  update(st, dt) {
+    fgPops(st, dt);
+    if (st.hold > 0) { st.hold -= dt; if (st.hold <= 0) { for (const c of st.open) c.up = false; st.open = []; } }
+    if (st.redeal > 0) { st.redeal -= dt; if (st.redeal <= 0) st.cards = this.deal(); }
+  },
+  rect(i, w, h) { const cw = w / 4, ch = h * .76 / 4; return { x:(i % 4) * cw + 5, y:h * .19 + Math.floor(i / 4) * ch + 5, w:cw - 10, h:ch - 10 }; },
+  flip(st, i) {
+    const c = st.cards[i]; if (!c || c.up || c.done || st.hold > 0 || st.redeal > 0) return;
+    c.up = true; st.open.push(c); blip(600, 700, .05, 'sine', .03);
+    if (st.open.length === 2) {
+      const [a, b] = st.open;
+      if (a.f === b.f) { a.done = b.done = true; st.open = []; st.score++; blip(900, 1300, .12, 'sine', .05); fgPop(st, this._w / 2, this._h * .14, '+1 pair'); if (st.cards.every(z => z.done)) st.redeal = .9; }
+      else st.hold = .9;
+    }
+  },
+  tap(st, x, y, w, h) { this._w = w; this._h = h; for (let i = 0; i < 16; i++) { const r = this.rect(i, w, h); if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) { this.flip(st, i); return; } } },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 0); this._w = w; this._h = h;
+    for (let i = 0; i < 9; i++) circ(g, (i + .5) * w / 9, h * .08 + Math.sin(i) * 6, 5, ['#ffd0e0', '#fff4c8', '#cdbbff'][i % 3]);
+    st.cards.forEach((c, i) => {
+      const r = this.rect(i, w, h);
+      if (c.done) { g.globalAlpha = .35; }
+      R(g, r.x, r.y, r.w, r.h, c.up || c.done ? '#f4ead9' : '#6a8a4a');
+      if (!c.up && !c.done) { for (let k = 0; k < 3; k++) circ(g, r.x + r.w * (.3 + k * .2), r.y + r.h * (.35 + (k % 2) * .3), 3, '#8faa6a'); }
+      else { const [col, n] = CROWN_FACES[c.f], rr = Math.min(r.w, r.h) * .3; for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2; circ(g, r.x + r.w / 2 + Math.cos(a) * rr * .6, r.y + r.h / 2 + Math.sin(a) * rr * .6, rr * .5, col); } circ(g, r.x + r.w / 2, r.y + r.h / 2, rr * .32, '#f2b84b'); }
+      g.globalAlpha = 1;
+    });
+    fgDrawPops(g, st);
+  } };
+
+// Petal catch (Flower Dance, Hettie): tap the apple blossom before it reaches the grass.
+FGAMES.petals = { name:'Petal catch', fest:0, host:['hettie'], unit:'petals', tiers:[40, 52, 72], best:84, step:2, max:140, secs:40, look:['#f7d6e0', '❀'],
+  hostLine:'"When I was a girl we caught the apple petals for luck. Your aunt caught forty once. I caught thirty-nine, and I have never forgotten it."',
+  how:'Petals drift down from the apple trees. Tap them before they land in the grass. The golden ones are worth 2. Forty seconds.',
+  beat:'Hettie laughs until she has to sit down. "Forty-odd! Bramble would be furious. Oh, I wish she could see it."',
+  init:() => ({ t:0, score:0, ps:[], sp:.4, over:false }),
+  update(st, dt, w, h) {
+    fgPops(st, dt); st.sp -= dt;
+    if (st.sp <= 0 && st.t < 38.5) { st.sp = rnd(.38, .6); st.ps.push({ x:rnd(.1, .9) * w, y:h * .12, vy:rnd(.2, .3) * h, ph:Math.random() * 6, gold:Math.random() < .1, id:Math.random() }); }
+    for (const p of st.ps) { p.y += p.vy * dt; p.ph += dt * 2.2; p.x += Math.sin(p.ph) * 26 * dt; }
+    st.ps = st.ps.filter(p => p.y < h * .9);
+  },
+  tap(st, x, y) {
+    let best = null, bd = 34; for (const p of st.ps) { const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = p; } }
+    if (best) { st.score += best.gold ? 2 : 1; fgPop(st, best.x, best.y, best.gold ? '+2' : '+1', best.gold ? '#f2d36b' : '#fff'); st.ps = st.ps.filter(p => p !== best); blip(best.gold ? 1200 : 900, 1500, .06, 'sine', .04); }
+  },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 0);
+    for (const [x, s] of [[.15, 1], [.5, 1.2], [.85, 1]]) { R(g, x * w - 5, h * .06, 10, h * .1, '#6a4a2c'); for (let k = 0; k < 8; k++) circ(g, x * w + Math.cos(k) * 30 * s, h * .06 + Math.sin(k * 1.7) * 14 * s, 18 * s, k % 2 ? '#e8a8c0' : '#f4c8d8'); }
+    R(g, 0, h * .9, w, h * .1, '#5a8a3a'); for (let i = 0; i < 30; i++) R(g, hash(i, 1, 7) * w, h * .89, 2, 8, '#7aaa4a');
+    for (const p of st.ps) { g.save(); g.translate(p.x, p.y); g.rotate(Math.sin(p.ph) * .8); g.fillStyle = p.gold ? '#f2d36b' : '#ffc0d6'; g.beginPath(); g.ellipse(0, 0, 13, 8, 0, 0, 7); g.fill(); g.fillStyle = p.gold ? '#fff4c8' : '#fff'; g.beginPath(); g.ellipse(-3, -2, 4.5, 3, 0, 0, 7); g.fill(); g.restore(); }
+    fgDrawPops(g, st);
+  } };
+
+// Firefly jars (Lantern Night, Theo): tap the fireflies as they wander; golden ones count double.
+FGAMES.fireflies = { name:'Firefly jars', fest:1, host:['theo'], unit:'fireflies', tiers:[45, 60, 82], best:95, step:2, max:160, secs:40, look:['#d8f06a', '✦'],
+  hostLine:'"It\'s for science. I\'m counting the river fireflies. You catch, I count, and we let them all go after. Golden ones are rare, so they count double. Also for science."',
+  how:'Fireflies wander over the river bank, glowing on and off. Tap them to catch them in your jar. Golden ones are worth 2. Forty seconds.',
+  beat:'Theo checks his notes twice. "That\'s... a new record. Statistically remarkable. I\'m going to need a bigger notebook."',
+  init:() => ({ t:0, score:0, ff:[], sp:.3, over:false }),
+  update(st, dt, w, h) {
+    fgPops(st, dt); st.sp -= dt;
+    if (st.sp <= 0 && st.t < 38 && st.ff.length < 7) { st.sp = rnd(.35, .55); st.ff.push({ x:rnd(.1, .9) * w, y:rnd(.2, .82) * h, vx:rnd(-50, 50), vy:rnd(-40, 40), life:rnd(3.2, 4.6), age:0, ph:Math.random() * 6, gold:Math.random() < .15, id:Math.random() }); }
+    for (const f of st.ff) {
+      f.age += dt; f.ph += dt * 3; f.vx += rnd(-90, 90) * dt; f.vy += rnd(-90, 90) * dt; f.vx = clampN(f.vx, -70, 70); f.vy = clampN(f.vy, -60, 60);
+      f.x += f.vx * dt; f.y += f.vy * dt; if (f.x < 20 || f.x > w - 20) f.vx *= -1; if (f.y < h * .18 || f.y > h * .86) f.vy *= -1; f.x = clampN(f.x, 20, w - 20); f.y = clampN(f.y, h * .18, h * .86);
+    }
+    st.ff = st.ff.filter(f => f.age < f.life);
+  },
+  tap(st, x, y) {
+    let best = null, bd = 36; for (const f of st.ff) { const d = Math.hypot(f.x - x, f.y - y); if (d < bd) { bd = d; best = f; } }
+    if (best) { st.score += best.gold ? 2 : 1; fgPop(st, best.x, best.y - 14, best.gold ? '+2' : '+1', best.gold ? '#f2d36b' : '#d8f06a'); st.ff = st.ff.filter(f => f !== best); blip(best.gold ? 1400 : 1000, 1800, .06, 'sine', .04); }
+  },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 1);
+    R(g, 0, h * .62, w, h * .38, '#16302a'); for (let i = 0; i < 40; i++) R(g, hash(i, 2, 9) * w, h * .6 + hash(i, 3, 9) * 6, 2, 10 + hash(i, 4, 9) * 10, '#2a5a3a');
+    for (const f of st.ff) {
+      const fade = Math.min(1, f.age * 3, (f.life - f.age) * 2), glow = (.55 + .45 * Math.sin(f.ph)) * fade, col = f.gold ? '255,210,90' : '216,240,106';
+      const gr = g.createRadialGradient(f.x, f.y, 1, f.x, f.y, 22); gr.addColorStop(0, `rgba(${col},${.8 * glow})`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fillRect(f.x - 22, f.y - 22, 44, 44);
+      circ(g, f.x, f.y, 3.6, `rgba(${col},${Math.max(.35, glow)})`);
+    }
+    // the jar
+    g.strokeStyle = 'rgba(220,240,255,.6)'; g.lineWidth = 2; g.strokeRect(w - 54, h - 74, 40, 56); R(g, w - 58, h - 80, 48, 7, '#a57a4f');
+    for (let i = 0; i < Math.min(30, st.score); i++) circ(g, w - 50 + hash(i, 7, 1) * 32, h - 66 + hash(i, 8, 1) * 44, 2, '#d8f06a');
+    fgDrawPops(g, st);
+  } };
+
+// Duck scoop (Lantern Night, Fen): wooden ducks float past the ferry. Scoop the ones with a star on their back.
+FGAMES.ducks = { name:'Duck scoop', fest:1, host:['fen'], unit:'ducks', tiers:[22, 29, 36], best:40, step:1, max:70, secs:40, look:['#f2d36b', '◒'],
+  hostLine:'"Carved every one of these ducks myself, forty winters ago. The ones with a red star on their back are the lucky ones. Leave the others be, they\'re shy."',
+  how:'Wooden ducks float along the river. Tap the ones with a red star on their back to scoop them up. The plain ones don\'t count. Forty seconds.',
+  beat:'Fen looks at your bucket for a long moment. "Navy couldn\'t have done better," he says, which from Fen is a medal.',
+  init:() => ({ t:0, score:0, dk:[], sp:.2, lane:0, over:false }),
+  lanes:[.42, .6, .78],
+  update(st, dt, w, h) {
+    fgPops(st, dt); st.sp -= dt;
+    if (st.sp <= 0 && st.t < 37) { st.sp = rnd(.32, .5); st.lane = (st.lane + 1 + ((Math.random() * 2) | 0)) % 3; const dir = st.lane === 1 ? -1 : 1; st.dk.push({ lane:st.lane, x:dir > 0 ? -30 : w + 30, v:dir * rnd(120, 175), star:Math.random() < .4, id:Math.random(), bob:Math.random() * 6 }); }
+    for (const d of st.dk) { d.x += d.v * dt; d.bob += dt * 3; }
+    st.dk = st.dk.filter(d => d.x > -40 && d.x < w + 40);
+  },
+  tap(st, x, y, w, h) {
+    let best = null, bd = 34; for (const d of st.dk) { const dd = Math.hypot(d.x - x, this.lanes[d.lane] * h - y); if (dd < bd) { bd = dd; best = d; } }
+    if (!best) return;
+    if (best.star) { st.score++; fgPop(st, best.x, this.lanes[best.lane] * h - 20, '+1'); st.dk = st.dk.filter(d => d !== best); blip(800, 1200, .08, 'sine', .04); }
+    else { fgPop(st, best.x, this.lanes[best.lane] * h - 20, 'plain', 'rgba(244,234,217,.7)'); best.shy = .4; }
+  },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 1);
+    R(g, 0, h * .3, w, h * .7, '#13284a'); for (let i = 0; i < 14; i++) R(g, (hash(i, 1, 3) * w + st.t * 14) % w, h * .32 + hash(i, 2, 3) * h * .66, 20, 2, 'rgba(160,200,255,.22)');
+    R(g, 0, h * .26, w, h * .06, '#8a6440'); for (let i = 0; i < 8; i++) lanternGlow(g, (i + .5) * w / 8, h * .26);
+    for (const d of st.dk) {
+      const y = this.lanes[d.lane] * h + Math.sin(d.bob) * 2, f = d.v > 0 ? 1 : -1;
+      g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(d.x, y + 12, 18, 4, 0, 0, 7); g.fill();
+      g.fillStyle = '#e8c070'; g.beginPath(); g.ellipse(d.x, y + 2, 17, 10, 0, 0, 7); g.fill();
+      circ(g, d.x + f * 12, y - 9, 8, '#e8c070'); R(g, d.x + f * 18 - (f < 0 ? 6 : 0), y - 9, 6, 3, '#f08c2a'); circ(g, d.x + f * 14, y - 11, 1.6, '#2a1d36');
+      if (d.star) { starShape(g, d.x - f * 2, y - 1, 8.5, '#7a2a1a'); starShape(g, d.x - f * 2, y - 1, 6.5, '#ff5a3a'); }
+    }
+    fgDrawPops(g, st);
+  } };
+function lanternGlow(g, x, y) { const gr = g.createRadialGradient(x, y, 1, x, y, 26); gr.addColorStop(0, 'rgba(255,207,107,.6)'); gr.addColorStop(1, 'rgba(255,207,107,0)'); g.fillStyle = gr; g.fillRect(x - 26, y - 26, 52, 52); circ(g, x, y, 5, '#ffcf6b'); }
+
+/* ---- festival wardrobe (Part 2): two pieces at each festival's prize stall, worn from the mirror like the treasures ---- */
+Object.assign(FEST_WEAR, {
+  crown:   { name:'Flower Crown',     fest:0, cost:30, col:'#ef9aac', desc:'Daisies and apple blossom, for your hat brim.' },
+  shawl:   { name:'Petal Shawl',      fest:0, cost:30, col:'#f7c6d6', desc:'Soft pink, over your shoulders.' },
+  earrings:{ name:'Lantern Earrings', fest:1, cost:30, col:'#f2d36b', desc:'Two tiny paper lanterns that catch the light.' },
+  sash:    { name:'Firefly Sash',     fest:1, cost:30, col:'#7aa04a', desc:'Green silk, dotted with glowing thread.' },
+  rosette: { name:'Prize Rosette',    fest:2, cost:30, col:'#3a6ab0', desc:'A blue ribbon from the Harvest Fair.' },
+  scarf:   { name:'Autumn Scarf',     fest:2, cost:30, col:'#c8502a', desc:'Russet wool, knitted by Isolde.' },
+  snowpin: { name:'Snowflake Pin',    fest:3, cost:30, col:'#e8f6ff', desc:'Silver frost for your hat band.' },
+  cape:    { name:'Snow Cape',        fest:3, cost:30, col:'#f4f6fa', desc:'A short white capelet, warm as toast.' }
+});
+const festWearOwned = () => FEST_WEAR_IDS().filter(prizeOwned);
+// SVG for the mirror (witchSVG's 80x100 box)
+function festWearSVG(W) {
+  let h = '';
+  if (W('cape')) h += '<path d="M24 50 Q40 46 56 50 L61 65 Q40 71 19 65 Z" fill="#f4f6fa"/><circle cx="26" cy="62" r="1" fill="#cfd8e2"/><circle cx="54" cy="62" r="1" fill="#cfd8e2"/><circle cx="40" cy="66" r="1" fill="#cfd8e2"/>';
+  if (W('shawl')) h += '<path d="M24 50 Q40 60 56 50 L59 58 Q40 70 21 58 Z" fill="#f7c6d6"/><circle cx="40" cy="62" r="1.6" fill="#ef9aac"/>';
+  if (W('sash')) h += '<path d="M29 50 L35 50 L58 88 L52 90 Z" fill="#5a8a3a"/><circle cx="38" cy="60" r="1.2" fill="#e8f06a"/><circle cx="44" cy="70" r="1.2" fill="#e8f06a"/><circle cx="50" cy="80" r="1.2" fill="#e8f06a"/>';
+  if (W('scarf')) h += '<path d="M28 47 Q40 54 52 47 L52 52 Q40 59 28 52 Z" fill="#c8502a"/><rect x="45" y="51" width="5" height="12" rx="1" fill="#b0441f"/>';
+  if (W('rosette')) h += '<rect x="30" y="61" width="2.4" height="7" fill="#2a4a8a"/><rect x="33.6" y="61" width="2.4" height="7" fill="#2a4a8a"/><circle cx="33" cy="60" r="4" fill="#3a6ab0"/><circle cx="33" cy="60" r="1.8" fill="#f2d36b"/>';
+  if (W('earrings')) h += '<rect x="27.4" y="44" width="2.4" height="3.2" rx="1" fill="#f2b84b"/><rect x="50.2" y="44" width="2.4" height="3.2" rx="1" fill="#f2b84b"/>';
+  return h;
+}
+function festWearHatSVG(W) {
+  let h = '';
+  if (W('crown')) h += [18, 25, 32, 40, 48, 55, 62].map((x, i) => `<circle cx="${x}" cy="${28 + (i % 2)}" r="2.4" fill="${['#ef9aac', '#fff', '#f2d36b', '#cdbbff'][i % 4]}"/>`).join('');
+  if (W('snowpin')) h += '<g transform="translate(46 24)" stroke="#e8f6ff" stroke-width="1.1" stroke-linecap="round"><path d="M-3 0 H3 M-1.5 -2.6 L1.5 2.6 M-1.5 2.6 L1.5 -2.6"/></g>';
+  return h;
+}
+// The same pieces in the world (drawWitch), body then hat.
+function drawFestWearBody(px, fy, u, d) {
+  if (wearing('cape')) { ctx.fillStyle = '#f4f6fa'; ctx.beginPath(); ctx.moveTo(px - 3.4 * u, fy - 9.4 * u); ctx.lineTo(px + 3.4 * u, fy - 9.4 * u); ctx.lineTo(px + 4.6 * u, fy - 5.6 * u); ctx.lineTo(px - 4.6 * u, fy - 5.6 * u); ctx.closePath(); ctx.fill(); }
+  if (wearing('shawl')) { ctx.fillStyle = '#f7c6d6'; ctx.beginPath(); ctx.moveTo(px - 3.1 * u, fy - 9.2 * u); ctx.lineTo(px + 3.1 * u, fy - 9.2 * u); ctx.lineTo(px + 3.8 * u, fy - 6.8 * u); ctx.lineTo(px - 3.8 * u, fy - 6.8 * u); ctx.closePath(); ctx.fill(); }
+  if (wearing('sash')) { ctx.strokeStyle = '#5a8a3a'; ctx.lineWidth = 1.2 * u; ctx.beginPath(); ctx.moveTo(px - 2.2 * u, fy - 8.8 * u); ctx.lineTo(px + 3.8 * u, fy - 1.8 * u); ctx.stroke(); circ(ctx, px + .8 * u, fy - 5.3 * u, .4 * u, '#e8f06a'); }
+  if (wearing('scarf')) { R(ctx, px - 2.8 * u, fy - 9.6 * u, 5.6 * u, 1.3 * u, '#c8502a'); R(ctx, px + d * 1.2 * u - (d < 0 ? 1 * u : 0), fy - 8.6 * u, 1 * u, 2.8 * u, '#b0441f'); }
+  if (wearing('rosette')) { circ(ctx, px - d * 1.4 * u, fy - 6.6 * u, .95 * u, '#3a6ab0'); circ(ctx, px - d * 1.4 * u, fy - 6.6 * u, .4 * u, '#f2d36b'); }
+}
+function drawFestWearHead(px, fy, u, d) {
+  if (wearing('earrings')) circ(ctx, px - d * .8 * u, fy - 9.3 * u, .45 * u, '#f2b84b');
+  if (wearing('crown')) for (let k = 0; k < 5; k++) circ(ctx, px + (k - 2) * 2.2 * u, fy - 13.3 * u + (k % 2) * .3 * u, .7 * u, ['#ef9aac', '#fff', '#f2d36b', '#cdbbff'][k % 4]);
+  if (wearing('snowpin')) { ctx.strokeStyle = '#e8f6ff'; ctx.lineWidth = .35 * u; const sx = px + d * 1.6 * u, sy = fy - 14 * u; ctx.beginPath(); for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3; ctx.moveTo(sx - Math.cos(a) * .9 * u, sy - Math.sin(a) * .9 * u); ctx.lineTo(sx + Math.cos(a) * .9 * u, sy + Math.sin(a) * .9 * u); } ctx.stroke(); }
+}
+
+/* ---- the Festivals page (Part 2): from the Journal's Almanac tab ---- */
+function festBookRender() {
+  let h = `<p class="sub">You have <b>${S.tickets || 0}</b> ticket${S.tickets === 1 ? '' : 's'} for the prize stall. Every festival is on day 14, from 10 am to 10 pm.</p>`;
+  for (let s = 0; s < 4; s++) {
+    const games = FEST_BOOTHS[s].map(b => b.id).filter(id => FGAMES[id] && id !== 'dance');
+    h += `<h4 class="sec">${FEST[s].name} · ${SEASONS[s]} 14</h4>`;
+    for (const id of games) {
+      const G = FGAMES[id], rb = ribbonYears(id), mine = (S.fbest || {})[id];
+      h += row(G.look[0], G.name, `${hostNames(G.host)} · their best ${hostBest(id)} ${G.unit}${mine ? ` · yours ${mine}` : ' · not played yet'}${rb.length ? ` · ribbon ${rb.map(y => 'year ' + y).join(', ')}` : ''}`, '', rb.length ? 'sel' : '');
+    }
+    if (s === 0) { const G = FGAMES.dance, mine = (S.fbest || {}).dance, rb = ribbonYears('dance'); h += row(G.look[0], 'The dance', `With your partner · ${mine ? `your best ${mine} steps` : 'not danced yet'}${rb.length ? ` · ribbon ${rb.map(y => 'year ' + y).join(', ')}` : ''}`, '', rb.length ? 'sel' : ''); }
+    const wear = FEST_WEAR_IDS().filter(k => FEST_WEAR[k].fest === s), keep = KEEPSAKE_IDS().filter(k => KEEPSAKES[k].fest === s), rec = FEST_DISHES().filter(k => DISHES[k].fest === s);
+    const got = wear.filter(prizeOwned).length + keep.filter(prizeOwned).length + rec.filter(dishKnown).length, all = wear.length + keep.length + rec.length;
+    h += `<p class="sub">Prizes from this festival: ${got} of ${all}${got < all ? ` (still to win: ${wear.filter(k => !prizeOwned(k)).map(k => FEST_WEAR[k].name).concat(keep.filter(k => !prizeOwned(k)).map(k => KEEPSAKES[k].name), rec.filter(k => !dishKnown(k)).map(k => DISHES[k].name)).join(', ')})` : '. All yours!'}.</p>`;
+  }
+  const ribbons = Object.values(S.ribbons || {}).reduce((a, r) => a + r.length, 0);
+  h += `<p class="sub">Ribbons won: ${ribbons}. Beat a host's best to win one, once a year for each game.</p>`;
+  return h + `<button class="btn alt" data-act="fbback" type="button">Back to the almanac</button>`;
+}
 
 /* ---------- mail ---------- */
 const LETTERS = {
@@ -6153,7 +6353,7 @@ function renderSheet(kind, data) {
         const bd = VIDS.filter(v => S.year > 1 || VILLAGERS[v].arrive <= S.season).filter(v => VILLAGERS[v].bday[0] === si).map(v => `${VILLAGERS[v].name}'s birthday · day ${VILLAGERS[v].bday[1]}`);
         h += `<div class="${si === S.season ? 'now' : ''}"><b>${sn}</b>${list.join(', ')}<br>${FEST[si].name} · day ${FEST_DAY}${bd.length ? '<br>' + bd.join('<br>') : ''}</div>`;
       });
-      h += `</div><ul class="lines"><li>Requests filled: ${S.helped} · missed: ${S.missed}</li><li>Fish caught: ${S.fishCaught}</li>${S.hollowMax ? `<li>Deepest floor of the Hollow: ${S.hollowMax}${endless(S.hollowMax) ? ' (the Endless Below)' : ''}${HS().wardens[HOLLOW_BOTTOM] ? ' · the Heart is calm' : ''}</li>` : ''}${S.almanac ? `<li class="gold">Tomorrow: ${S.nextRain ? 'rain, no watering needed' : (S.season === 3 ? 'cold and dry' : 'dry, bring the can')}</li>` : ''}</ul>`;
+      h += `</div><button class="vrow" data-act="festbook" type="button"><div class="info"><span class="name">Festivals</span><span class="meta">Games, hosts' best scores, your ribbons and prizes · ${S.tickets || 0} ticket${S.tickets === 1 ? '' : 's'}</span></div><span class="chev" aria-hidden="true">›</span></button><ul class="lines"><li>Requests filled: ${S.helped} · missed: ${S.missed}</li><li>Fish caught: ${S.fishCaught}</li>${S.hollowMax ? `<li>Deepest floor of the Hollow: ${S.hollowMax}${endless(S.hollowMax) ? ' (the Endless Below)' : ''}${HS().wardens[HOLLOW_BOTTOM] ? ' · the Heart is calm' : ''}</li>` : ''}${S.almanac ? `<li class="gold">Tomorrow: ${S.nextRain ? 'rain, no watering needed' : (S.season === 3 ? 'cold and dry' : 'dry, bring the can')}</li>` : ''}</ul>`;
     }
   } else if (kind === 'fish') {
     title = 'Fishing at the pond';
@@ -6365,7 +6565,12 @@ function renderSheet(kind, data) {
       h += `<h4 class="sec">Treasures from the Hollow</h4><div class="cta-row wear">${own.map(k => `<button class="btn ${wearing(k) ? '' : 'alt'}" data-act="wear" data-id="${k}" aria-pressed="${wearing(k)}" type="button">${wearing(k) ? '✓ ' : ''}${TREASURES[k].name}</button>`).join('')}</div>`;
       if (own.length < Object.keys(TREASURES).length) h += `<p class="sub">${Object.keys(TREASURES).length - own.length} more ${Object.keys(TREASURES).length - own.length === 1 ? 'treasure waits' : 'treasures wait'} with the Wardens deeper down.</p>`;
     }
+    const fw = festWearOwned();
+    if (fw.length) h += `<h4 class="sec">Festival finery</h4><div class="cta-row wear">${fw.map(k => `<button class="btn ${wearing(k) ? '' : 'alt'}" data-act="wear" data-id="${k}" aria-pressed="${wearing(k)}" type="button">${wearing(k) ? '✓ ' : ''}${FEST_WEAR[k].name}</button>`).join('')}</div>`;
+    if (fw.length < FEST_WEAR_IDS().length) h += `<p class="sub">${fw.length ? 'More' : 'Pretty things'} to wear wait at the festival prize stalls, for tickets.</p>`;
     h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Done</button></div>`;
+  } else if (kind === 'festbook') {
+    title = 'Festivals'; h += festBookRender();
   } else if (kind === 'cave') {
     title = 'The Hollow';
     const Hs = HS(), stops = liftStops();
@@ -6580,6 +6785,8 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'gofest') { goFest(); return; }
   else if (['dance', 'wish', 'fairenter', 'feastgive'].includes(act)) { festAct(act, id); SND.gift(); updateHUD(); renderSheet('booth', { p:FEST_MAIN[S.season] }); }
   else if (act === 'fplay') { openGame(id); return; }
+  else if (act === 'festbook') { sheetOpen = 'festbook'; renderSheet('festbook'); return; }
+  else if (act === 'fbback') { journalTab = 'almanac'; sheetOpen = 'journal'; renderSheet('journal'); return; }
   else if (act === 'tbuy') { if (prizeBuy(id)) { SND.coin(); toast(id.startsWith('r:') ? `New recipe: ${DISHES[id.slice(2)].name}. Cook it in the Kitchen.` : 'Yours!'); updateHUD(); } renderSheet('booth', { p:'prizes' }); }
   else if (act === 'mirror') { sheetOpen = 'wardrobe'; renderSheet('wardrobe'); return; }
   else if (act === 'look') { S.look = Object.assign(lookOf(), { [b.dataset.k]:b.dataset.c }); renderSheet('wardrobe'); }
@@ -6703,7 +6910,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 21, BUILD_DATE = 'Nov 10'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 22, BUILD_DATE = 'Nov 10'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();
