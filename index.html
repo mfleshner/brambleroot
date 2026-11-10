@@ -1405,7 +1405,7 @@ function autoSelect() {
 }
 function tired() { toast('Too tired to keep working. Sleep to get your energy back.'); queue = []; return false; }
 function visit(k, q) {
-  if (k === 'villager') { const x = (S.visits || []).find(z => z.v === q.v); if (x && visitPresent(x)) openSheet('villager', { v:q.v, from:'garden', mood:isPartner(q.v) ? 'love' : undefined, line:S.talked[q.v] === dayKey() ? null : (x.spouse ? ROMANCE[q.v].wed[(Math.random() * ROMANCE[q.v].wed.length) | 0] : VISIT_LINES[q.v]) }); else toast(`${VILLAGERS[q.v].name} has already headed home.`); return; }
+  if (k === 'villager') { const x = (S.visits || []).find(z => z.v === q.v); if (x && visitPresent(x)) openSheet('villager', { v:q.v, from:'garden', mood:isPartner(q.v) ? 'love' : undefined, line:S.talked[q.v] === dayKey() ? null : (x.spouse ? sayLine(q.v + ':r', ROMANCE[q.v].wed) : visitLine(q.v)) }); else toast(`${VILLAGERS[q.v].name} has already headed home.`); return; }
   if (k === 'gate') { openSheet('gate'); return; }
   if (k === 'tovillage') { enterVillage(q.seek, q.place); return; }
   if (k === 'towood') { enterWood(); if (q.hew) queue.push({ c:7, r:5, kind:'visit', b:'hewtower' }); return; }
@@ -1813,7 +1813,7 @@ function romanceMorning(lines) {
   let t;
   if (w && w.s === S.season && w.d === S.day && S.year > w.y) { const yrs = S.year - w.y; giveItems({ starshard:1 }); t = `It's your anniversary: ${yrs} year${yrs === 1 ? '' : 's'} married. ${V.name} gives you a Starshard tied with a ribbon. "One star for every year, starting now."`; }
   else if (isBday(v)) t = R.bday;
-  else t = Math.random() < .6 ? pick(R.morn) : pick(S.rain ? GREET.rain : (S.snow ? GREET.snow : GREET[S.season])).replace('{n}', V.name);
+  else t = Math.random() < .6 ? sayLine(v + ':m', R.morn) : pick(S.rain ? GREET.rain : (S.snow ? GREET.snow : GREET[S.season])).replace('{n}', V.name);
   const help = Math.random() < SPOUSE_HELP_P ? SPOUSE_HELP[v]() : null;
   if (help) lines.unshift({ t:help, c:'gold' });
   lines.unshift({ t, c:'gift', v, mood:'love' });
@@ -1872,14 +1872,16 @@ function talkTo(v) {
   if (S.talked[v] === dayKey()) return;
   S.talked[v] = dayKey();
   addFr(v, 20);
-  const V = VILLAGERS[v], h = heartsOf(v), tier = h < 3 ? 0 : (h < 6 ? 1 : 2);
-  let line = V.talk[tier][(Math.random() * V.talk[tier].length) | 0];
-  if (v === 'aldous' && Math.random() < .5) { const st = Object.values(S.charters).filter(c => c.s === S.season && c.y === S.year).reduce((n, c) => n + c.stars.filter(x => x.done).length, 0);
+  const V = VILLAGERS[v], h = heartsOf(v), tier = h < 3 ? 0 : (h < 6 ? 1 : 2), D = DIALOG[v], R = ROMANCE[v];
+  let pool = V.talk[tier], key = v;
+  if (D) { pool = pool.concat(D.s[S.season] || []); if (S.rain) pool = pool.concat(D.rain, D.rain); }
+  if (isPartner(v) && R && Math.random() < .7) { key = v + ':r'; pool = v === S.spouse ? R.wed : (S.wedding && S.wedding.v === v && Math.random() < .5 ? R.engaged : R.date); }
+  else if (hasCrush(v, h) && Math.random() < .4) { key = v + ':c'; pool = R.crush; }
+  let line = sayLine(key, pool);
+  if (key === v && v === 'aldous' && Math.random() < .5) { const st = Object.values(S.charters).filter(c => c.s === S.season && c.y === S.year).reduce((n, c) => n + c.stars.filter(x => x.done).length, 0);
     line = st >= 3 ? 'Three stars! Three! I have told the whole Guild. Twice. They asked me to stop writing.' : st > 0 ? `${st} star${st === 1 ? '' : 's'} on this season's charter already. The Guild will be pleased. I'm pleased. I've told everyone.` : "No stars on the charter yet this season, but there's time. There's always time. Within reason."; }
-  if (DEEP_TALK[v] && (S.hollowMax || 0) >= 31 && Math.random() < .35) { const deep = S.hollowMax;
-    line = DEEP_TALK[v](deep); }
-  if (S.hew && S.hew.met && !S.hew.wed && VILLAGERS[v].look.age !== 'kid' && Math.random() < .15) line = HEW_GOSSIP[(Math.random() * HEW_GOSSIP.length) | 0];
-  if (isPartner(v) && ROMANCE[v] && Math.random() < .7) { const pool = v === S.spouse ? ROMANCE[v].wed : ROMANCE[v].date; line = pool[(Math.random() * pool.length) | 0]; }
+  if (key === v && DEEP_TALK[v] && (S.hollowMax || 0) >= 31 && Math.random() < .35) line = DEEP_TALK[v](S.hollowMax);
+  if (key === v && S.hew && S.hew.met && !S.hew.wed && V.look.age !== 'kid' && Math.random() < .15) line = sayLine('gossip', HEW_GOSSIP);
   if (isBday(v)) line = "It's my birthday today! " + line;
   blip(500, 650, .08, 'sine', .04);
   celebrate(v, isPartner(v) ? 'love' : (h >= 3 || isBday(v) ? 'happy' : 'neutral'), line);
@@ -2458,6 +2460,1065 @@ const VISIT_LINES = {
   bertram:"Walking off breakfast. Fen says I need the exercise. Fen should talk.",
   tilly:"Is Pip here? No? Then I came to see the cat. And you! Mostly the cat."
 };
+/* ---------- more dialog (Nov 9, 2026) ----------
+   DIALOG[v]: t = extra chat per heart tier (added onto VILLAGERS[v].talk), s = per-season chat,
+   rain = rainy-day chat, visit = extra garden-visit greetings. ROMANCE_MORE[v]: crush (5+ hearts, single,
+   romanceable), engaged (before the wedding), plus more date/wed/morn lines. sayLine() avoids repeats. */
+const DIALOG = {
+mara:{
+  t:[[
+    "Mind the sacks, they're stacked by somebody who isn't me. Fine, it was me.",
+    "If you see a goat in a hat, that's Turnip. If you see a hat with no goat, she's eaten the goat. Joking.",
+    "Flour gets everywhere. I found some in a letter I hadn't opened yet.",
+    "The new witch, is it? Mara. Miller. That racket is the wheel, not me.",
+    "Turnip chewed the bell rope at the mill again. Now it just goes 'thunk'.",
+    "Long day already. The wheel doesn't care that I'd rather be in bed."
+  ],[
+    "I tried one of your herbs in the bread. The lads asked for seconds. Don't let it go to your head.",
+    "Turnip stood at the mill door all morning, looking up the lane. I think she was waiting for you.",
+    "You've a nice way of talking to people. Bramble had it too. Made you want to tell her things.",
+    "If you ever need flour, just take it. I'll write it down somewhere and forget I did.",
+    "I sang at the wheel today. First time in a long while. Don't tell anyone, I'm terrible.",
+    "The sails sound different when there's wind from your side of the valley. Sweeter. Or I'm getting soft."
+  ],[
+    "I set an extra cup out this morning without thinking. Then you walked in. Funny, that.",
+    "Some days the mill feels like a lot to carry. Then you turn up and it's just a mill again.",
+    "I told Turnip you're family now. She ate the paper I wrote it on. That's as good as signing.",
+    "You don't have to say anything. Just sit. It's nice, not being the only one in the room.",
+    "I keep the good honey for you. The lads get the runny stuff. They haven't noticed.",
+    "He'd have liked you, you know. My husband. He liked anyone who made me laugh."
+  ]],
+  s:[["Spring flour's the best. The wheat's had all winter to think about it.","Turnip's shedding. There's more goat on my skirt than on the goat."],
+     ["Hot as an oven inside the mill. I've started working in the doorway.","The millpond's warm enough to paddle. Turnip disapproves of paddling."],
+     ["Harvest wheat's coming in by the cartload. My arms have opinions about it.","Autumn's the mill's busy season. Remind me I love it, would you?"],
+     ["The wheel's freezing up again. I spend half the morning chipping ice.","Turnip's got a little blanket now. She hates it. She won't take it off."]],
+  rain:["Rain on the mill roof is the best sound there is. Next to the kettle.","Wheel's turning lovely in this rain. Small mercies."],
+  visit:["Turnip wanted a walk. I wanted a sit-down. We compromised. Here we are.","Brought you a loaf. It's still warm. Mind your fingers.","Your herbs smell like summer even in the rain. I came to have a sniff.","I was supposed to be at the mill an hour ago. Don't tell the lads where I am."]
+},
+fen:{
+  t:[[
+    "Mm. New witch. Good.",
+    "Ferry's running. Fog permitting.",
+    "Water's cold today. Always is. Never stopped me.",
+    "Don't stand so near the edge. Bank gives way without asking.",
+    "Herons are back. Means the fish are too.",
+    "You'll want boots for this side of the river."
+  ],[
+    "Bertram says I tell stories wrong. Bertram wasn't there for half of them.",
+    "Your aunt could row backwards faster than I row forwards. Never forgave her.",
+    "Saw a pike near the mill weir this big. Then it saw me. One of us was frightened.",
+    "Ferry rope's new. Rowan spliced it. Good lad. Don't tell him I said so.",
+    "Quiet on the water today. I like quiet. You're quiet too. Mostly.",
+    "Juno's always rushing. Rivers don't rush. Well. Some do. Not this one."
+  ],[
+    "Kept a seat on the ferry for you. Nobody sits in it now but you.",
+    "I'm old, witch. I don't make new friends much. Made an exception.",
+    "Your aunt'd be pleased. She'd never say it. She'd just row harder.",
+    "When I'm done with the ferry, I'd like it to go to someone who listens to the water. Juno, maybe. Or you.",
+    "Sit. Watch. Fish'll come or they won't. Either way it's a good evening.",
+    "I don't say it much. Glad you came to the valley."
+  ]],
+  s:[["River's high with snowmelt. Ferry's earning its keep.","Spring mornings, the mist sits on the water like wool."],
+     ["Too warm to row at noon. I row at dawn and nap after.","Kids keep jumping off the ferry for a swim. I pretend to be cross."],
+     ["Leaves on the water. Pretty. Clog the oars something terrible.","Autumn fish are fat and lazy. Like me."],
+     ["Ice on the edges. Ferry still goes. Slower.","Cold enough to see your breath in the cabin. Bertram calls it bracing. Bertram stays home."]],
+  rain:["Rain's good for the river. Bad for my knees.","Wet day. Fish don't mind. Neither do I, much."],
+  visit:["Pond's looking good. Saw a ripple. Could be a fish. Could be a frog. Either's fine.","Walked up from the river. Long way. Worth it. Nice garden.","Bertram's fishing my spot. Came here to sulk.","Brought you a river stone. Smooth one. Good for nothing. Nice to hold."]
+},
+pip:{
+  t:[[
+    "Can witches fly? Can you fly? Can you fly me?",
+    "I'm not allowed near the oven. I'm allowed near you though. I asked.",
+    "Your cat blinked at me slowly. Ma says that means I love you in cat. Is that true?",
+    "Do you know any spells for making carrots taste like cake?",
+    "Tilly says witches eat snails. I said that's the French. Is it both?",
+    "I saw a toad in the square. It was HUGE. Was it one of yours?"
+  ],[
+    "I made a wand out of a stick. I pointed it at Tilly and she sneezed. That's magic, right?",
+    "Ma says I'm not to bother you. Am I bothering you? I'll be quiet. ...Can I ask one thing?",
+    "Odile taught us about mushrooms. Some are poison. Some are dinner. Hard to tell!",
+    "I kept a bun for you in my pocket. It got a bit squashed. It's still good on the inside.",
+    "Tilly and I are writing a book of spells. Mostly it's drawings of the cat.",
+    "When you're busy I watch from the fence. I'm learning. I'm learning so much."
+  ],[
+    "I told everyone at school you're my witch. Odile said 'you can't own a witch'. I can a bit.",
+    "You always have time for me. Grown-ups don't usually. Thanks.",
+    "If I grow up and I'm not a witch, I'll be a baker who visits you every day. That's nearly as good.",
+    "I'm going to name my first cat after you. Or after your cat. I haven't decided.",
+    "Ma says you're good for me. I said I know.",
+    "Can I tell you a secret? I'm scared of the dark. Not when the cottage lights are on though."
+  ]],
+  s:[["There's ducklings at the river! Seven! I counted twice and got eight.","Ma's making spring buns. I'm in charge of the sprinkles. It's a big job."],
+     ["It's so hot the butter melts on the shop counter. Ma's cross. I'm licking it.","Me and Tilly built a dam in the stream. A fish got stuck. We let him go."],
+     ["I'm going to be a ghost for the fair. Ma says I can't use her good sheet.","I collected forty conkers. Tilly has forty-one. She's cheating somehow."],
+     ["I made a snow witch! She's got your hat. Well, a bucket. It looks like your hat.","Is it true witches don't get cold? I'm always cold. I'll be a hot witch."]],
+  rain:["Puddles! I jumped in nine. Ma's going to notice my boots.","When it rains the bakery smells even better. Is that magic?"],
+  visit:["I'm not supposed to be here. Ma thinks I'm at Tilly's. Tilly thinks I'm at home.","I brought you a worm. He's a good worm. He's for your garden.","Can I hold the watering can? I'll only water the dirt. Promise.","Is the cat in? I've got something to tell her."]
+},
+odile:{
+  t:[[
+    "Good day. You must be Bramble's niece. I'm Odile, I teach the children. They've heard of you.",
+    "Please don't mind if I'm brief. Lessons at nine, and it's quarter to.",
+    "The children want to know whether witches have homework. I said yes. Do you?",
+    "I'm told you can name every herb in the valley. I can name them in Latin. Shall we compare notes?",
+    "I found a chalk drawing of you on the school wall. It's quite flattering, really.",
+    "Mind the puddle, it's deeper than it looks. Pip discovered that this morning."
+  ],[
+    "I've been reading an old herbal at night. I keep thinking, I must ask her about this.",
+    "Tilly wrote a story about your cat. It has a happy ending. I gave it top marks.",
+    "Do you ever just stop and listen to the valley? I do it between lessons. Tea helps.",
+    "The children have started calling you 'Miss Witch'. I haven't corrected them. It's rather charming.",
+    "I pressed one of your violets. It's on the classroom windowsill. They ask about it every day.",
+    "I'm told I fuss. I prefer 'attentive'. You can tell me if I fuss."
+  ],[
+    "Some evenings I walk past your cottage just to see the lights on. Is that silly?",
+    "You're very easy to talk to. I hadn't noticed how rarely I talk about myself until you asked.",
+    "I've started saving my best stories for you. The children get the second-best ones now.",
+    "When I was young I thought magic meant great spells. You've shown me it's mostly patience.",
+    "I wanted you to know, you make my days better. There. I've said it. Now I'll go and blush.",
+    "Your aunt gave me a flower once, on a bad day. I've been hoping to pass that on. Here."
+  ]],
+  s:[["Spring term. The children are wild as hares and twice as fast.","I take the class out to name the new flowers. They name them all 'Daisy'."],
+     ["Summer reading by the river is my favourite lesson. Mostly we paddle.","It's too hot to think, so I've given the children a sums test. That'll show them."],
+     ["Autumn always smells like ink and woodsmoke to me. New exercise books.","We're pressing leaves in class. Every book in the school is stuffed with them."],
+     ["Winter lessons by the stove. The children fall asleep. So, occasionally, do I.","I've knitted scarves for half the class. The other half get them next year."]],
+  rain:["A wet playtime. Forty children, one room. Pray for me.","I love the sound of rain on the schoolhouse roof. The children say it's spooky."],
+  visit:["I was gathering specimens for a lesson and ended up in your garden. Again.","May I sit for a minute? It's been a very loud day.","I brought you a book I think you'd like. No hurry to return it. Truly.","The children asked me to say hello. Twenty times. Hello, twenty times."]
+},
+wren:{
+  t:[[
+    "Wren. Bees. Hello! I'm better with bees than people. Working on it.",
+    "If you hear angry buzzing, walk, don't run. Running is rude to bees.",
+    "Do you want a jar of honey? I've got about two hundred.",
+    "I came out from the city. It was loud. The bees aren't. Well, they are, but nicely.",
+    "Sorry, there's a bee on your shoulder. Don't swat! She's just saying hello.",
+    "Your garden smells wonderful. My bees say so. I asked them."
+  ],[
+    "I counted the hives today. Still twelve. Some days I count them twice to be sure.",
+    "I learned the waggle dance. Not to do it. To read it. Fine, I did it a bit too.",
+    "Pip got stung and didn't even cry. Then they cried. Then they asked for honey.",
+    "The bees hum in a different key when you're near. It's true. I've been listening.",
+    "I'm trying beeswax candles. They smell lovely. One of them is lopsided. That one's yours.",
+    "You don't flap at bees. Most people flap. It says a lot about a person."
+  ],[
+    "When I'm upset I come and sit with the hives. Lately I've been coming to see you instead.",
+    "I wrote down your name in the hive journal. Under 'friends'. It's a short list.",
+    "I used to think I'd only ever be good at bees. You make me feel good at people too.",
+    "The bees and I talked it over. You're welcome any time. They insisted.",
+    "Being near you is like being near a warm hive. Steady. Humming. Safe.",
+    "I saved the first comb of the year for you. It's the best. It's always the best."
+  ]],
+  s:[["Spring! The queens are waking up. Everyone's grumpy. Then everyone's busy.","Blossom everywhere. The bees are drunk on it. Happy-drunk."],
+     ["Swarm season. If you see a cloud of bees, call me, don't poke it.","I'm sticky from top to toe. Summer honey's running."],
+     ["Last honey of the year. I always feel a little sad bottling it.","The bees are bringing in ivy pollen. It makes the honey taste of hedgerows."],
+     ["The hives are wrapped up and humming. They cuddle up all winter. Can you imagine?","Winter's quiet for a beekeeper. I knit. Badly. With honey on my fingers."]],
+  rain:["The bees hate rain. They all stay in and complain. So do I, a bit.","Good day for jarring honey. Bad day for anything else."],
+  visit:["Your lavender's popular. Six of my bees told me about it.","Brought you some comb. Don't eat it all at once. Fine, eat it all at once.","I'm just following a bee. She came this way. Hello!","Do you mind if I sit here and watch the flowers? It's for work. Partly."]
+},
+rowan:{
+  t:[[
+    "Rowan. Smith. ...That's it. That's the introduction.",
+    "Don't touch that. It's hot. Everything here is hot.",
+    "If it's broken, I'll fix it. If it's not, I'm busy.",
+    "Your aunt's gate was always squeaking. Still is, I bet.",
+    "Hm. You've got soil under your nails. Good. Means you work.",
+    "Can't talk. Iron's at the right colour. Come back in a bit."
+  ],[
+    "Made a new hook for the inn sign. Isolde cried. She cries at hooks. Strange woman.",
+    "Fen's ferry chain was rusting through. Didn't tell him. Just fixed it.",
+    "Your hoe's got a bend in it. Bring it in. No charge. Don't argue.",
+    "Pip keeps asking me to forge a sword. I made them a spoon. They're furious.",
+    "It's quieter when you're around. The forge, I mean. I hammer slower. Don't know why.",
+    "Had a dream I forged a cauldron. Woke up and drew it. It's for no one. ...It's yours."
+  ],[
+    "Kept the fire low today. Thought you might come by. You did.",
+    "I don't say much. You don't seem to mind. That's rare.",
+    "I made something. It's on the shelf. No, don't open it here. Later. ...Fine, open it.",
+    "My father never came to see the forge. You come by twice a week. I count. Don't laugh.",
+    "When you're about, the valley's less heavy. Hard to explain. Doesn't need explaining.",
+    "I'd fix anything for you. I'd make anything. Just so you know. That's all."
+  ]],
+  s:[["Spring means ploughshares. Everyone's broke something over the winter.","Mud's back. Half the village is tracking it into my forge."],
+     ["Too hot. I work at night now. The forge glows lovely in the dark, at least.","Drank a whole bucket of water this morning. Not a cup. The bucket."],
+     ["Autumn's for shoeing horses before the roads turn. Busy. Good busy.","Making hooks for winter coats. Every house wants more hooks. Nobody knows why."],
+     ["Best season for a smith. Everyone wants to stand near the forge.","Snow's on the anvil. I dust it off and get on with it."]],
+  rain:["Rain hisses on the iron. Sounds angry. It isn't. Just loud.","Wet day. Shoeing's off. Fixing pots for Isolde instead."],
+  visit:["Brought your trowel back. Sharper. Don't thank me.","Saw your fence was leaning. Leaned it back. Carry on.","Was passing. Just passing. ...Fine, I wanted to see the garden.","Brought you some nails. Good ones. You'll need them eventually. Everyone does."]
+},
+silas:{
+  t:[[
+    "Silas. I play at the inn. Some nights the inn plays me.",
+    "If you're looking for cheerful music, I'm the wrong man. If you're looking for honest music, sit.",
+    "I've been here a week and I already have a favourite chair. That's either a good sign or a bad one.",
+    "Your cottage has a lovely shape. Like a song that knows where it's going.",
+    "Forgive me, I was lost in a melody. Who are you? Oh. The witch. Of course.",
+    "I'm trying to rhyme with 'valley'. All I've got is 'alley'. It's not a very good alley."
+  ],[
+    "Isolde says I should play something jolly. I played something slightly less sad. She seemed pleased.",
+    "I broke a string mid-ballad last night. Juno caught it in midair. Show-off.",
+    "Do you sing? You should. Everyone should. Badly, ideally. It's more honest.",
+    "I wrote down what the river sounds like at dawn. It sounds like a question.",
+    "I've started a song for the valley. It has too many verses. The valley's like that.",
+    "Fen hummed along to me last night. Didn't know he knew any songs. He knew all of them."
+  ],[
+    "The song I couldn't finish? I think about it every time you walk in.",
+    "You listen properly. Most people wait for the noise to stop. You listen.",
+    "I used to play to forget things. Now I play to remember them. Today was a good day to remember.",
+    "There's a seat by the stage that I've been keeping free. It's yours if you want it.",
+    "I've never written a happy song that I liked. I might be close now.",
+    "If you ever want me to play just for you, I'd stop the whole inn. I mean it."
+  ]],
+  s:[["Spring's a hopeful key. Major, mostly. I keep slipping into minor.","The birds have been stealing my tunes. Copyright doesn't apply to blackbirds, apparently."],
+     ["I play outside the inn on summer nights. The moths are my best audience.","Too warm to tune the lute. It drifts. So do I, in this heat."],
+     ["Autumn's my season. Everything's a little bit sad and a little bit gold.","I've a song about falling leaves. It's very long. They fall slowly."],
+     ["The inn's packed in winter. Everyone wants a song by the fire.","Cold fingers make for slow songs. Slow songs make people cry. I'm busy in winter."]],
+  rain:["Rain on the inn roof. It keeps better time than I do.","Perfect weather for a sad song. Isolde says that's every weather, for me."],
+  visit:["I'm writing in your garden today. The inn's too loud. Don't mind me.","There's a rhythm to the way you water things. Do you know that?","I brought you a song. It's very short. It's just your name, sung nicely.","Sorry, just listening to your bees. They're very good. Wren should charge."]
+},
+theo:{
+  t:[[
+    "Theo, apothecary. Yes, rival. No, I don't mean it in a sinister way.",
+    "Your Calming Draught looks very slightly bluer than mine. I'm noting that.",
+    "I don't have time to talk. I have time to talk a little. Okay, what is it?",
+    "If you see smoke from my shop, it's fine. Well, it's usually fine.",
+    "I've read about your aunt. She once brewed a potion that made a whole village sneeze. On purpose.",
+    "Please don't look at my workbench. It's organised. It's just organised in a way you can't see."
+  ],[
+    "I measured how long you stir. Eleven seconds. I tried eleven seconds. It worked. I'm furious again.",
+    "Isolde bought a remedy from me for once instead of you. I'll be dining out on that for weeks.",
+    "Did you know nettles can be eaten? I tried. Badly. Gloves recommended.",
+    "I wrote you a footnote in my research. Footnote seven. It says 'see witch'.",
+    "Your cat came in and knocked over a beaker. It's fine. The result was very interesting.",
+    "I've given up trying to beat you. Now I just want to understand how you do it. Totally different."
+  ],[
+    "I named a new tincture after you. Don't ask what it does. It's very gentle.",
+    "Sometimes I come up with a theory and the first thing I want to do is tell you. That's new.",
+    "I don't know if I'm good at friends. You make it seem easy.",
+    "The shop feels very quiet on the days you don't come by. I've measured it. Statistically quieter.",
+    "If you ever need anything brewed, I'd drop everything. Even the experiment. Even the important one.",
+    "Being your rival is good. Being your friend is better. I wrote it down so I'd remember."
+  ]],
+  s:[["Spring means allergies. Half the valley is sneezing at me. Good for business.","The new herbs are coming up. I've labelled every one in the hedgerow. With tiny flags."],
+     ["Summer heat makes potions turn. I'm storing everything in the cellar. Including myself.","I've been studying fireflies. They glow better than my Glow Elixir. Humbling."],
+     ["Mushroom season! I've got a book, a basket and a firm rule not to eat anything.","Autumn colds. Everyone wants a remedy. Nobody wants the honest one, which is sleep."],
+     ["Frost on the shop window. It's beautiful and scientifically fascinating.","Winter remedies are my speciality. Also cocoa. I have a formula. It's very good."]],
+  rain:["Rain dilutes everything. Including my rain samples, which is very annoying.","Wet days are good for brewing. Sealed windows, steady air. I'm busy."],
+  visit:["I was not peeking at your cauldron. I was observing it. Different word.","Brought you some notes. On your herbs. Well, on my herbs, compared to your herbs.","What's that growing by the wall? Don't tell me. I'll look it up. Tell me.","Hello! I was in the area. I'm never in the area. I was today."]
+},
+isolde:{
+  t:[[
+    "New face! Come in, love, come in. Isolde. Kettle and Crow. You'll be wanting pie.",
+    "Don't eat at home tonight. Come to the inn. Everyone does on Thursdays. Or any day.",
+    "Your aunt owed me for three dinners. I've forgiven her. Mostly. Pie?",
+    "Sit by the window, love. Best view of the square, and the best gossip walks past it.",
+    "That Mayor Aldous asked after you. Wants to know if you're 'charter material'. I said yes, obviously.",
+    "Mind the step. Everyone trips. It's a tradition. Like the pie."
+  ],[
+    "I told Mara you'd been asking after her. You hadn't. Now she's happy. Go and ask after her.",
+    "Silas played until two last night. Couldn't get him to stop. Lovely, though.",
+    "You've a good face for keeping secrets. I'll tell you one. Don't look so worried.",
+    "Theo came in and argued with the soup. The soup won.",
+    "I've got a spare room upstairs, if you ever can't face the walk home. Just saying.",
+    "I'm trying a new pie. If it's good, I'll name it after you. If not, after the mayor."
+  ],[
+    "Pour yourself one. You know where the good mugs are now. That means something here.",
+    "Nobody fusses over me the way you do. I'm not used to it. Keep doing it.",
+    "Your aunt was family. You're family now too. That's how the inn works.",
+    "I can tell when you've had a long day. You walk in like a wet cat. Sit. I'll bring soup.",
+    "I've been saying 'my witch' to the regulars. They tease me. I don't stop.",
+    "You know all my gossip now, love. That means I have to keep you forever."
+  ]],
+  s:[["Spring cleaning at the inn. I've found three hats, two boots and one of Silas's songs.","The garden lot are in every morning for breakfast. Lovely. Exhausting."],
+     ["Summer crowds! Travellers, wedding parties, the lot. I need more chairs and more patience.","I've put tables out in the square. The bees have booked half of them."],
+     ["Harvest suppers every night. My feet are begging for mercy.","Pie season. Every pie. All the pies. Don't stand in the kitchen door, love."],
+     ["Winter's when the inn's at its best. Fire, songs, every seat taken.","I've hung the holly. Silas says it pricks. Silas can stand somewhere else."]],
+  rain:["Rain brings everyone in. Busy day, love. Wouldn't have it any other way.","Wet coats on every hook. Smells like a sheepdog in here. Cosy, though."],
+  visit:["I've brought you a pasty. Don't argue, you're too thin. Bramble was too.","Couldn't stay away from the gossip, love. Have you heard about the mayor's wig?","Just popping by. The inn can run itself for an hour. It can't. But it can try.","You look like you've been working too hard. I've brought soup, and I won't take it back."]
+},
+juno:{
+  t:[[
+    "Hey! New witch! Do you dive? Do you fish? Both? Neither? You should do both.",
+    "I've got river mud up to my knees. Normal Tuesday.",
+    "If you see a girl running at full speed with a fishing rod, that's me. Don't step aside, I'll swerve.",
+    "Your aunt fished the north bend. Nobody fishes it now. Superstition. I fish it.",
+    "There's a heron who steals my catch. I call him The Thief. He calls me nothing. He's a heron.",
+    "Ever been down the Hollow? It's brilliant. And dark. Mostly brilliant."
+  ],[
+    "Fen let me take the ferry out by myself. Didn't crash. Mostly didn't crash.",
+    "I tried your fishing trick. Caught a carp. Then it caught me. Equal match.",
+    "Tip: always pack a snack for the Hollow. Fainting on an empty stomach is twice as embarrassing.",
+    "I'm keeping a list of every fish in the valley. You're ahead of me by one. Not for long.",
+    "Bertram says I'm reckless. Bertram once rowed into a storm to save a hat.",
+    "I like that you go into the Hollow. Most people just ask me about it. You actually go."
+  ],[
+    "Diving's better with you. Even when you're not there, I think about telling you after.",
+    "I had a bad dive yesterday. Got home and the first thing I wanted was to see you. So. Here I am.",
+    "You're the only one who doesn't tell me to be careful. You just tell me to come back.",
+    "When I find something really good down there, you're who I want to show.",
+    "I used to dive alone and think about Mum. Now I think about Mum, and then about you. It helps.",
+    "Best fishing spot in the valley? It's wherever you're standing. Don't tell anyone I said that."
+  ]],
+  s:[["Spring melt! River's fast and the fish are hungry. Best time of year.","I've been diving the Hollow while the river's too wild. Two adventures for one."],
+     ["Swimming every morning before breakfast. Cold. Brilliant.","Sunfish everywhere. I've caught nine. Eaten six. Don't judge."],
+     ["Autumn perch are fat and stupid. Easy fishing. I feel a bit bad. Not that bad.","The river goes copper when the leaves fall in. Prettiest it ever looks."],
+     ["Ice fishing! You sit on a stool and freeze. It's the best.","The Hollow's warmer than the valley in winter. Down I go!"]],
+  rain:["Fish bite better in the rain! Get your rod, come on!","Wet anyway, might as well go diving."],
+  visit:["Quick hello! Got to get to the river before the fish wake up.","Your pond's got a fat one in it. I saw. I'm leaving it for you. Mostly.","Brought you a shell from the Hollow. It glows a bit. Don't eat it.","Can I borrow your bucket? Mine's got a hole. Mine has always had a hole."]
+},
+hettie:{
+  t:[[
+    "Hettie, dear. Granny to most. You may call me either, once you've brought me tea.",
+    "Mind your feet. Those are seedlings, not weeds. Well. Some of them are weeds.",
+    "Bramble's kin, walking about in Bramble's boots. Strange old world.",
+    "I'm slower than I was. The herbs don't mind. They're slow too.",
+    "Nettles sting because they're frightened, dear. Speak kindly and grab firmly.",
+    "Don't trust a mushroom that's too pretty. Or a man. Same rule."
+  ],[
+    "Your aunt once tried to grow a pumpkin in a teacup. Never told me why. It worked, mind.",
+    "I put chamomile under my pillow at nights. Old habit. Sleep like a lamb. A loud lamb.",
+    "The mayor's grandmother once chased Bramble round the square with a broom. I've never laughed so hard.",
+    "I've been drying your mint. Tastes of good soil. You're doing something right, dear.",
+    "When I was a girl, every house had a witch bottle by the door. You'll want one. I'll show you.",
+    "Pip asked me how old I am. I said older than the oak by the mill. They looked at the oak for an hour."
+  ],[
+    "You come and sit with me even when I tell the same story twice. That's a kindness, dear.",
+    "I had a dream about Bramble last night. She was laughing at something. Probably you.",
+    "I don't worry about the cottage any more. It's in good hands. The best, really.",
+    "There's a little of her in you, dear. And a lot of you in you. I like both.",
+    "When my time comes, I'd like you to have my herb press. It's older than the village. Use it.",
+    "Seventy years I've known a witch of Brambleroot. Lucky me, getting two."
+  ]],
+  s:[["First violets! I always pick one for Bramble. Now I pick two.","Spring tonic season. Everyone's peaky after winter. I'll fix them."],
+     ["Too hot for an old woman. I'm sitting in the shade with my feet in a bucket.","Elderflower's out. Cordial, dear, not wine. Well. A little wine."],
+     ["Autumn's my favourite. The herbs are strong and the evenings are long.","Rosehips everywhere. I'll be making syrup until my fingers are pink."],
+     ["My knees know it's winter before the frost does.","I keep a pot of soup on the hob all winter. Come by and have a bowl, dear."]],
+  rain:["Rain's good for the roots, dear, and for a nap.","Soggy day. Perfect for sorting seeds by the fire."],
+  visit:["Just checking on Bramble's rosemary. Still alive. Good girl.","I've walked further than I should, dear. Let me sit a moment.","You've moved the thyme. It likes it there. So do I.","I brought you some seeds from my garden. Plant them where you like. They'll tell you if you're wrong."]
+},
+aldous:{
+  t:[[
+    "Ahem. Mayor Aldous. Delighted. Honoured. Busy. Charters!",
+    "Have you read the charter regulations? Don't. I have. It took a week.",
+    "Your aunt was a fine witch and a terrible correspondent. I hope you write back sooner.",
+    "Welcome to the valley. Officially. There's a form. I'll find it eventually.",
+    "Do mind the square, it's freshly swept. By me. Personally. Leadership.",
+    "Is that your cat? Charming. Does it have a name? It should have a title."
+  ],[
+    "I tried to plant a mayoral garden. It's mostly a mayoral weed patch.",
+    "Isolde says I talk too much. I said nonsense, at some length.",
+    "Your aunt once called me a pompous tin bucket. She wasn't entirely wrong. Don't tell her I said so.",
+    "The Guild inspector asked about you. I gave a glowing report. Several pages. With diagrams.",
+    "I've been practising my speech for the festival. It's twenty minutes. Too long? It's too long.",
+    "I signed eleven things today. I read three of them. Progress."
+  ],[
+    "You know, I think the village is happier since you came. I'd put that in a report if I could.",
+    "I find myself looking forward to our talks. Don't tell the council. They think I'm busy.",
+    "Your aunt and I argued for fifty years. I'd like to agree with you for at least another fifty.",
+    "If you ever need anything from the town hall, just ask. Even the odd things. Especially the odd things.",
+    "I keep your charter stars pinned up in my office. I look at them when the paperwork gets heavy.",
+    "Between you and me, I'm glad it was you who came. Very glad. There. Unofficial."
+  ]],
+  s:[["Spring charters! The best part of my year. Don't tell anyone, they think I like summer.","The square's getting new flowerbeds. I've drawn a plan. Several plans."],
+     ["Summer luncheons, summer speeches. I'm hoarse by midsummer.","It's too hot for the chain of office. I wear it anyway. Standards."],
+     ["Autumn fair's my responsibility. And my nightmare. And my joy.","I've ordered extra lanterns for the harvest. Three hundred. Possibly too many."],
+     ["Winter's quiet at the town hall. I read old charters by the fire. Wonderful.","My mayoral scarf is very long. It's a symbol of office. And it's cold."]],
+  rain:["Official proclamation: this rain is wet. Please carry on.","The town hall roof leaks in the left corner. I've put a bucket there. It has a name now."],
+  visit:["Official visit. Unofficial biscuits. I brought both.","Just inspecting the hedges. They pass. Excellent hedges.","Thought I'd see how the charter's coming along. In person. Personally.","Lovely garden. I'll mention it in the newsletter. There isn't a newsletter. I might start one."]
+},
+zara:{
+  t:[[
+    "Zara. Merchant, traveller, collector of the unusual. You look unusual. Good.",
+    "Everything has a price, darling. Some prices are just very interesting.",
+    "Don't touch the blue bottle. It's not dangerous. It's just very expensive.",
+    "I was in four towns last week. All of them were boring. Then I got here.",
+    "That's a lovely shawl. I'd give you two coins for it. No? Three?",
+    "First time buying from a cart? Rule one: never pay the first price. I'll pretend I didn't tell you."
+  ],[
+    "I brought back a spice from the coast. It tastes of oranges and thunder. You'll love it.",
+    "A merchant in the south tried to sell me a dragon egg. It was a turnip. Turnip the goat's cousin, possibly.",
+    "Do you ever want to just go? Pack a bag, follow a road? I do it every week. It's lovely.",
+    "I tell people about your potions on the road. Your name's travelled further than you have.",
+    "Mara tried to haggle with me. She's terrible. I gave her a discount out of pity.",
+    "I've got a map of every valley I've been in. This one I didn't need a map for. I remembered."
+  ],[
+    "I've started dreading the road out of here. That never happens to me.",
+    "You're the first person I've ever told my real hometown. Don't tell anyone. It's very small.",
+    "I collect rare things, darling. I don't usually get to keep them. You're... a rare thing.",
+    "Market day used to be work. Now it's the day I see you. Not the same thing at all.",
+    "I kept the best thing from the road for you this week. Not for sale. Never for sale.",
+    "When I'm on the road at night, I count the valleys until I'm back here."
+  ]],
+  s:[["Spring roads are muddy, darling, but the flower markets make up for it.","Everyone wants seeds in spring. I sell seeds. Delightful coincidence."],
+     ["Summer trade's brisk. My horse has a sunhat. Don't laugh at him, he's sensitive.","The coast towns are buying everything in summer. I'm buying sun cream."],
+     ["Autumn's for spices and woollens. My cart smells like cinnamon and sheep.","Harvest fairs everywhere. I'm worn out and very, very rich."],
+     ["Winter roads are cruel, darling. I'm glad this valley has a fire waiting.","I sell scarves in winter. And soup. Sometimes the soup is in the scarves. Accident."]],
+  rain:["Rain on the canvas, darling. My favourite sound on the road.","Wet market day. Fewer customers, better gossip."],
+  visit:["Out on my rounds, darling. Your garden's on the best route. I checked.","Brought a little something from the road. It's a ribbon. It was free. It's still for you.","I've ten minutes and a lot of gossip. Shall we?","Is that a new herb? What does it sell for? Don't tell me. I'll guess. Badly."]
+},
+bertram:{
+  t:[[
+    "Bertram. Old keeper. Older knees.",
+    "If you're after fish, ask Fen. If you're after the truth about fish, ask me.",
+    "Your aunt rowed out in a storm once to bring me soup. Soup. In a storm.",
+    "Don't trust Fen's weather forecasts. Trust mine. Mine are in my knees.",
+    "Mm. River's grey today. Grey's not bad. Grey's honest.",
+    "You've got a sailor's walk. Steady. That's good. Valley needs steady."
+  ],[
+    "Fen and I have been friends for sixty years. Arguing for sixty-one.",
+    "I keep a logbook. Weather, birds, boats. Fifty years of it. Mostly weather.",
+    "Juno's like her mother. Brave, quick, and never wears a coat.",
+    "I used to sing sea songs to keep awake on the watch. Silas wants to learn them. I said maybe.",
+    "Saw a cormorant dive and come up with two fish. Greedy bird. Admirable.",
+    "Your aunt could whistle louder than the foghorn. Nearly made me drop my tea, every time."
+  ],[
+    "You come and sit with an old man. Most young ones don't. Thank you.",
+    "I've put your name in the logbook. Under 'good company'. There's not many there.",
+    "When I was sick that winter, I thought I'd lost everything. Then folk came. Now you come. Funny how it works.",
+    "If I had a granddaughter, I'd want her to be like you. Don't tell Fen I said that. He'll cry.",
+    "The river's prettier when there's someone to show it to.",
+    "Keep an eye on Fen for me, will you, when I'm not about. He won't ask. He never asks."
+  ]],
+  s:[["Spring tides. River mouth's busy with gulls. Noisy lot.","Fen and I went out for the first fish of the year. He caught it. I'm told."],
+     ["Summer nights are short. Hardly worth the bother of going to bed.","I sit on the jetty with my boots off. Doctor's orders. My orders."],
+     ["Autumn gales. I check the boats every night. Old habit. Good habit.","Geese going south. I count them. Fen counts them. We never agree."],
+     ["Winter's cold out on the point. I keep the stove going and the kettle full.","I've seen worse winters. This one's not bad. Still, pass me that blanket."]],
+  rain:["Rain. Wind from the west. Clears by evening. Write that down.","Proper wet one. Reminds me of the sea. In a good way."],
+  visit:["Walked all the way up. My knees want a word with you.","Saw your smoke from the river. Thought I'd see the garden. Lovely.","Fen sends his regards. He didn't. But he would if he thought of it.","Brought you a bit of driftwood. Shaped like a cat. Look. Squint."]
+},
+tilly:{
+  t:[[
+    "Hi! Are you the witch? You don't look scary. Can you look scary?",
+    "I'm looking for Pip. Have you seen Pip? Pip's about this tall. And very Pip.",
+    "Is your hat magic? Can I wear it? Just for a second? Please?",
+    "I found a feather. It's very special. It's from a magic bird. Or a pigeon.",
+    "Ma says I'm not allowed to follow the witch home. I'm only following halfway.",
+    "Do witches have bedtimes? I bet they don't. Lucky."
+  ],[
+    "Me and Pip made a potion! It's mud. It's very strong mud.",
+    "I named a worm after you. He's very handsome. For a worm.",
+    "Odile says I'm the best at reading in the class. Pip's second. Pip says it's a tie.",
+    "I've been practising flying with a broom. I mostly fall off. But I'm getting better at falling.",
+    "Can you teach me a real spell? Just a tiny one? I'll only use it for good. Mostly good.",
+    "Mayor Frog is doing well. He lives in the fountain now. Don't tell the mayor."
+  ],[
+    "You're my favourite grown-up. Okay, tied with Odile. Okay, maybe you win today.",
+    "When I'm sad, I think about your garden. It's the happiest place I know.",
+    "I made you a bracelet out of daisies. It's falling apart. It's still a present.",
+    "Pip and I decided you're our auntie. You don't get a choice. Sorry.",
+    "I'm going to be a witch exactly like you. Same hat, same cat, same garden.",
+    "Can I tell you a secret? You're the best at listening. Better than Ma. Don't tell Ma."
+  ]],
+  s:[["Me and Pip are hunting for four-leaf clovers. We found one. It had three.","The ducklings are bigger now. I've named all of them. They're all called Duck."],
+     ["Summer holidays! No school! I'm going to do nothing all day. And then more nothing.","Me and Pip made a raft. It sank. We swam. It was the best day ever."],
+     ["I'm going to the fair as a witch. Like you! Ma made me a hat out of a sack.","Me and Pip had a leaf fight. I won. Pip says it's not over."],
+     ["I made a snow angel. Then Pip made one on top of mine. Now it's a snow monster.","My hands are frozen! Can you do a warming spell? Please?"]],
+  rain:["Puddle jumping! Want to come? You can borrow Pip's boots. Pip doesn't know.","Rain makes the snails come out. I've got six in my pocket."],
+  visit:["Pip's coming too. Pip's just slow. I ran.","Can I pick one flower? Just one? A small one?","I came to say hi to the cat. And to you. Hi!","Ma said I can stay for ten minutes. I'm counting. One... two..."]
+}
+};
+const ROMANCE_MORE = {
+mara:{
+  crush:["I put my good apron on this morning. No reason. Definitely no reason.","Turnip keeps nudging me towards your cottage. That goat has opinions.","I caught myself humming on the way to the mill. I haven't hummed in years. I know why.","You've got flour on your cheek. Here. ...There. Sorry. Hands are clumsy today.","The lads asked why I keep looking up the lane. I told them it's the weather. It's not the weather.","Funny. I used to think that part of my life was finished. Lately I'm not so sure."],
+  date:["I made you a seed cake. It's rough as a millstone. Eat it anyway.","The lads asked if I'm sweet on the witch. I said yes and threw a sack at them.","I walked past your cottage three times today. Just to look at the lights.","I've stopped dreading evenings. That's your doing.","Take my scarf. Your hands are freezing. No, keep it. It suits you more.","Turnip has started sleeping by the door, waiting for you. Me too, a little.","He'd want me to be happy. I think I finally believe that. Thank you.","Sit by me a while. The wheel can turn without watching it."],
+  engaged:["I keep looking at the ring and laughing. The lads think I've gone soft. I have.","Turnip's getting a ribbon for the wedding. She's already eaten one.","I'm baking the wedding loaf myself. It'll be enormous. And lopsided. And ours.","I can't stop telling people. I told the postman twice."],
+  wed:["I baked an extra loaf. Just because there's two of us now. I keep doing that.","Turnip's sitting on your boots. She claims them. She claims you.","Hold my hand on the walk to the mill? It's a short walk. Make it longer.","I still wake up and reach over to check you're there. You always are.","Come and sit on the mill steps after supper. I'll bring the good honey.","You've made the old place laugh again. And me with it.","Go on, love, I'll mind the garden. Turnip won't eat anything. Much.","The lads have started calling you 'the missus'. You don't mind, do you?","I'd forgotten what it was like, being looked after. Don't stop."],
+  morn:["Mara has left a little bread roll on your pillow, still warm, with a note: \"Mill. Back by noon. Love you.\"","Mara is already up, mending a sack by the fire, and Turnip is pretending not to be on the bed.","Mara wakes you by setting a mug of tea on your nightstand, very gently, then very loudly saying good morning.","You come down to find Mara and Turnip both asleep in the armchair, sacks of flour piled by the door."]
+},
+odile:{
+  crush:["I rewrote my lesson plan three times this morning. Then you walked past and I forgot all of it.","I've been reading poetry again. Don't ask which poems. Or why.","The children say I smile more lately. Children notice everything. It's unbearable.","I wore the blue dress today. It's my good dress. For... the weather.","I find myself saving things to tell you. The whole day becomes a letter.","I'm not usually flustered. I'm a schoolteacher. And yet."],
+  date:["I've marked forty spelling tests and every one had your name in the margin. My margins.","Would you read with me this evening? One chapter. Or ten.","I pressed a moonpetal for us. It's going on the newest page.","Pip asked if we're in love. I said 'that's not on the syllabus'. They didn't believe me.","I feel thirty years younger. And also exactly my age, which is fine. Lovely, even.","Hold still. You've an eyelash. Make a wish. ...I already have.","My handwriting has gone all loopy. It's your fault.","I keep thinking about the walk home last night. I'll keep thinking about it."],
+  engaged:["I've written out the vows in my best hand. Then crossed out half. Then put it back.","The children are making a banner. It says CONGRATULATIONS MISS ODILE. Twice the size of the schoolhouse.","I'm terrified and delighted in equal measure. It's very educational.","Your aunt would have been at the front. I've saved her a seat anyway."],
+  wed:["Good morning. I've planned the whole day, and you're in every part of it.","I left a book on your side of the bed. Chapter twelve. Read it, then we'll talk.","The children wanted to know what being married is like. I said 'more tea'. It's true.","Some nights I just watch you sleep and think, how lucky.","Come to the school after lessons. We'll walk home the long way.","I've stopped needing to be busy every minute. You did that.","There's chalk on your sleeve. I put it there. It's a heart.","You're the best thing I ever learned.","I'm making cocoa. Two cups. Always two cups now."],
+  morn:["Odile has already marked a stack of essays and left one gold star on your forehead.","You find Odile on the doorstep with her tea, pointing out birds and naming them softly.","Odile has set out breakfast like a lesson: neat, labelled, and with a little drawing of the cat.","Odile is reading aloud to the cat. The cat seems genuinely interested."]
+},
+wren:{
+  crush:["I told the bees about you again. They buzzed very loudly. I think they're teasing me.","Sorry, I'm blushing. It's the heat. It's not hot. I'm blushing.","I made a candle that smells like your garden. For no reason. For a reason.","I keep finding excuses to walk past your cottage. The bees aren't even that way.","You're very easy to be quiet with. I like that a lot. More than a lot.","The queen's in a good mood. So am I. Same reason, possibly."],
+  date:["Taste this. New honey. It's from the lime trees. It's the colour of your eyes. Sort of.","I wrote your name on the hive. Small. The bees didn't object.","Can I hold your hand? My hands are sticky. Sorry. Can I anyway?","I've stopped getting stung since we started courting. The bees approve.","Sit with me by the hives tonight. They glow a little at dusk. You'll see.","You smell like mint and smoke. It's my favourite thing now.","I'm not shy around you any more. Well. A bit. A nice bit.","I'd keep a thousand hives if every one made me feel like this."],
+  engaged:["I told the bees we're getting married. Proper custom. Every hive. They seemed thrilled.","I'm making wedding candles. Hundreds. My kitchen is just wax now.","My hands keep shaking. Happy shaking. The bees can tell.","Will you come and meet the new queen? I want her to know you before the wedding."],
+  wed:["Morning! I brought the bees news of you. They say good morning too.","I put a little honey in your boots. Joke. In your tea. Only in your tea.","There's beeswax on everything we own now. I'm sorry. I'm not sorry.","Hold still, love, bee. ...Gone. She just wanted a look at you.","Come out to the hives later. They hum best when we're both there.","I used to come home to the bees. Now I come home to you, and they come too.","You make the quiet feel so full.","I'm going to keep you like honey. Safe and golden and always.","The hives are heavy this year. So's my heart. In a lovely way."],
+  morn:["Wren is in the doorway in her veil and gloves, waving with a whole frame of bees.","Wren has left a single sugared violet on your saucer and a note: \"Gone to the hives. Back soon. Love.\"","You wake to the smell of hot wax and toast. Wren is making candles and burning the bread.","Wren is asleep against your shoulder with honey on her fingers. It's already in your hair too."]
+},
+rowan:{
+  crush:["...You look nice today. That's all. Go away. No, don't.","I made something by mistake. It's a heart. It's a hook. It's both. Take it.","Isolde's been teasing me. About you. I don't know what she means. I know exactly what she means.","Hammer slipped. Thinking about something. Not you. ...You.","You can sit on the stool. Only you. That's a rule now.","Hm. I'm not good at words. You've probably noticed. I'm trying."],
+  date:["Made you a new watering can handle. The old one rattled. I couldn't sleep.","Hold my hand. ...Don't make a thing of it. ...Fine, make a small thing of it.","I walk slower on the way to the forge now. Looking at your cottage. Don't laugh.","You're the only one I tell when I've made something I'm proud of.","Forge gets lonely. Not when you're here.","I'd hammer out the whole valley if you asked. Probably not. Maybe.","Isolde says I smile now. I've decided she's right.","Come to the forge tonight. I'll show you how the iron looks in the dark. It's nice. You'll like it."],
+  engaged:["Made the rings. Well, I made a ring. Then another. Then six more. This one's best.","Pip asked if I'm going to cry at the wedding. I said no. I'm going to cry at the wedding.","Built a new arch for the square. For a wedding. Ours. Don't tell Aldous, he'll make a speech.","I can't concentrate. Ruined three horseshoes. Worth it."],
+  wed:["I fixed the wobbly table. And the chair. And the shelf. Ran out of things. Fixing myself a tea.","Morning. Don't get up. I'll bring breakfast. Toast. I can do toast.","You were singing in the garden. Badly. I stood there for ten minutes. Lovely.","Kept the forge fire banked. Thought we'd both have a warm evening.","There's a hammer in the kitchen. Don't ask. It's for the jam jar.","Never been much for talking. With you I don't need to be.","My father would've hated this. Gate-maker with a witch. Best thing I ever did.","Isolde gave us a pie. I ate half. Saved you the other half. Mostly half.","You make the house loud. In a good way."],
+  morn:["Rowan is up before dawn, sitting on the step with two mugs, waiting for you so he can hand one over.","Rowan has fixed the squeaky stair while you slept, and is pretending not to be proud of it.","Rowan is asleep at the table with soot on his nose and a tiny iron flower beside his hand. It's labelled with your name.","Rowan leaves for the forge, comes back, kisses you, and leaves again. He's been doing this every morning."]
+},
+silas:{
+  crush:["I've been writing a lot this week. Every verse goes the same direction. Your direction.","I missed a chord last night. You walked in. That's not a complaint.","Isolde keeps winking at me. I don't know what she means. I know exactly what she means.","I'd write you a love song, but I'd never finish it. There'd always be more.","When you're in the room, I stop being sad. It's ruining my career.","Would you hear something I wrote? Just you. It's only for one person."],
+  date:["I played a happy song last night. The whole inn stopped. They didn't know I could.","Walk with me? I want to hear what the valley sounds like with you in it.","I've started humming without meaning to. Isolde says I'm unbearable.","Your hand fits mine like a chord fits a melody. That was terrible. It's true.","Stay for the last song. It's yours. They're all yours lately.","I used to think the best songs came from heartbreak. I was wrong about almost everything.","I wrote your name on my lute case. Small. Very small. Fine, large.","Every time I tune up, I think, she's coming. Then you come."],
+  engaged:["I'm writing our wedding march. It's in a major key. I didn't know I had one.","Isolde's crying already, and the wedding isn't even planned yet.","I wrote to my brother. I said I'm getting married. I said I'm home. He wrote back: good.","My hands shake on the strings. Happy shaking. Like a trill."],
+  wed:["Good morning. I tuned the lute to your laugh. Don't ask how. Musicians' secret.","I don't need the inn any more to feel listened to. But I still go. For the tips.","Sit with me on the doorstep. I'll play until the stars come out.","I wrote a lullaby for the cat. She sleeps through it. Highest praise.","Every song I write now ends happily. I'm a different man. A better-rested one.","Hold still. I'm memorising your face for a verse.","The house has a sound now. It's us. It's my favourite song.","You don't clap. You hum along. That's all I ever wanted.","I'll play at the inn tonight, then I'll come home. Coming home is my favourite part."],
+  morn:["Silas is asleep sitting up, lute in his lap, as if he started a song and the song wouldn't let him go.","Silas is humming over the stove. The eggs are burning. The tune is lovely.","Silas has left a scrap of paper on the kettle with three lines of a song. The last one says your name.","Silas wakes you by playing one soft chord, then another, then laughing and kissing your forehead."]
+},
+theo:{
+  crush:["I've been running an experiment. Independent variable: you. Results: inconclusive. More data required.","I lost my place in a recipe because you walked past the window. That's never happened.","Isolde says I'm 'smitten'. I looked it up. She's not wrong.","My hands are shaking. It's the caffeine. It's partly the caffeine.","I've started combing my hair. Just in case you come by. You always come by.","I wrote 'witch' in my notebook today. Then I drew a heart. Then I tore it out. Then I put it back."],
+  date:["I made you a love potion. Kidding. It's just tea. Very well-brewed tea.","Hold my hand. For science. ...Results: excellent.","I'm terrible at this. Am I terrible at this? Don't answer. You're smiling. That's an answer.","I brewed something that smells like you. Mint and woodsmoke. I keep opening the jar.","I've stopped trying to be better than you. I just want to be with you. Much more efficient.","I've been reading your aunt's notes again. She'd have made fun of me. Then she'd have approved.","I've labelled a shelf in the shop 'hers'. It's for you. It's empty. It's ready.","Come and see the night-blooming moss with me? It glows at midnight. I timed it."],
+  engaged:["I've made a list of everything that could go wrong at the wedding. Then I burned it. Feeling better.","I've been practising my vows. Out loud. In the shop. Customers have been very patient.","I'm brewing a special cordial for the toast. Seventh attempt. This one's perfect.","My mother will cry. My father will ask about the dowry. I'll explain witches don't do dowries."],
+  wed:["Good morning. I've charted the optimal time for breakfast. It's now. Come on.","I wrote 'married' in my notebook and just looked at it for a while.","Our potions are better together. I've measured it. You'll want to see the chart.","Let me carry that. Science says I'm stronger. Science also says I'll drop it. Let me anyway.","I used to talk to myself while brewing. Now I talk to you. You answer. It's better.","There's a jar in the cupboard labelled 'emergency hugs'. It's empty. Come here.","I've stopped labelling things in the house. You moved everything. I don't mind.","Being your husband is the best experiment I've ever run.","I made a mistake in a brew and laughed. I've never laughed at a mistake before."],
+  morn:["Theo has drawn a diagram of how to make the perfect cup of tea and left it by your mug, which is perfect.","Theo is already muttering over his notes, but stops to say good morning very properly.","Theo has tidied your herbs into alphabetical order. A small card reads: \"Sorry. Couldn't help it. Love.\"","Theo is asleep with his face on an open book, which is open to a page about you, somehow."]
+},
+isolde:{
+  crush:["I've been putting extra cream on your pie. Don't think I haven't noticed me doing it.","Silas keeps playing love songs when you come in. I'm going to strangle him. Fondly.","I kept your seat for an hour. Then I sat in it myself. Isn't that silly?","You've got the loveliest laugh, love. Somebody ought to tell you that more.","I've caught myself watching the door. I never watch the door. The door watches me.","I'm too old for blushing, love. Clearly not."],
+  date:["I've told the whole inn we're courting. Then made them swear to keep it secret. It's not secret.","Come round the back after closing. I've saved the last of the pie and the best of the cider.","I've stopped running the inn in my head when you're near. Just thinking about you instead.","Hold my hand, love. Let them all look. I don't mind.","I make your tea just right now. Took me a while. Worth it.","You're the first person who's asked how I'm doing and waited for the answer.","I've hung a new lamp over your table. It's brighter. So's everything.","You make an old innkeeper feel like a girl at her first dance."],
+  engaged:["The whole inn wants to cater. I said I'm the bride, I'm not cooking. Then I planned the menu.","Silas has written us a song. He won't let me hear it. I've threatened him with no pie.","I'm going to cry at the wedding, love. Then I'll cry at the dancing. Then at the cake.","I've ordered the biggest cake the valley's ever seen. Don't tell Mara, she'll want to help."],
+  wed:["Morning, love. I've brought the inn's best gossip and the inn's best bread. In that order.","You smell of herbs and woodsmoke. I could bottle it and sell it.","I came home early. The inn can manage. It can't. I don't care.","Pass the butter, love. And sit here. Closer.","I've stopped worrying about the inn so much. You've made me lazy. Happy lazy.","Your aunt would be laughing at us. She always said I'd marry a witch.","Rowan keeps asking if I'm happy. I keep saying yes. He keeps blushing.","I've saved you the corner seat for the rest of our lives.","Come here, love. You look like you need a squeeze."],
+  morn:["Isolde has cooked enough breakfast for an inn, and she's sitting at the end of the table with just a cup of tea, beaming.","Isolde is singing an old drinking song quietly while she brushes her hair.","Isolde leaves for the inn, then comes back to tell you one more piece of gossip, then leaves again.","Isolde is curled up by the fire with the cat on her lap and a pot of porridge keeping warm."]
+},
+juno:{
+  crush:["I've been fishing near your cottage more. The fish there are... nice.","I dove down to floor nine to find you a crystal. Then I was too shy to give it to you. Here.","My heart goes like a dive when I see you. Fast and down and brilliant.","I don't usually go red. I'm going red. Stop looking. ...Don't stop looking.","If I asked you to come fishing at dawn, just us, would you? Hypothetically. Actually.","I wrote your name on my lucky lure. Then I lost the lure. I'm writing it on everything."],
+  date:["I found a perfect stone on the riverbed. It's for you. It's warm. I held it the whole way.","Come diving with me? I'll go slow. I'll hold your hand on the stairs.","I caught a fish and the first thing I did was look for you to show you.","I'm not scared of the Hollow. I'm a bit scared of how much I like you.","Sit on the jetty with me. Feet in the water. Don't tell Fen.","I raced to your door this morning. I won. Against myself. I'm very fast when I'm happy.","I'd follow you into the deepest floor. I'd also follow you to the market. Same feeling.","Mum would've liked you. She liked people who came back."],
+  engaged:["I'm getting married! I told the fish. They were very supportive.","Wedding's going to be at the river, right? Please say river.","I've stopped diving alone. I'll be your diving partner forever now. Officially.","I'm so nervous. More nervous than the bottom of the Hollow. Good nervous."],
+  wed:["Morning! I caught us breakfast. It's a trout. It's a big one. I'm very proud.","I left my boots by the fire again. You're stuck with them now.","Can we go fishing after supper? Just the river, just us.","I'm home! I'm soaking! Give us a hug anyway!","You always know when I'm back from a dive. You've got the kettle on before I'm in the door.","I used to think adventure was the deepest floor. It's waking up next to you.","Let's race to the gate. Loser does the dishes. I'll let you win. Sometimes.","My lucky lure's on our mantel now. It's lucky. We're lucky.","I didn't know home could feel this good."],
+  morn:["Juno is already out on the river, waving her rod at the window, a heron watching her suspiciously.","Juno is sitting on the end of the bed lacing her boots, humming, and smelling faintly of pond.","Juno has left a fresh-caught fish on the table with a note: \"BREAKFAST. You're welcome. Love you.\"","Juno is asleep sprawled across the whole bed, one foot dangling off, damp hair everywhere."]
+},
+zara:{
+  crush:["I've turned down three better markets this week, darling. I keep coming back here. Strange.","I saved you something. It wasn't for sale. It's never been for sale.","I'm not the type to blush. I'm blushing. It must be this valley.","Every road I've ever taken leads back to your gate lately. I don't understand maps any more.","I could tell you a hundred stories from the road, darling. I'd rather hear yours.","I've been thinking of staying an extra day. Just to see if you'll come by."],
+  date:["I brought you a scarf from the coast. It's the colour of your eyes. I asked the weaver specially.","The horse knows the way to your cottage now. He goes there without me asking.","I've started counting the days between market days. It used to be work. Now it's longing.","Walk me to the edge of the valley, darling? I'll walk back with you. Then you'll walk me again.","You're the only thing I've ever wanted to stay for.","I told a buyer in the city I have a sweetheart. He asked what she's worth. I laughed at him.","Hold my hand. Mine's cold from the road. Yours always fixes it.","I've stopped looking for the next town. You're the next town. And the last."],
+  engaged:["Engaged! Me! Imagine. The road will be devastated.","I'm bringing silk from three valleys for the dress. And ribbon. And a ridiculous hat.","I've told every customer for a week. Some of them didn't ask.","I'll keep the cart, darling, but I'm keeping you more."],
+  wed:["Morning, darling. I'm off on the road, but I'll be back by supper. I always am, now.","I bought you a teacup from every town this week. We don't have room. We'll make room.","I've decided our cottage is my favourite town.","Darling, the cart's lovely, but you're the treasure.","I tell everyone on the road I'm married to a witch. Prices have gone up again.","Let's sit by the fire. I'll tell you everywhere I've been, and you tell me what grew.","I never thought I'd unpack a whole bag. I've unpacked everything.","You're my only fixed address, darling.","Keep the light on tonight. I'll see it from the road."],
+  morn:["Zara has spread a map across the table and is marking the shortest route home in red ink.","Zara is up early, packing the cart, and she's put a wrapped present on your chair. It's a spoon from somewhere far away.","Zara is still asleep, arm flung out across your side of the bed, smelling of spice.","Zara is outside talking to the horse about you. The horse seems to agree."]
+}
+};
+// second set (same day): merged into DIALOG and ROMANCE_MORE before they're applied
+const DIALOG_MORE = {
+mara:{
+  t:[[
+    "If the sails stop, give them a shove. Joking. Don't touch the sails.",
+    "Need flour? Bring a sack. Bring two. Turnip ate my last spare.",
+    "You look like you've been up since dawn. Welcome to the club. We meet at the mill.",
+    "Bramble used to buy rye off me and never once paid on time. You've got her look about you.",
+    "The lads are good lads. Loud lads. Hungry lads. Mostly hungry.",
+    "Watch your skirt by the wheel. It's got a taste for hems."
+  ],[
+    "I found an old sketch of the mill in the attic. Turnip's in it. Must be her grandmother.",
+    "Ever tried bread with rosemary? I'd need some rosemary. Hint, hint.",
+    "The mill cat had kittens. Don't tell Turnip. She thinks she's the only pet.",
+    "Odile's been asking me to teach the children milling. I said yes before I thought about it.",
+    "I made too many buns. On purpose. Take some.",
+    "You look after people without making a fuss about it. I notice that."
+  ],[
+    "I don't know what the mill would do without you popping by. Grind slower, probably.",
+    "I've been happy lately. Properly happy. Thought you should know.",
+    "If you ever need somewhere to sit and say nothing, the mill steps are yours.",
+    "You've a way of making a hard week easy. I don't say it enough.",
+    "When I was alone, I thought the quiet would never end. Then it filled up. With you lot.",
+    "Turnip loves you. I love you. In the friend way. Mostly in the friend way."
+  ]],
+  s:[["Lambs in the far field. Turnip's jealous. She wants to be the baby again.","The wheat's green as anything. Looks like a promise."],
+     ["The mill's too warm to bake in. I bake anyway. I'm stubborn.","Turnip lies in the millrace to keep cool. Smart goat. Wet goat."],
+     ["The barn's full to the rafters. Best feeling in the world, a full barn.","Apple season. I put apples in the bread. The lads pretend to complain."],
+     ["Turnip slept in the kitchen last night. Snored like a man.","Frost on the sails this morning. Pretty as a wedding cake."]],
+  rain:["Wet flour is sticky flour. I'll be scrubbing for days.","Turnip hates rain. She's sulking under the cart."],
+  visit:["Turnip escaped. I followed her. She came here. She always comes here.","Lads are minding the mill. I'm minding your garden. It's nicer.","I've got a sack of oat ends for your hens. You don't have hens? Get hens.","Thought I'd say hello. Hello. Right. Back to work. Five more minutes."]
+},
+fen:{
+  t:[[
+    "Ferry's a penny. Or free, if I like your face. Still deciding.",
+    "Morning. If it's morning. Lose track on the water.",
+    "That's an eel. Leave it be. Eels hold grudges.",
+    "River talks, if you listen. Mostly about fish.",
+    "Mind the ducks. They've right of way.",
+    "Bramble's niece. Hm. Good hat."
+  ],[
+    "Bertram says I snore on the ferry. Bertram's never been on the ferry when I'm asleep. Has he.",
+    "There's a sandbar off the mill weir that only shows in a drought. Saw it once. Pretty.",
+    "Juno brings me a fish every Friday. Better ones than I catch. I tell her so.",
+    "I can whistle through my teeth. Want to hear? Not today. Tomorrow.",
+    "Your aunt and I raced boats once. She cheated. I'd have cheated if I'd thought of it.",
+    "Pip asked if I'm a hundred. I said not yet. They said soon though."
+  ],[
+    "You're good company. I don't say that. There. Said it.",
+    "If the river ever takes me, I'd like to be somewhere it's quiet. Like this. Like now.",
+    "The coin I gave you. Don't lose it. Means more than it looks.",
+    "Juno's going to be a fine ferrywoman. You make sure she knows I said that.",
+    "I talk more since you came. Bertram says it's unnatural.",
+    "When you were new I thought, she'll leave by winter. Glad I was wrong."
+  ]],
+  s:[["Swallows are back. They nest under the ferry. I let them.","Spring flood brought me a chair. Good chair. Sitting in it now."],
+     ["Water's low. I have to pole the ferry like a punt. Old man's work.","Dragonflies everywhere. Blue ones. Bramble liked the blue ones."],
+     ["River's full of leaves. Like rowing through a bowl of soup.","Mist every morning now. I like a mist. Hides the bank and the worry."],
+     ["Can't feel my fingers. Can feel the river, though. Always can.","Bertram brings me soup at noon in winter. Don't tell him I wait for it."]],
+  rain:["Rain on the river. Pretty, if you're dry.","Put the canvas up on the ferry. Leaks. Always has."],
+  visit:["Came for a sit-down. Ferry's tied up. Nobody wants crossing today.","Nice pond. Small. Honest. Like me.","Juno said you'd have tea on. Juno was right. Juno's usually right.","Brought you a jar of river water. For the garden. It's good water. Seen a lot."]
+},
+pip:{
+  t:[[
+    "I'm Pip! I'm seven and a quarter. Or eight. Ma knows.",
+    "Do you have a broom? A flying one? A normal one? Can I see both?",
+    "I found a stick that looks like a wand. I'm keeping it forever.",
+    "Odile says I ask too many questions. Is that true? How many is too many?",
+    "Is it hard being a witch? Is it harder than baking? Ma says baking is hardest.",
+    "I can do a cartwheel! Watch! ...Okay I can do half a cartwheel."
+  ],[
+    "I tried to make a potion out of milk and honey. Ma drank it. She said it was a very good potion.",
+    "Tilly and I are going to have a race. Do you want to hold the finish line? It's a ribbon.",
+    "I fed your cat a crumb. She ate it. We're friends now. Proper friends.",
+    "I dreamed I was a witch and I turned the mayor into a hat. He was a nice hat.",
+    "I helped Ma knead today. I'm very strong. Look at my arms. Look!",
+    "Odile let me read the big book! The one with the dragons. Only the first page. It was great."
+  ],[
+    "I made a list of the best people. You're on it. Ma's on it. Tilly's on it. That's the list.",
+    "When I'm scared at night I think about your cottage with the lights on, and then I'm fine.",
+    "I saved my best conker for you. It's very shiny. It's a champion.",
+    "If you ever need help, I'm good at fetching. I'm fast. I'm really fast.",
+    "Ma says I'm a lot. You never say I'm a lot.",
+    "I'm going to visit you every day when I'm grown up. Even when I'm old. Like thirty."
+  ]],
+  s:[["I found a frogspawn! It's going to be frogs! I'm going to name them all!","Ma let me plant a seed. It's in a cup. It's not doing anything. Is it broken?"],
+     ["I got a sunburn on my nose. Is there a spell for noses?","Me and Tilly are going to camp in the garden. Ma says only until it's dark."],
+     ["I'm stuffing a scarecrow for the fair. He's called Mr Sticks. He's very handsome.","The leaves crunch! Listen! Crunch! Crunch!"],
+     ["I licked a frozen fence. Don't do that. Ever.","Ma's making gingerbread. I'm the taster. It's the most important job."]],
+  rain:["I made a boat out of a bun bag. It floated for nearly a whole second.","Is there a spell to make the rain go somewhere else? Like Tilly's house?"],
+  visit:["Ma sent me with a bun. I ate half. Half's still a present.","Can I look at the frogs in your pond? I'll just look. Mostly look.","I came to see if the cat wants to play. She's asleep. I'll wait.","I drew you. Here. That's you, that's the cat, that's a dragon. He's friendly."]
+},
+odile:{
+  t:[[
+    "I don't believe we've been properly introduced. Odile. I teach. I fuss. I read.",
+    "I'm told your aunt failed her Guild exams twice before passing. Encouraging, isn't it?",
+    "Please let me know if the children trouble you. They're very curious and very loud.",
+    "Your garden would make a wonderful lesson. Some day, if you'd allow it.",
+    "I take my tea black and my books long. Practically my whole personality.",
+    "Ah, the witch. The children talk of little else. It's quite the distraction."
+  ],[
+    "Silas helped with a music lesson. The children loved him. He sang them a sad song about a potato.",
+    "I've been learning the old names for the stars. There's one called the Witch's Kettle. Did you know?",
+    "I found a mistake in the school's history book. About your aunt. I've corrected it in pencil.",
+    "Tilly asked if teachers sleep at the school. I said yes, in a drawer. She believed me for an hour.",
+    "I've started writing a little book. About the valley. You're in chapter three.",
+    "Marking is very much like weeding. You pull out the wrong bits and hope the good ones grow."
+  ],[
+    "When I'm tired, I think of your garden in the evening. All the lamps. All the quiet.",
+    "I've never had a friend I could be silly with. I'm being silly. Look at me.",
+    "You listen to me go on about books, and you never once look at the door.",
+    "The children say I'm happier this year. I think they mean since you came.",
+    "If I ever leave teaching, I'll come and weed for you. Badly. With great enthusiasm.",
+    "I've written you into my pressed-flower book. A violet, and a line about you."
+  ]],
+  s:[["The cherry tree by the school has flowered. I always cry a little. Don't tell the children.","Spring exams. I'm sending everyone home with mint tea."],
+     ["Summer nature walk. Pip fell in the river. Twice.","The school's closed for the summer and I've no idea what to do with myself. Read, probably."],
+     ["New pupils this term. Tiny ones. They clutch my skirts like ducklings.","I love the first frost on the schoolhouse window. Little ferns of ice."],
+     ["The children made snow owls. One of them is meant to be me. It has very stern eyebrows.","Ink freezes in winter. I write in pencil and pretend it's a choice."]],
+  rain:["Wet weather. I'm teaching the children about clouds. They're very cooperative today.","The schoolhouse smells of wet wool and chalk. I find it oddly comforting."],
+  visit:["I'm out collecting leaves for a lesson. Yours are the best leaves.","Oh, hello! I was just admiring the beds. You've a very good eye for rows.","May I borrow a sprig of rosemary? For remembrance. And for soup.","I came to ask you something and now I've forgotten what. Tea while I remember?"]
+},
+wren:{
+  t:[[
+    "If you ever want to see inside a hive, just ask. Wear long sleeves. And a hat. And courage.",
+    "Honey cures nearly everything. Not broken legs. Nearly everything else.",
+    "I'm a bit shy. The bees do the talking. They talk a lot.",
+    "Sorry, I smell of smoke. It calms the bees. And me, oddly.",
+    "Your cat came by the hives. She sat very still and watched them. Very sensible cat.",
+    "Did you know every bee does a different job? Some of them just guard the door. Like a mayor."
+  ],[
+    "I've started a new hive by your side of the lane. Hope you don't mind. They chose it.",
+    "I made beeswax wraps for the inn. Isolde wrapped a whole pie in one. Then wrapped Silas.",
+    "The bees found some violets by the river. Purple honey. Well, slightly purple.",
+    "Aldous wants a bee on the town crest. I said he'd need to ask the bees.",
+    "I've learned to whistle so the bees know it's me. They don't care. I like it though.",
+    "Can I try some of your mint tea? For research. Bee research. Partly."
+  ],[
+    "Since you came, I don't feel like I'm hiding from the world any more. I'm just living in it.",
+    "You're the first friend who's ever asked how the bees are and meant it.",
+    "When I feel shy, I think: would the witch mind? And you never do.",
+    "The bees and I would follow you anywhere. Well. The bees would follow the flowers. But I would.",
+    "I've named a hive after you. It's the calmest one. Of course it is.",
+    "You've made the lane feel like home. Thank you. I keep saying it. I keep meaning it."
+  ]],
+  s:[["The first bee of the year landed on my nose. I didn't move for ten minutes.","Fruit blossom! Apple, pear, cherry. The bees don't know where to start."],
+     ["The lavender's out and the bees are singing. I swear they're singing.","Too hot to wear the veil. I'm being brave. Sort of."],
+     ["Heather honey this time of year. It's thick as toffee. Bring a spoon.","I'm rendering wax in the shed. It smells like candles and sunshine."],
+     ["I put my ear to the hive and they're humming. Like a lullaby.","No bees to tend, so I'm making candles for every house in the lane."]],
+  rain:["The bees are sulking. I'm sulking with them in solidarity.","Rain means I can finally clean the extractor. Wonderful. Sticky. Wonderful."],
+  visit:["The bees led me here. They know where the good flowers are. And the good people.","I've brought a little pot of honey for your tea. It's the dark kind. Strong.","Just checking if the hive on your hedge is happy. It is. So am I.","May I sit? My knees are sticky. Everything is sticky."]
+},
+rowan:{
+  t:[[
+    "Anvil's older than the village. Don't sit on it. Cat's allowed. You're not.",
+    "Your tools are poor. Bring them in. I'll fix them. That's not an offer, it's a fact.",
+    "Don't mind the soot. It doesn't come off. You'll get used to it.",
+    "Witch. Smith. We'll get on. Or we won't. Either's fine.",
+    "Gate hinges, pot handles, nails. Whatever you need. Not swords. Pip keeps asking.",
+    "Hm. Morning. Got work."
+  ],[
+    "Made a tiny horseshoe for Turnip. Mara laughed so hard she had to sit down.",
+    "Aldous wants a statue of himself. I said I only do iron. He said that's fine. That's worrying.",
+    "Saw you hauling water this morning. Bad bucket. I'll make you a better one.",
+    "Juno broke her hook again. Third time. I'm making her one out of a horseshoe nail. Unbreakable.",
+    "Fire's at the right heat now. Sit. Just sit. You don't have to talk.",
+    "I tried making a bell. It sounds like a cow. I've kept it."
+  ],[
+    "My father's hammer's on the wall. Yours is on the shelf next to it. The trowel. I made it. You know.",
+    "I used to be lonely in here. Didn't know it till it stopped.",
+    "If anything ever needs fixing, at the cottage, at three in the morning, come and wake me.",
+    "You're the first person I've ever wanted to talk to. Odd feeling. Good feeling.",
+    "I think about the forge less, and about the valley more. You did that.",
+    "When the fire's low and you're about, it feels like I'm home."
+  ]],
+  s:[["Spring's for mending. Mended fourteen gates this week. Fifteen with yours.","Blackbirds nesting in the forge chimney. Can't light the big fire. Don't mind."],
+     ["Working at night. The stars are better company than the sun.","I've stripped down to my shirt. Isolde says I look like a turnip. A red one."],
+     ["Forging a new grate for the inn fire before winter. Big job. Good job.","Sharpening every scythe in the valley. My arms will fall off by Sunday."],
+     ["Kids come and stand by the forge to get warm. I pretend not to see them.","Forge is the warmest place in the valley. Come in. Shut the door."]],
+  rain:["Rain on the forge roof. Steam everywhere. Like working in a cloud.","No shoeing in rain. Writing up the ledger. Hate the ledger."],
+  visit:["Brought you a new latch. Old one was rubbish. You didn't ask. Doesn't matter.","Fence is fine. Gate's fine. Just checking. Leaving.","You've got rust on your watering can. Give it here. ...No, I'll bring it back.","Thought you'd want this. A hook. For your hat. Witches have hats."]
+},
+silas:{
+  t:[[
+    "I play the lute, the fiddle and, on bad nights, the wooden spoons.",
+    "If you ever want a song played at the inn, ask. I take requests. I take them slowly.",
+    "This valley's very quiet. I came for the quiet. Now I'm filling it with noise. Ironic.",
+    "Your cat walked across my lute strings yesterday. She's a better composer than I am.",
+    "I've three songs. One happy, one sad, one about a goose. The goose song is the most popular.",
+    "Forgive me if I wander off mid-sentence. I'm usually chasing a tune."
+  ],[
+    "Isolde says I play better when you're in the room. Isolde says a lot of things.",
+    "I wrote a song about Fen. He pretended to hate it. He's asked me to play it four times.",
+    "Pip asked me to teach them the lute. They've learned one chord. They play it constantly.",
+    "Do you know what rhymes with witch? Only bad things. I've given up rhyming.",
+    "I tried to play for the bees. Wren said they liked it. Wren is very kind.",
+    "I feel like I'm writing something real for the first time in years."
+  ],[
+    "There's a song in my head that only plays when you're nearby. I can't get it on paper.",
+    "When I'm low, I come and find you. I didn't do that with anyone, before.",
+    "I used to think music was the only place I belonged. Now there's two places.",
+    "If I ever write a great song, it'll be because of this valley. And you.",
+    "The inn on a quiet night, with you in the corner. That's all I need.",
+    "I don't say it well. That's why I sing. But I'm saying it: thank you."
+  ]],
+  s:[["I'm writing a spring song. It's mostly birds. The birds wrote most of it.","The inn windows are open. The whole square can hear me practise. Sorry, square."],
+     ["Summer nights, I play on the bridge. The river keeps the beat.","Hot days, sad songs. I don't know why. Contrast, maybe."],
+     ["Autumn makes me homesick for places I've never been.","I've been learning harvest songs. They're all about cider. Every one."],
+     ["The inn fire is the best stage in the world.","My lute strings went out of tune in the cold. So did my voice. So did my heart. Joking. Mostly."]],
+  rain:["Rain's the best audience. It always comes back for an encore.","Wet day. I'm staying inside and writing until my fingers ache."],
+  visit:["I needed somewhere quiet to write. Your garden's very good at quiet.","May I play something? It's short. It's about your roses.","I came out for some air and my feet brought me here. Funny feet.","Is that a robin? I need a robin for a verse. Hold still, robin."]
+},
+theo:{
+  t:[[
+    "This is my brewing journal. It's not a diary. There are no feelings in it. Don't look.",
+    "Do you use copper or iron cauldrons? Don't tell me. Copper. It's copper, isn't it.",
+    "I have a theory about moonpetals. I won't bore you. It's about the moon.",
+    "Theo, apothecary. Second-best potion-maker in the valley. For now.",
+    "Did you know the mill pond has three kinds of algae? One of them hums. Possibly.",
+    "Oh! You startled me. I was concentrating. On a very important... tea."
+  ],[
+    "I've catalogued every mushroom in the Old Wood. Two of them tried to bite me.",
+    "Hettie corrected my herb lore yesterday. She was right. I hate when she's right. Which is always.",
+    "I accidentally turned my hair green. It's fading. Don't stare.",
+    "I've built a new still. It whistles. I don't know why. I've decided it's happy.",
+    "I made the same potion as you and mine came out purple. Yours was blue. I'm investigating.",
+    "If you ever want to brew together, my bench is free on Thursdays. And other days."
+  ],[
+    "You're the first person who's ever asked me to explain something and actually let me finish.",
+    "I keep a cup of your tea on my bench. Smells like home. Not my old home. My new one.",
+    "I used to think being clever was enough. You've taught me being kind matters more.",
+    "When I make something good, I want to show you first. Before I write it down, even.",
+    "My notebook's half about you now. Strictly scientific. Mostly scientific.",
+    "Your aunt's notes said: the best potion is a friend at the door. I didn't understand it. I do now."
+  ]],
+  s:[["Spring growth rates are fascinating. I've been measuring a fern. It's grown a thumb.","I'm brewing hay fever remedies. Half the valley's red-nosed."],
+     ["I've been collecting sun-warmed herbs. They're stronger. Possibly. I'm testing it.","The shop's an oven. My potions are fine. I'm cooking."],
+     ["The Old Wood's full of mushrooms. I've got a very strict 'look, don't lick' policy.","I'm writing a paper on autumn colours. It's very colourful."],
+     ["Hot cocoa, winter tonic, ginger syrup. The shop smells like a bakery.","I've been studying frost patterns. They're very pretty. Also, cold."]],
+  rain:["I've got jars out collecting rainwater. For science. And for my plants.","Rain means nobody's in the shop. I've reorganised everything. Twice."],
+  visit:["I've brought you a sample. It's a remedy. It cures... I'm not sure yet. Try it.","Your soil's very good. I'd like a sample. A small one. A teaspoon.","Oh, is this where you grow it? I've been wondering for weeks.","I came to return your jar. And to look at your bench. Mostly the jar."]
+},
+isolde:{
+  t:[[
+    "The inn's open dawn till Silas stops singing. Some nights that's dawn.",
+    "If anybody's rude to you in the valley, love, tell me. I've got a list. And a pan.",
+    "Your aunt drank her tea so strong the spoon stood up. How do you take yours?",
+    "Have you tried my soup? No? You'll want to. Everybody does.",
+    "Don't mind the regulars. They're all harmless. Except Aldous after cider.",
+    "I've got a room upstairs for travellers, love. And for anyone who needs a quiet night."
+  ],[
+    "Theo set fire to a tea towel in my kitchen. Showing me a 'demonstration'. Demonstrated well enough.",
+    "Juno came in soaking and ate three pies. Three! I admire her.",
+    "I keep a jar of your herbs on the bar. People ask. I tell them where to go.",
+    "You've a fair few admirers in this valley, love. I won't name names. Rowan.",
+    "Mara and I used to go dancing when we were girls. We still do, after closing. Don't tell anyone.",
+    "If you've a secret, love, I'll keep it. If you've gossip, I'll trade it."
+  ],[
+    "I worry about everyone. It's my job. You worry about me. That's new.",
+    "You've a seat at this inn for life, love. Not just a seat. A home.",
+    "Your aunt sat in that corner for forty years. I like seeing you there.",
+    "I'm a better innkeeper since you came. More patient. More laughing.",
+    "You're the one I'd tell first, if something happened. Good or bad. You.",
+    "Come here. Hug. Don't argue. I'm older and I've got a ladle."
+  ]],
+  s:[["Spring lamb on the menu, mint sauce from your garden. The regulars are in heaven.","I've opened every window in the inn. It's either fresh air or chaos. Usually both."],
+     ["Cold soups, cold drinks, hot tempers. Summer at the inn.","I've hung lanterns in the yard. We're dining outside. The moths approve."],
+     ["Pies stacked to the ceiling. Apple, pear, gourd. Pick one, love.","The inn's full of hunters and harvesters, every one of them starving."],
+     ["Mulled cider by the hearth. Silas has written a song about it. It's very sticky.","The windows are all fogged up from the inside. That's how you know it's cosy."]],
+  rain:["Everyone's crammed in out of the wet. Lovely. Can't move. Lovely.","I'll dry your coat by the fire, love. Sit. Pie."],
+  visit:["I've brought scones. Don't tell Mara, she thinks hers are better. They are. Don't tell me.","Needed a breath of air, love. The inn's mad today.","I just wanted to see what you'd done with the place. It's lovely. Better than Bramble kept it.","Saw your chimney smoking and thought, she'll want company. Here I am."]
+},
+juno:{
+  t:[[
+    "Ever caught an eel? They wriggle. Like, a lot. I've got a scar. Want to see?",
+    "Floor one of the Hollow's easy. Floor two, there's a bat that wants your hat.",
+    "I'm going to catch every fish in the valley. Then the Hollow. Then the sea.",
+    "If you hear splashing, that's me. If you hear swearing, that's also me.",
+    "I can hold my breath for a whole minute. Fen can do two. I'm working on it.",
+    "Your aunt was the only grown-up who never told me off for diving. I liked her."
+  ],[
+    "Lost my best rod to a pike. I'm going back for it. And the pike.",
+    "I found a glowing mushroom on floor twelve. Theo nearly cried. Then he took it.",
+    "Fen says I'm going to be ferrywoman one day. I'd rather be the deepest diver ever. Why not both?",
+    "I brought Bertram a fish and he lectured me for an hour on how I gutted it. Best hour of the week.",
+    "Want to know a secret spot? There's a pool by the mill where the fish just jump in your basket.",
+    "You fish slow and patient. I fish fast and loud. Together we'd catch everything."
+  ],[
+    "You're the only one who doesn't flinch when I say I'm going deeper.",
+    "When I'm down there in the dark, I think about the lights in your window.",
+    "Mum's map stopped at floor fifteen. Mine goes further now. I wanted you to know.",
+    "If I ever get lost down there, you'd come looking. I know you would.",
+    "I don't need anyone to keep up with me. But I like that you do.",
+    "Best day is diving with you. Second best is fishing with you. Third is pie."
+  ]],
+  s:[["Spring trout! Silver as spoons. I've caught twelve.","I swam across the river. Cold. Fen nearly had a heart attack."],
+     ["Too hot for the Hollow. Too hot for anything but swimming.","I fell asleep on the jetty and woke up with a burnt nose. Worth it."],
+     ["The river's full of falling leaves. I went diving and came up wearing a crown of them.","Copper perch and crisp air. Perfect fishing weather."],
+     ["I cut a hole in the ice and dropped a line. Caught a boot. Caught a fish. In that order.","Winter's long. The Hollow's warm. You know where I'll be."]],
+  rain:["Raining? Perfect. Fish can't see you in the rain.","I'm wet anyway, so I'm going swimming."],
+  visit:["I'm on my way to the Hollow. Want anything? A rock? A crystal? A bat?","Your pond's got a frog the size of a cat. I'm impressed. I'm scared.","Brought you a fish. Fresh. Very fresh. It's still moving. Sorry.","I'm resting. Just for a second. I ran the whole way. Don't tell Fen I was running."]
+},
+hettie:{
+  t:[[
+    "Fetch me that stool, dear. Thank you. Now, who are you again? Ah. Bramble's.",
+    "In my day, witches wore boots that laced to the knee. Yours are very sensible.",
+    "That's dandelion, dear. Good for the liver. Bad for the lawn. Choose your battles.",
+    "My eyes aren't what they were. But I can still tell good thyme from bad.",
+    "The mayor wants me to retire. I said I retired forty years ago. He went quiet.",
+    "Mind the cat on your way out. Not your cat. My cat. He's invisible. He's a very old cat."
+  ],[
+    "Bramble and I used to swap recipes. Hers were always better. I'd never say so to her face.",
+    "When I was young, I wanted to be a witch. Then I met Bramble and decided one was quite enough.",
+    "Theo came to ask me about wolfsbane. I gave him gloves and a very long look.",
+    "If you can't sleep, lavender under the pillow, and a story. I'll tell you a story.",
+    "Wren's a sweet girl. She talks to bees. I talk to plants. We get on.",
+    "There's a hedgehog in my garden who comes every evening. I call him Aldous. Don't tell Aldous."
+  ],[
+    "I've seen a lot of springs, dear. I'm glad you're in this one.",
+    "You've got her kindness and none of her temper. Well. Some of her temper.",
+    "When I'm gone, you look after this lane. The herbs. The bees. Wren. All of it.",
+    "I used to think I'd outlived everyone worth knowing. Then you came along.",
+    "You hold my hand like you mean it. That's rare, dear. Don't lose it.",
+    "Sit closer. These are the stories I didn't tell the others."
+  ]],
+  s:[["Wild garlic in the lanes. Smell that? That's spring, that is.","I'm sowing the herb beds. Slowly. Very slowly. Pass me that trowel, dear."],
+     ["Chamomile's flowering. Little suns everywhere. Pick a few for your tea.","The swallows are screaming over the lane. They do that. Summer madness."],
+     ["Elderberries for winter syrup. My fingers are purple to the knuckle.","The robin's back on my windowsill. He comes every autumn. Good lad."],
+     ["Hot bricks in the bed, dear. Old trick. Best trick.","I'm too old for snow. It's not too old for me, sadly."]],
+  rain:["Mud on the lane. I'll stay in and sort the drying racks.","Rain's when the herbs drink. Leave them be, dear, they're busy."],
+  visit:["I walked all the way. Don't tell the mayor. He'll want me to have a cart.","Bramble's bench is still here, I see. Mind if I sit where she sat?","I've brought you a cutting. Lemon balm. Spreads like gossip. You've been warned.","Just looking, dear. Remembering. Carry on."]
+},
+aldous:{
+  t:[[
+    "Welcome! Again! I welcome everyone twice. Once officially, once personally.",
+    "The town hall clock is three minutes slow. It's been three minutes slow for a century. Tradition.",
+    "Do you have any questions about the charters? I have answers. Many answers. Long ones.",
+    "My grandmother chased your aunt round the square with a broom once. I hope that won't be a problem.",
+    "Every season a charter, every charter a chance! That's my motto. I'm workshopping it.",
+    "Ah, a fine day for civic duties. Every day is. I have no other hobbies."
+  ],[
+    "I'm commissioning a portrait of the town council. The council is me. It's a self-portrait.",
+    "I tried your mint tea at the inn. Very refreshing. Very official.",
+    "Fen refused to take me across the river because I 'talk too much on boats'. Rude. Accurate.",
+    "Juno has asked me to fund an expedition to the bottom of the Hollow. I said I'd think about it. I'm thinking.",
+    "Hettie calls me 'young Aldous'. I'm seventy-two. I like it.",
+    "I've been writing a history of the valley. Your aunt's in nearly every chapter. Usually causing trouble."
+  ],[
+    "I know I'm pompous. You've never once said so. I appreciate that more than you know.",
+    "Your aunt called me a pompous tin bucket. You call me Aldous. I prefer Aldous.",
+    "If I'm ever remembered, I hope it's for welcoming you here. That was a good decision.",
+    "I've drafted a proclamation. It says you're the valley's treasure. I'm too shy to post it.",
+    "Being mayor is lonely. Less so these days.",
+    "When the charters are done and the stars are counted, I'm glad it's you counting them with me."
+  ]],
+  s:[["The spring fair's coming. I've written the bunting order in triplicate.","New lambs, new leaves, new charters. Spring is very administrative."],
+     ["I've a summer hat. It's very wide. Mayoral. Shady.","I'm judging the melon contest this year. I'm bribable. In melons."],
+     ["Harvest charters in, harvest suppers out. My diary is full and my belt is tight.","The town hall leaks every autumn. I've named the buckets after past mayors."],
+     ["Winter's the time for reports. I write them by the fire with cocoa. Very cosy.","The square's very slippery. I've slipped twice. With dignity, both times."]],
+  rain:["Everyone's indoors. Nobody to make speeches to. Tragic. Restful.","I'm reading the rain gauge. Official duty. It says: wet."],
+  visit:["Mayoral visit! Unannounced. That's how you catch the good gossip.","Just checking on the valley's finest garden. Yes, I'm biased. Officially neutral.","Do you mind if I take notes? For the newsletter that still doesn't exist.","I brought you a proclamation. It says 'well done'. Signed in ink. Very rare."]
+},
+zara:{
+  t:[[
+    "Darling! Come and look. Rare seeds, rarer stories, cheap ribbons.",
+    "Don't trust a merchant who says 'last one'. Trust me, though. This really is the last one.",
+    "I've a horse called Biscuit. He's terrible at directions. I love him anyway.",
+    "Want to hear about the time I sold a hat to a duke? It's long. You'll love it.",
+    "Seven days in a valley, darling, and I know everyone's secrets. Very efficient.",
+    "Haggling is an art. You'll learn. Or you'll just pay me. Either way I'm happy."
+  ],[
+    "I sold Theo a book of potions. In a language he can't read. He's happier than ever.",
+    "Mara tried to trade me a goat for a teapot. I almost said yes.",
+    "Isolde and I gossip every market day. We're very thorough.",
+    "I found a map to a lost valley. It's probably fake. I'm going anyway. Someday.",
+    "Aldous asked me to sell his speeches. I said there's no market for them. He's still sulking.",
+    "I've three hundred stories, darling. You've heard about forty. Plenty to go."
+  ],[
+    "I tell you things I've never told anyone on the road. Isn't that strange?",
+    "I've never had a friend to come back to, darling. I've got one now.",
+    "When you wave goodbye from the gate, I look back all the way down the lane.",
+    "Every valley's pretty, darling. Only one has you.",
+    "I've kept every little thing you've given me. In the Wonders drawer.",
+    "You make me want to stay. Nobody's ever done that."
+  ]],
+  s:[["Spring silks and seed packets, darling. Very colourful. Very profitable.","The roads are thawing. Biscuit hates the mud. So do I."],
+     ["Summer travel's the best travel. Long evenings, warm nights, and fewer bandits.","I sold a sunhat to a man for his cow. The cow looked very fetching."],
+     ["Autumn's for apple cider and hard bargains.","I'm buying chestnuts by the sack. Roasting them on the cart. Smell that?"],
+     ["Winter roads are slow, darling, but I'll always come.","Biscuit has a little blanket. He wears it better than I do."]],
+  rain:["Wet day, darling. I've got the canvas up and the good gossip out.","Biscuit's sulking. Horses don't like rain. Neither do merchants. We like coin."],
+  visit:["Out on my rounds, darling, and look who I found.","I've a moment before the cart opens. I'm spending it here.","Biscuit's at your gate eating your hedge. Sorry. He has taste.","I've come to see your garden. And to sell you something. Mostly the garden."]
+},
+bertram:{
+  t:[[
+    "Lighthouse is up at the river mouth. Two hundred steps. Don't try it in clogs.",
+    "Morning, witch. Or afternoon. I go by the tide.",
+    "Fen tells it like he saved me. Fen held the lantern. I steered.",
+    "My old dog used to sit right there. Good dog. Better company than Fen.",
+    "Watch the gulls. They'll have your lunch if you look away.",
+    "You've the look of someone who'll stay. Good. We need stayers."
+  ],[
+    "I've got a model ship in a bottle. I built it in the bottle. Took me two winters.",
+    "Fen and I had a bet on the weather. I won. He says the weather cheated.",
+    "Your aunt brought me a fish soup once that cured my cough in a night. I've never forgotten that soup.",
+    "Silas wants my sea shanties. I've written them all down. Most of them are very rude.",
+    "Juno reminds me of me at her age. Reckless. I grew out of it. Mostly.",
+    "When the fog rolls in, I still listen for ship bells. Old habit."
+  ],[
+    "You've a good heart, witch. Steady as a lamp.",
+    "When I'm gone, the spyglass is yours. Already is, really. Just remember the old man.",
+    "I talk too much about the old days. You let me. Thank you.",
+    "Fen won't say it, so I will. You've made two old men very happy.",
+    "Come up the lighthouse sometime. Just to sit. The view's better shared.",
+    "I'd row out in any storm for you. Knees and all."
+  ]],
+  s:[["Spring storms. I watch them come in from the sea. Beautiful and terrible.","Seals in the river mouth! Two of them. Fen says they're rocks. They're seals."],
+     ["Long light. I sit on the jetty till ten at night. Fen comes and argues with me.","Kids want to climb the lighthouse. I let them. Two at a time. Holding the rail."],
+     ["Autumn tides are high. I've moved my boat up the bank.","The storm petrels are back. Little sooty things. I'm fond of them."],
+     ["Cold sea, cold sky. I've got my pipe and my blanket and no complaints.","Ice on the rocks at the river mouth. Looks like broken glass. Pretty."]],
+  rain:["Wind's up. Rain's sideways. Lovely day for a stove and a story.","Wet. Fen'll be in a mood. I'll go and cheer him up by agreeing with him."],
+  visit:["Walked up from the river for a look at the garden. Not bad. Not bad at all.","I've brought you a whelk shell. For the windowsill. Every house needs one.","Fen sent me. He didn't. I came on my own. Don't tell him.","Thought I'd see if you'd like a weather report. Clear tomorrow. Mark my words."]
+},
+tilly:{
+  t:[[
+    "Is that your cottage? It's got a crooked chimney. I like crooked things.",
+    "Can witches talk to cats? Can you ask your cat if she likes me?",
+    "I'm Tilly! I'm seven! Or eight! Pip says eight. Ma says seven. I say both.",
+    "Do you have a spell to find lost things? I've lost a sock. And Pip.",
+    "Is it true you can make it rain? Can you make it rain lemonade?",
+    "My Ma says I'm a handful. Is a handful a lot? I think it's a lot."
+  ],[
+    "Mayor Frog has had babies! Tiny mayors! Don't tell the real mayor!",
+    "I've been practising being quiet. I lasted four minutes. That's a record.",
+    "Pip and I are writing a play. You're in it. You're the hero. And also the dragon.",
+    "I made a crown of daisies for Turnip. She ate it. Then she ate my hair ribbon.",
+    "Odile says I'm good at drawing. I drew you. You've got very big hands in it. On purpose.",
+    "Do witches have best friends? Who's yours? Can it be me? And Pip?"
+  ],[
+    "I want to be just like you when I grow up. Kind and clever and good at plants.",
+    "When I fell over last week, I thought, the witch wouldn't cry. Then I cried. Then I was okay.",
+    "You never send me home early. Everyone else does.",
+    "Me and Pip promised to look after your garden if you ever go away. We shook on it. With spit.",
+    "I made you a card. It's got glitter. The glitter's everywhere. It's on me. Sorry.",
+    "You're my favourite grown-up today. And tomorrow. Probably every day."
+  ]],
+  s:[["I found a bird's nest! With eggs! Blue ones! I didn't touch!","Spring means mud. Mud means puddles. Puddles mean happiness."],
+     ["Pip and I are going to sleep outside and count stars. We'll get to a hundred.","I've got freckles now! Ma says they're sun kisses. I've got loads."],
+     ["I'm making a leaf crown. It's red and yellow. I'm the autumn queen.","Me and Pip found the biggest conker ever. We're not fighting it. It's retired."],
+     ["Icicles! I'm going to collect them. They keep melting. That's not fair.","I made a snowman with a witch's hat. It's you! It's melting though. Sorry."]],
+  rain:["I've got new wellies! They're yellow! I'm going to jump in EVERY puddle.","Rain is like the sky having a bath. Odile told me that. Is it true?"],
+  visit:["I brought you a snail. He's called Gordon. He's very slow.","Can I help? I'm good at digging. Very good. Look at my hands.","Is the cat home? I've got a ribbon for her.","Shh. I'm hiding from Pip. We're playing hide and seek. Don't tell."]
+}
+};
+const ROMANCE_MORE2 = {
+mara:{
+  crush:["I made a heart-shaped loaf by accident. It was meant to be round. Here.","You walked in and I dropped a whole sack. The lads are still laughing.","I've been wondering what you'd look like in the mill kitchen in the morning. Forget I said that.","Turnip's started bleating your name. Well. A bleat that sounds like your name.","I'm too old to be flustered. Tell that to my face.","I keep saying 'we' when I talk about the mill. I don't know why. I know why."],
+  date:["The lads say I hum every day now. Your fault.","Walk me home? It's the long way. On purpose.","I baked a pie with your herbs. It's the best thing I've ever made. Don't tell Isolde.","I want to show you the mill at midnight. The wheel glows in the moonlight.","Turnip wore a ribbon for you today. I tied it. She allowed it. That's love.","Your hands are cold. Give them here. There.","I didn't think I'd laugh like this again. Thank you for being so silly.","I put a sprig of your rosemary over the mill door. For luck. For us."],
+  engaged:["I keep catching myself practising my new name. Out loud. In front of the lads.","The lads are building us a bench. It's very wobbly. It's perfect.","I've let out my good dress. I'm not saying more.","Turnip's to walk me down the aisle. She's taking it very seriously."],
+  wed:["I've cleared you a shelf in the mill. For whenever you visit. Which is always.","Let's have supper on the mill roof. The stars come right down to meet you.","Every loaf I bake now, I bake one for us.","You've flour in your hair again. I married a floury witch. Lucky me.","I talk to him sometimes, at night. I tell him I'm happy. I think he's glad.","Sit on the step with me. Just for a minute. The wheel can wait.","Turnip's moved into the garden. We're a family of three.","Kiss me before you go to the field. For luck. And then come back for more luck.","I'd do it all again. Every hard year. To end up here."],
+  morn:["Mara is warming your socks by the stove. Turnip is warming Mara's feet.","Mara has made porridge with honey and left you the biggest bowl, as always.","You hear the mill wheel start up in the distance. Mara has left a note: 'Flour waits. You don't. Come by at noon.'","Mara is singing in the garden while she pegs out the washing. Turnip is eating a pillowcase."]
+},
+odile:{
+  crush:["I made a mistake on the blackboard today. I spelled your name instead of 'Tuesday'.","I've been rereading the same page for an hour. I can't think why.","May I walk with you? I'm going your way. I wasn't. I am now.","You have a smudge of soil on your nose. I've decided it's charming.","The children asked if I have a sweetheart. I said 'mind your sums'. My face said otherwise.","I've been keeping the good biscuits for when you come by. The children get the plain ones."],
+  date:["I've found a poem about a witch. I won't read it to you. I'll read it to you.","Shall we walk by the river tonight? I'll bring the lantern and you bring yourself.","I've stopped worrying about everything. Well. Most things. You help.","Thirty years of pressed flowers, and you're the best thing in the book.","Sit, read with me, and don't talk. Just being here is the nicest thing.","You smell of rosemary. It's my new favourite word. Rosemary.","I laughed in class today. Out of nowhere. Pip said 'she's thinking about the witch.'","Your hand in mine is the best lesson I've ever learned."],
+  engaged:["I've been teaching the children to dance. For the wedding. It's chaos.","I've a book of wedding customs. Two hundred pages. I've read it twice.","I keep picturing you in the schoolhouse door. Coming to fetch me home.","The cat's going to be ring bearer. I've decided. Nobody can stop me."],
+  wed:["I've set up a reading chair by the window. Two chairs, actually. Pushed together.","Don't tell the children, but I left early today. I wanted to see you.","I keep a sprig of your lavender in every book I own now.","Good night, my love. Good morning, my love. I like saying both.","I'm teaching the children about weddings. I'm not at all biased.","I used to come home to silence. Now I come home to a song.","The house is full of your herbs and my books. I wouldn't change a single thing.","You make every day feel like the first day of spring.","Read me something before bed? Anything. Your voice is my favourite story."],
+  morn:["Odile is in the garden with a magnifying glass, studying a snail for a lesson. She waves it at you.","Odile has made toast and cut it into triangles, as if you were one of her pupils.","Odile is humming over her marking, a red pen behind one ear, and she smiles before you speak.","Odile has left a pressed moonpetal on your pillow with a tiny card: 'Page one of our book.'"]
+},
+wren:{
+  crush:["I've been talking to the bees about you all week. They're tired of hearing it.","My hands shake when I hand you things. It's not the bees.","Do you want to help me with the hives? You don't have to. I'd like you to.","I keep finding myself at your gate. I don't remember walking here.","You're very calm. Bees like calm. I like calm. I like you. I mean the bees like you.","I made a little jar of honey with your name on the label. It's not for sale. It's not for anyone else."],
+  date:["I've got honey on my nose. Don't tell me. ...You've told me. Thank you.","Walk with me down the lane. The bees go to sleep at dusk. It's beautiful.","I wrote down every nice thing you've said to me. In the hive journal. The bees know.","I used to be afraid of being looked at. Not when it's you.","Stay for supper. It's honey on toast. With love on top.","The bees are buzzing like mad today. I told them about our walk.","I didn't think I'd ever be this happy outside a beehive.","Can I hold your hand? Sticky, I know. Can I?"],
+  engaged:["I told every hive. Then I told the flowers. Then I told the mayor. He cried.","I'm making a wedding veil. A real one. Not a bee veil. Well, a little bit bee veil.","I'm nervous. The bees can tell. They're very gentle with me today.","Will you dance with me at the wedding? I'm terrible. I'll step on your feet."],
+  wed:["I've put a hive by the kitchen window. So I can see them and you at the same time.","Come and taste the new batch. It's the sweetest yet. Of course it is.","I talk to the bees about you every morning. They're very patient.","You make me brave. I didn't know I could be brave.","I've stopped being sticky. That's a lie. I'm always sticky.","Let's light the candles tonight and just sit. Wax and quiet and you.","Hold still. There's a bee on your sleeve. She's just saying good morning.","You're my favourite flower. Don't tell the lavender.","The bees hum one note when you walk past. I've decided it's your name."],
+  morn:["Wren has put a jar of fresh honey by your bed with a little bee drawn on the lid.","Wren is out in the frost wrapping a hive, singing to it, cheeks pink with cold.","Wren is asleep with her head on your shoulder and a smoker still clutched in one hand.","You wake to Wren gently putting a wildflower behind your ear."]
+},
+rowan:{
+  crush:["...Made you a thing. A spoon. It's a spoon. Take it.","Can't hammer straight today. You're here. ...That's not an explanation.","You smell of herbs. The forge smells of iron. I prefer herbs now.","If you need anything mended, I'll do it first. Before the mayor. Before anyone.","Stop looking at me like that. ...No. Keep doing it.","Isolde keeps winking. I'm going to put her in the quenching barrel."],
+  date:["Made us two mugs. Same shape. One's a bit bigger. That's yours.","Walk with me to the forge? I'll show you the fire at dusk. Best colour.","Don't laugh. I bought a comb. I'm using it.","Isolde asked if I'm happy. I said yes. Out loud. In public.","Hand. Give it here. ...There. Better.","Never had anyone to make things for. Now I want to make you everything.","Kept the forge warm for you. Sit.","You're the only one who's ever told me I'm good at more than iron."],
+  engaged:["Ring's done. Then I made a better one. Then I melted the first. This is the best.","I'm making the wedding arch myself. Iron roses. Don't ask how many.","Fen's offered to be best man. I said yes. He cried. He'll deny it.","I keep fixing things that aren't broken. Nerves."],
+  wed:["Built you a bench in the garden. So you can rest. You don't rest. Rest anyway.","Morning, wife. I like saying it. Wife.","There's iron flowers on the windowsill. Don't water them. They don't need it.","Long day at the forge. Coming home to you is the best part.","Never thought I'd have a hearth that wasn't for work.","Sit by me. I'll do the talking. ...I won't. Just sit.","Your aunt's gate still squeaks. I've decided I like it. It's ours.","I'll never be my father. I'm glad. I'd rather be this.","Brought you breakfast. Toast. I'm still only good at toast."],
+  morn:["Rowan is splitting kindling outside the door, steam rising off his shoulders in the cold.","Rowan has left a small iron leaf on the table beside your mug. There's a tiny heart punched in it.","Rowan is asleep, one arm flung over you, snoring like a bellows.","Rowan has already lit the stove, swept the hearth and is now pretending he didn't."]
+},
+silas:{
+  crush:["I played a love song last night and looked at the door the whole time.","You make me forget my words. Bad trait in a musician.","May I sit with you? I'm not writing. I just want to sit.","I wrote a verse about your eyes. Then I wrote nine more. I'm in trouble.","Isolde told me to 'just say it'. I'm a songwriter. I don't just say things.","There's a melody that only plays when you laugh. I'm trying to catch it."],
+  date:["I'll play you a song tonight. Only you. The inn can wait.","Your hand's warm. Like a fire after a long road.","I've stopped writing sad songs. I'm nervous about it. I'm happy about it.","Walk with me to the bridge? The river sounds like a lullaby there.","You don't have to say anything. I'll hear it in the silence.","My brother wrote again. I told him I've met someone. He asked for her name. I wrote it in big letters.","There's a song about you on every page of my book now.","I'd play for you every night if you'd let me."],
+  engaged:["I've written our wedding song. It's long. It's happy. I'll cry.","Isolde has made me promise not to play anything sad at the wedding. Not even a little bit.","I keep humming all the time. I've become unbearable.","I'll sing you down the aisle. Unless you'd rather walk. Then I'll sing anyway."],
+  wed:["Good evening, love. I've written a new song. It's called 'Home'.","I'll play at the inn, then I'll come home. I always come home.","There's music in the way you hum over the cauldron.","I used to want an audience. Now I just want you in the front row.","Dance with me. In the kitchen. No music. Just us.","You've made me happy. I've had to learn new chords.","I've left a song on the kettle. Read it with your tea.","I don't miss the city. Not once. Not even the grand halls.","Every song ends with you now."],
+  morn:["Silas is playing soft chords on the porch while the sun comes up.","Silas has written 'I love you' in tiny notes on a scrap of manuscript paper beside your pillow.","Silas is making breakfast and singing about it. The song is mostly about eggs.","Silas is asleep with one hand on his lute and the other holding yours."]
+},
+theo:{
+  crush:["My heart rate goes up when you're near. I measured it. I'm concerned. I'm not concerned.","I wrote you a footnote. Then a paragraph. Then a whole page. Please don't read it.","Could I walk you home? For safety. For data. For... no reason. Just to walk.","I made a potion that smells like your garden. I've been sniffing it all week. It's fine.","I've been thinking about you more than chemistry. I'm frightened.","The cat next door likes you. I'm with the cat."],
+  date:["I've rearranged my whole schedule. You're at the top. Above potions.","Your hand's very warm. I'm noting it. For later reference.","I've written our names in the apothecary ledger. In the margin. In a heart. Small.","Let's brew something together. Anything. I just like stirring next to you.","I used to think love was chemistry. It's not. It's better.","Come and see what I found in the Old Wood. A moss that glows like your laugh.","Isolde says I've stopped muttering. I've started humming. She's furious.","I've never been this happy in a lab. Or out of one."],
+  engaged:["I've been working out the wedding seating. There's a chart. Colour-coded.","I've brewed the toast cordial. It's perfect. I'll make another just in case.","My hands won't stop shaking. Too much tea. And joy.","I've told my parents. My mother's coming. With a hat. A very large hat."],
+  wed:["I've cleared a corner of the shop for you. And a corner of my heart. That's the whole heart.","I made breakfast according to a recipe I wrote. It's terrible. I'm proud.","Come brew with me after supper. Like before. Better than before.","You were right about the stirring. You're right about a lot of things.","I've started saying 'our' cauldron. It slips out.","I used to read about love in books. Now I'm married to a witch. The books were very wrong.","I've labelled a jar 'Kisses'. It's empty. Fill it.","Hold still. You've got a leaf in your hair. I'm keeping it.","Being married to you is the most interesting thing that's ever happened to me."],
+  morn:["Theo is at the window counting raindrops on the glass, and loses count the moment you come in.","Theo has brewed a pot of tea so strong the spoon stands up. 'Your aunt's recipe,' he says proudly.","Theo has left a small note on the stairs: 'Step three creaks. Avoid it. Love you.'","Theo is asleep at the desk with a quill in one hand and your hand-drawn portrait in the other."]
+},
+isolde:{
+  crush:["I've been doing my hair for you, love. Don't laugh. ...Laugh a little.","I gave you the biggest slice again. The regulars have noticed. They've started placing bets.","You make an old innkeeper feel very young. It's rather undignified.","I've told the whole inn you're lovely. I haven't told you. There. You're lovely.","I'm usually the one who listens. With you I want to talk.","Rowan says I've gone soft. I told him I've always been soft. Just not with everyone."],
+  date:["I've closed the inn early. Again. The regulars are complaining. I don't care.","I made a pie with a heart in the crust. Don't say anything. Eat it.","Come and help me in the kitchen. We'll cook something just for us.","Everyone's noticed I sing in the cellar now. Silas is jealous.","Hold my hand under the table. Nobody will notice. Everybody will notice.","I've never had anyone to come home to. I've got you now.","You're the only one who's ever made me sit down and rest.","My feet hurt, my back hurts, and I've never been happier. Funny, that."],
+  engaged:["The inn's going to host the wedding. Free pie for everyone. Silas is playing. Aldous is not making a speech.","I've ordered so much cake, love. Too much cake. There's no such thing.","I've been crying at everything. A spoon made me cry this morning.","I've got a dress from Zara's cart. It's very sparkly. I look like a lantern."],
+  wed:["I've given the staff the night off. It's just us and a pot of stew.","Come and taste this, love. Too much salt? Not enough love? Both, probably.","I've hung our wedding wreath over the bar. It'll stay there till it falls apart.","You make the inn feel like a home and home feel like an inn. Busy and warm.","I've stopped worrying about everyone else so much. I just worry about you. Happily.","Mara and I talked for an hour about how happy we are. Then we cried. Then we had pie.","Put your feet up, love. I'll rub them. ...You'll rub mine after.","I'd keep you in a jar on the shelf if I could. With the good jam.","Come here. You've had a long day. So have I. Let's have it together."],
+  morn:["Isolde has made a breakfast so large you can't see the table, and she's still frying eggs.","Isolde is already halfway out the door, but she runs back in for one more kiss.","Isolde is sitting on the windowsill with her tea, telling the cat the inn's latest scandal.","Isolde has left a warm loaf and a note: 'Gone to the inn. Saved you the crust. Love you.'"]
+},
+juno:{
+  crush:["I've been diving extra deep to find you something shiny. I found a rock. It's shiny. Sort of.","I almost fell off the jetty thinking about you. Nearly drowned. Worth it.","Can we go fishing? Just us? Not because of the fish.","I think about you more than the Hollow now. That's never happened.","My face is red because I've been running. Not because of you. ...Also because of you.","I want to show you the best spot on the river. It's secret. I've never shown anyone."],
+  date:["I brought you a pearl from the Underriver. It's lumpy. It's yours.","Come for a midnight swim? It's freezing. It's brilliant.","Hold my hand. I'm not scared. I just like it.","Fen saw us holding hands and pretended to fall in the river.","I've stopped diving alone. Every dive's better with you up top waiting.","You make me want to come home early. I've never wanted to come home early.","Let's lie on the jetty and count the stars. I'll count wrong on purpose.","I raced the whole way here. I always race when I'm coming to see you."],
+  engaged:["I'm going to wear my lucky lure on my wedding dress. Don't try to stop me.","Fen's going to row us across the river after. He's practising his slow row.","I'm so excited I've been swimming twice a day to burn it off.","Let's get married at the jetty. With the fish watching."],
+  wed:["Morning! I caught a trout, picked some berries and I'm making pancakes. Badly.","Come down the Hollow with me today? Not deep. Just for fun.","My boots are by the fire, my rod's by the door, and you're by me. Perfect.","I keep a picture of you in my diving bag. For luck. It works.","You always save me the warm side of the bed. I always steal the blankets. Fair.","I used to chase the deepest floor. Now I chase you round the garden.","Let's never stop having adventures. Little ones. Big ones. Silly ones.","Mum's lure is on our mantel. I think she'd be happy. I know she would.","I love you more than fishing. Don't tell the fish."],
+  morn:["Juno is doing push-ups by the fire. 'Floor eighty won't climb itself,' she says, grinning.","Juno is asleep in a chair by the window, still in her damp coat, a fishing rod across her knees.","Juno has brought you breakfast in bed. It's a fish. It's raw. 'Joke!' The real breakfast is behind her back.","Juno is sitting on the doorstep, gutting the morning catch and whistling badly."]
+},
+zara:{
+  crush:["I've stopped counting my coins on market day. I count the minutes until you come by.","I've kept this ribbon for you for three valleys. It's the colour of your eyes.","Biscuit always stops at your gate. I tell him to go on. I don't mean it.","Darling, I've been rehearsing what to say to you. I've forgotten all of it.","I've never stayed for anyone. I'm thinking of staying for you.","The road's been lonely lately. I didn't notice until I met you."],
+  date:["I've brought you a seashell from the coast. Hold it to your ear. It says 'come back'.","Walk with me, darling. Let's not talk business. Just walk.","I closed the cart early. Biscuit was very confused.","I've bought you a hat. You don't need it. I needed to buy it.","Every town I visit, I think: she'd like this. I've bought you too much.","I've drawn you a map of my heart. It's just your cottage. Nothing else.","You're the only thing I'd never sell, darling. Not for all the gold in the capital.","I'll be back before the moon's full. I promise. I keep my promises now."],
+  engaged:["I've written to every valley on my route. I've told them I'm getting married. They're devastated.","Darling, I've bought enough silk to dress the whole village. Don't ask.","Biscuit's getting a garland for the wedding. He's very excited. He's a horse.","I've never planned anything more than a week ahead. I'm planning forever. Terrifying."],
+  wed:["I've unpacked my bag. Every last thing. I've never done that.","Darling, I brought you a spice that tastes like home. It tastes like you.","The road's still lovely. Coming home is lovelier.","Let's have supper by candlelight. I'll tell you about the ugliest hat I saw in the south.","I sold your jam in the capital. The duke wants to meet you. I said no. You're mine.","You've made me a woman who comes home. I'm very proud of her.","Biscuit sleeps in the garden now. He's never looked so content. Neither have I.","I've put all the treasures from the Wonders drawer on our shelf. You're the best one.","Kiss me goodbye, darling. Then kiss me hello. I'll only be a day."],
+  morn:["Zara is sorting her stock by lamplight, humming a song from a valley you've never heard of.","Zara has strung little glass beads from the window. They throw rainbows across the bed.","Zara is out feeding Biscuit an apple, still in her dressing gown, telling him about her dream.","Zara has made coffee the way they make it on the coast: strong, sweet and with a cinnamon stick."]
+}
+};
+for (const v in DIALOG_MORE) { const D = DIALOG[v], M = DIALOG_MORE[v]; for (let i = 0; i < 3; i++) D.t[i] = D.t[i].concat(M.t[i]); for (let i = 0; i < 4; i++) D.s[i] = D.s[i].concat(M.s[i]); D.rain = D.rain.concat(M.rain); D.visit = D.visit.concat(M.visit); }
+for (const v in ROMANCE_MORE2) for (const k in ROMANCE_MORE2[v]) ROMANCE_MORE[v][k] = ROMANCE_MORE[v][k].concat(ROMANCE_MORE2[v][k]);
+for (const v in DIALOG) for (let i = 0; i < 3; i++) VILLAGERS[v].talk[i] = VILLAGERS[v].talk[i].concat(DIALOG[v].t[i]);
+for (const v in ROMANCE_MORE) { const R = ROMANCE[v], M = ROMANCE_MORE[v]; R.crush = M.crush; R.engaged = M.engaged; for (const k of ['date', 'wed', 'morn']) R[k] = R[k].concat(M[k]); }
+// Pick a line from a pool, skipping the ones this speaker said most recently (kept in the save as short hashes).
+const lineHash = s => { let x = 5381; for (let i = 0; i < s.length; i++) x = ((x * 33) ^ s.charCodeAt(i)) >>> 0; return (x % 46656).toString(36); };
+function sayLine(who, pool) {
+  if (!pool || !pool.length) return '';
+  const H = S.heard || (S.heard = {}), recent = H[who] || [];
+  const fresh = pool.filter(l => !recent.includes(lineHash(l)));
+  const from = fresh.length ? fresh : pool, line = from[(Math.random() * from.length) | 0];
+  const keep = Math.min(10, Math.floor(pool.length * .6));
+  H[who] = recent.concat(lineHash(line)).slice(-Math.max(1, keep));
+  return line;
+}
+const hasCrush = (v, h) => !!(ROMANCE[v] && ROMANCE[v].crush) && canRomance(v) && h >= 5 && !S.dating && !S.spouse && !S.wedding;
+function visitLine(v) {
+  if (isPartner(v) && v !== S.spouse && Math.random() < .6) return sayLine(v + ':r', ROMANCE[v].date);
+  return sayLine(v + ':v', [VISIT_LINES[v]].concat(DIALOG[v] ? DIALOG[v].visit : []));
+}
 function genVisits() {
   S.visitKey = dayKey(); S.visits = [];
   if (isFestDay()) return;
@@ -3197,6 +4258,25 @@ const HEW_TALK = {
   dating:[`I've cleaned the tower. Not for you. It just needed cleaning. All four hundred and twelve steps.`, `I've written you a poem. It's terrible. I'm keeping it.`, `When you walk up the path, my whole tower hums. It's very distracting. Please keep doing it.`, `I told the goose about you. It was unimpressed. I don't care. I'm impressed.`, `Stay for supper? I can cook. I can cook two things. Both of them are toast.`],
   wed:[`Good morning, wife. The tower missed you. I mean I did. The tower is a tower.`, `I curse you to have a lovely day. That one's unbreakable too.`, `I still can't believe you said yes. I've checked my spellbook. It wasn't a spell.`, `Shall I come and help in the garden? I promise to only curse the weeds.`, `I've moved my good hat to the cottage. That's how serious I am.`]
 };
+const HEW_TALK_MORE = {
+  nemesis:["You have mud on your boots. On my floor. Almighty floor.","I see you've survived this season's curse. Barely. Adequately. Fine.","Do not touch the orb. Nobody touches the orb. ...That's a doorknob. Never mind.","I suppose you want me to lift the curse. Ha! No. Bring me the counter like everyone else.","Bow. No? A small nod, then. ...That'll do."],
+  rival:["I noticed you broke the curse early. Showing off. I approve. Silently. Forget I said that.","You brought me something? Why? Suspicious. Leave it on the step. ...Thank you.","I watched you from the tower window. For surveillance purposes. You water beautifully.","The goose has been friendlier since you started visiting. Traitor.","I had a nightmare that you stopped visiting. Not a nightmare. A mild inconvenience."],
+  friend:["I wrote you a curse yesterday, then I crossed it out and wrote 'have a good week'. Disgraceful.","Sit. Tea's on. I've bought biscuits. Proper ones. Don't look at me like that.","Bramble would've laughed at me. Being nice to her niece. I'm laughing at me too.","Tell me what's growing. I want details. Leaf counts.","I've stopped counting the steps. I just look forward to the knock."],
+  dating:["I've moved the cauldron so there's room for a second chair. Your chair.","I tried to curse the rain away for your garden. It rained harder. Love is humbling.","My spellbook keeps falling open to the page about hearts. I'm not doing it.","Hold my hand on the stairs. All four hundred and twelve. For safety.","The tower used to feel tall. Now it just feels like a long way from you."],
+  wed:["I've cursed the kettle to always be warm when you come home. Best work I've done.","I told the goose we're married. It hissed. I hissed back. We're even.","Wife. I like saying it. Wife. Wife. ...I'll stop. I won't.","I've retired the bad curses. The good ones are all for you now.","Come up the tower tonight. The stars are out, and I want to show you off to them."]
+};
+const HEW_GOSSIP_MORE = ["I saw Hew buying flowers at Zara's cart. He said they were 'spell ingredients'. They were daisies.","Hew sent a curse to Aldous by mistake. It made the mayor's moustache curl. He's keeping it.","Pip says Hew taught them a card trick. Then he cursed the cards. Then he uncursed them, because Pip cried.","Hew paid for a round at the inn once and then said it was 'a curse of generosity'.","Somebody heard Hew practising a speech in the wood. It started 'Dear witch' and went on for an hour.","Hew's hat blew into the river. Fen fished it out. Hew called him 'a noble boatman' and blushed."];
+const HEW_TALK_MORE2 = {
+  nemesis:["Have you come to beg for mercy? Mercy is closed. Try again Thursday.","My curses are works of art. Frame them. Hang them in your cottage.","I am Hew the Almighty. You may call me Hew the Almighty. Or Almighty, for short.","Did you walk all the way here? In those boots? I'm impressed. I'm not impressed.","I'm busy. I'm always busy. Evil doesn't plan itself."],
+  rival:["You have potential. As a nemesis. I'm grooming you for the role.","I suppose you can have a biscuit. The bad biscuit. Fine. The good biscuit.","I've been watching your garden through my telescope. It's thriving. Disgusting.","I wrote a curse so clever I nearly cried. Then you broke it in a week. Rude.","Your aunt used to bring me jam. It was always cursed. We got on."],
+  friend:["I've made you a cushion for the tower steps. You're welcome. Don't tell anyone.","Sit by the window. The view's better with someone to share it.","I've been practising saying 'thank you'. Thank you. ...Ugh. It's getting easier.","Do you know what Bramble said the last time I saw her? 'Be nice to my niece.' I'm trying.","I used to curse people because nobody visited. You visit. I'm running out of reasons."],
+  dating:["I wrote your name in my spellbook. Every page. The spells don't work any more. I don't care.","I've stopped wearing the pointy hat. It made me look silly. I'm wearing it again. You laughed.","Come up the tower at sunset. I've charmed the clouds pink. For you.","I'm told this is what happiness feels like. Itchy. Warm. Ridiculous.","I've cooked supper. It's toast. I've charmed it to taste like a feast. It tastes like toast."],
+  wed:["I've charmed the garden gate to say 'welcome home, my love' when you open it. It says it in a very deep voice.","I curse you to never be cold again. Here's my coat.","The village has stopped calling me a villain. They call me 'the witch's husband'. Much better title.","I've stopped cursing the seasons. I've started cursing the weeds. They hate it.","I love you more than my hat. And I love my hat a great deal."]
+};
+const HEW_GOSSIP_MORE2 = ["Hew cast a spell on the inn's sign once. Now it winks at people. Isolde loves it.","I saw Hew carrying a basket of herbs. He said they were poisons. They were mint.","Hew came to the fair dressed all in black. He won the pie contest. He was very gracious about it.","Rowan made Hew a new staff. Hew said it was 'adequate'. He hasn't put it down since.","Hew tried to curse the mill wheel. Turnip butted him in the river. Mara laughed for a week.","They say Hew's tower has a room just for your letters. Floor to ceiling."];
+HEW_GOSSIP.push(...HEW_GOSSIP_MORE, ...HEW_GOSSIP_MORE2);
+for (const k in HEW_TALK_MORE2) HEW_TALK_MORE[k] = HEW_TALK_MORE[k].concat(HEW_TALK_MORE2[k]);
+for (const k in HEW_TALK_MORE) HEW_TALK[k] = HEW_TALK[k].concat(HEW_TALK_MORE[k]);
 // heart scenes at 2, 4, 6, 8 (and 10 is the proposal). Shown at the tower the first visit after reaching them.
 const HEW_SCENES = {
   2:`Hew answers the door in a dressing gown covered in stars. "I wasn't expecting anyone," he says, which is plainly untrue, because there's a second teacup already out. He talks for an hour about a curse he's working on, and only stops when the kettle boils dry.`,
@@ -3269,7 +4349,7 @@ function hewBreak() {
 }
 function hewTalk() {
   const H = HW(); if (H.talked === dayKey()) return null;
-  H.talked = dayKey(); addHew(10); const pool = HEW_TALK[hewStage()]; return pool[(Math.random() * pool.length) | 0];
+  H.talked = dayKey(); addHew(10); return sayLine('hew', HEW_TALK[hewStage()]);
 }
 function hewGift(id) {
   const H = HW(); if (!(S.inv[id] > 0)) return null;

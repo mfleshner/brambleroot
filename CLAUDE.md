@@ -58,6 +58,14 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - Heart gift kinds: sprinkler, rod, lantern, energy, almanac, bell, hive (the original five), plus `discount` (Rowan: `S.upDisc`, 10% then 25% off upgrades through `upCost(up)`), `coins`, `items`, `seeds` (`seedGift(n, rare)`). The new ten give one-off items or coins, not permanent perks, to protect the economy.
   - Heart letters at 4 hearts (`HEART_LETTERS`) can also give `items` and `sprinkler`.
   - Aldous has a special talk line about this season's charter stars (in `talkTo`).
+  - **Dialog overhaul (Nov 9, 2026):** about 1,580 new lines (game total about 2,100), all just above `genVisits`.
+    - `DIALOG[v]` (+ `DIALOG_MORE`, merged in at load): `t` adds 12 chat lines per heart tier onto `VILLAGERS[v].talk` (now 14 per tier), `s[season]` 4 lines each, `rain` 4 (weighted double when `S.rain`), `visit` 8 extra garden greetings (`visitLine(v)`; a dating partner greets with a date line 60% of the time).
+    - `ROMANCE_MORE` (+ `ROMANCE_MORE2`) for the 9 romanceable villagers: `crush` 12 (40% of chats once `hasCrush`: 5+ hearts, `canRomance`, and she isn't dating, engaged or married), `engaged` 8 (half of partner chats while `S.wedding.v === v`), and `date` 18, `wed` 21, `morn` 10 in all.
+    - Hew: `HEW_TALK_MORE`/`HEW_TALK_MORE2` (15 lines per stage), `HEW_GOSSIP_MORE`/`HEW_GOSSIP_MORE2` (22 gossip lines).
+    - **No repeats:** `sayLine(key, pool)` skips the speaker's last `min(10, 60% of the pool)` lines, kept in `S.heard[key]` as 3-character hashes (`lineHash`). Keys: `v` (ordinary chat), `v:r` (romance), `v:c` (crush), `v:v` (visits), `v:m` (spouse mornings), `hew`, `gossip`. No migrate needed (`S.heard || {}`). About +800 bytes compressed in a save code after two years.
+    - In `talkTo`, the Aldous charter line, `DEEP_TALK` and Hew gossip only replace ordinary chat (`key === v`), never romance or crush lines.
+    - Pip is "they". Lines don't spoil the lighthouse quest.
+    - Test: `dialogtest.js` (headless, ~5,550 checks: shapes, no duplicates, tiers, seasons, rain, crush gating, partner pools, mornings, visits, Hew, no-repeat, save size).
   - Portrait styles: scarf, cap, messy, bun, curls, plus short, long, braid, ponytail, pigtails, wisps, wrap, beanie. Options: beard, moustache, glasses, earrings, freckles, flour, apron (true or a colour).
   - Festivals: every villager needs a line in all four `FEST[i].lines`, and every adult needs a `dance` line.
   - Functions: `heartsOf` (cap 8, or 10 for her partner), `addFr` (cap 850, or 1050 for her partner; points above a cap are kept, never trimmed), `talkTo`, `giveGift`, `portrait(v, mood, size)` (an SVG generator).
@@ -221,3 +229,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 16. Deep Hollow Part 3: floors 71–100, nine creatures, the Steward, the Moon Moth, calming the Heart (the end of the aunt's story), wardrobe treasures, letters at 75 and 100, and the Endless Below (Nov 9, 2026).
 17. Cooking: the Kitchen tab, 17 dishes, recipe cards and letters (Nov 9, 2026).
 18. Hew the Almighty Wizard: his tower, seasonal curses, hearts, a duel and romance (PLAN-hew.md Parts 2–3, Nov 9, 2026).
+19. Dialog overhaul: about 1,580 new lines (14 chat lines per heart tier, seasonal and rainy-day lines, more garden greetings, crush and engaged lines, three times the dating and married lines, more for Hew), and no line repeats back to back (Nov 9, 2026).
