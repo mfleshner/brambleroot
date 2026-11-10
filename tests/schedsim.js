@@ -92,8 +92,8 @@ S.rain = true; S.time = 720; t.enterVillage();
 ok(t.villageFolk().filter(z => !z.inside).length === 0 || t.villageFolk().filter(z => !z.inside).every(z => z.p === 'cart' || z.p === 'docks' || z.p === 'square'), 'rain: only outdoor spots drawn');
 ok(t.villageFolk().some(z => z.inside), 'rain: people indoors');
 t.draw(); t.leaveVillage(); S.rain = false;
-// festival evening: everyone in the square
-S.day = 14; S.time = 1100; S.visits = []; ok(t.VIDS.filter(v => t.where(v) === 'square').length >= 10, 'festival evening crowd in the square');
+// festival day: everyone at the festival grounds from 10 am to 10 pm
+S.day = 14; S.time = 1100; S.visits = []; ok(t.VIDS.filter(v => t.where(v) === 'fest').length >= 10, 'festival crowd at the grounds');
 // 5. calendar and notebook
 for (let s = 0; s < 4; s++) { t.openSheet('calendar'); t.renderSheet('calendar'); ok(clean(body()), 'calendar season ' + s); close(); }
 S.known = { mara:{ honey:'love', mint:'like', wolf:'hate', turnip:'neutral' } };

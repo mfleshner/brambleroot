@@ -77,9 +77,10 @@ Hosts are all there by their festival: Wren (summer arrival) only hosts in winte
 - A festival already in progress when the update lands (her save sitting on day 14) should still open.
 
 ## The three parts
-1. **The grounds:** the 10 am to 10 pm day, everyone at the festival place, no rain, the four dressed maps, booths and hellos in the world, the game overlay, tickets, Zara's stall (and Aldous's table), and **one game per festival** so every festival has something new from the start: the dance, night fishing, ring toss and snowball toss. The other main events move to booths.
-2. **Flower Dance and Lantern Night:** flower crowns, petal catch, firefly jars and duck scoop. Scores to beat, ribbons and the Festivals page.
-3. **Harvest Fair and Star Feast:** Catch Turnip, guess the gourd, star map and cookie icing. The rest of the prize stock.
+1. **The grounds — DONE Nov 10, 2026.** Shipped as planned, plus: scores to beat and ribbons are in from the start (the Journal page comes in Part 2); taking part in the main event pays 4 tickets; the festival recipes are in the stall from Part 1 (wardrobe pieces in Part 2, keepsakes in Part 3). Medal targets come from human-like bots (`festtest.js`). With one game a festival she earns about 10–22 tickets.
+   The plan was: the 10 am to 10 pm day, everyone at the festival place, no rain, the four dressed maps, booths and hellos in the world, the game overlay, tickets, Zara's stall (and Aldous's table), and **one game per festival** so every festival has something new from the start: the dance, night fishing, ring toss and snowball toss. The other main events move to booths.
+2. **Flower Dance and Lantern Night:** flower crowns, petal catch, firefly jars and duck scoop. The Festivals page in the Journal. The eight wardrobe pieces at the prize stall.
+3. **Harvest Fair and Star Feast:** Catch Turnip, guess the gourd, star map and cookie icing. The garden keepsakes.
 
 ## Every part
 - Old saves load with nothing lost (`mig.js`, `savesuite.js` 32/32).

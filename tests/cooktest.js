@@ -11,7 +11,7 @@ const close = () => { while (t.sheet) t.closeSheet(); };
 
 // data
 const D = t.DISHES, ids = Object.keys(D);
-ok(ids.length === 17, 'seventeen dishes');
+ok(ids.length === 21, 'twenty-one dishes (17 + 4 festival recipes)');
 for (const id of ids) { const d = D[id], cost = Object.entries(d.need).reduce((a, [k, n]) => a + t.ITEMS[k].sell * n, 0);
   ok(Object.keys(d.need).every(k => t.ITEMS[k]) && d.energy >= 15 && d.energy <= 50, 'dish data ' + id);
   ok(t.ITEMS[id] && t.ITEMS[id].dish && t.ITEMS[id].sell < cost, `${id} sells for less than its ingredients (${t.ITEMS[id].sell} < ${cost})`); }
@@ -23,7 +23,7 @@ ok(['minnowfry', 'minttea', 'berrytoast'].every(id => S.recipes[id]) && Object.k
 
 // kitchen tab
 t.bt = 'kitchen'; t.openSheet('cauldron'); let h = body();
-ok(/Kitchen/.test(document.getElementById('shTitle') ? document.getElementById('shTitle').textContent : 'Kitchen') && /Minnow Fry/.test(h) && /data-act="btab"/.test(h) && /14 more recipes/.test(h) && clean(h), 'kitchen tab lists recipes');
+ok(/Kitchen/.test(document.getElementById('shTitle') ? document.getElementById('shTitle').textContent : 'Kitchen') && /Minnow Fry/.test(h) && /data-act="btab"/.test(h) && /18 more recipes/.test(h) && clean(h), 'kitchen tab lists recipes');
 ok(/data-act="cook" data-id="minnowfry" type="button" disabled/.test(h), 'cook disabled without fish'); close();
 t.bt = 'cauldron'; t.openSheet('cauldron'); h = body(); ok(/data-act="brew"/.test(h) && /Kitchen/.test(h), 'cauldron tab still there'); close();
 

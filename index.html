@@ -90,6 +90,23 @@ h4.band{margin:16px 0 8px;font-family:var(--display);font-weight:400;font-size:2
 #scrim{position:fixed;inset:0;z-index:11;background:rgba(10,6,14,.45)}
 #wed{position:fixed;inset:0;z-index:14;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:radial-gradient(circle at 50% 18%,#5a3a5c 0%,#2a1d36 55%,#140d1a 100%)}
 #wed[hidden]{display:none}
+#fg{position:fixed;inset:0;z-index:14;background:#140d1a;touch-action:none}
+#fg[hidden]{display:none}
+.fg{position:absolute;inset:0;display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
+.fg-top{display:flex;align-items:baseline;gap:10px;padding:2px 4px 8px}
+.fg-top h2{margin:0;flex:1;font-family:var(--display);font-weight:400;font-size:26px;line-height:1.1;color:var(--text)}
+.fg-hud{display:flex;gap:12px;font-weight:700;font-size:16px;color:var(--gold);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fg-stage{position:relative;flex:1;min-height:0;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+#fgC{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.fg-card{position:absolute;left:12px;right:12px;bottom:12px;max-height:calc(100% - 24px);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:rgba(28,19,36,.96);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.fg-card[hidden]{display:none}
+.fg-card .crowd{justify-content:center}
+.fg-score{margin:0;text-align:center;font-family:var(--display);font-size:52px;line-height:1;color:var(--text)}
+.fg-score span{font-size:20px;color:var(--muted)}
+.fg-medal{margin:0;text-align:center;font-weight:700;font-size:20px;color:var(--muted)}
+.fg-medal.t1{color:#e0a070}.fg-medal.t2{color:#d8e0ea}.fg-medal.t3{color:var(--gold)}
+.cta-row .btn.fgo{padding:14px 22px;font-size:17px}
+.tix b{color:var(--gold)}
 .wed{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:calc(28px + env(safe-area-inset-top)) 18px calc(36px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
 .wed h2{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(34px,10vw,52px);line-height:1;text-align:center;color:var(--text);text-shadow:0 0 24px rgba(242,184,75,.3)}
 .wed .kicker{text-align:center;color:#f2c6d0}
@@ -250,6 +267,7 @@ h4.nbh{font-size:17px}
 <div id="sheet" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle"><div class="sh-head"><h3 id="shTitle"></h3><button class="x" id="shClose" type="button">Close</button></div><div class="sh-body" id="shBody"></div></div></div>
 
 <div id="wed" hidden></div>
+<div id="fg" hidden><div class="fg"><div class="fg-top"><h2 id="fgTitle"></h2><div class="fg-hud"><span id="fgScore"></span><span id="fgTime"></span></div></div><div class="fg-stage" id="fgStage"><canvas id="fgC"></canvas><div id="fgCard" class="fg-card" hidden></div></div></div></div>
 
 <section id="title">
   <div class="tw">
@@ -870,7 +888,7 @@ function newState() {
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     hollow:hollowState(), helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
-    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null };
+    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{} };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -1412,7 +1430,8 @@ function visit(k, q) {
   if (k === 'tovillage') { enterVillage(q.seek, q.place); return; }
   if (k === 'towood') { enterWood(); if (q.hew) queue.push({ c:7, r:5, kind:'visit', b:'hewtower' }); return; }
   if (k === 'vexit') { leaveVillage(); return; }
-  if (k === 'vperson') { const f = villageFolk().find(z => z.v === q.v && !z.inside); if (f) openSheet('villager', { v:q.v, from:'village' }); else toast(`${VILLAGERS[q.v].name} has moved on. Check the Journal to see where.`); return; }
+  if (k === 'fbooth') { if (festOn()) openSheet('booth', { p:q.id }); return; }
+  if (k === 'vperson') { const f = villageFolk().find(z => z.v === q.v && !z.inside), m = f && festMingle(q.v); if (f) openSheet('villager', { v:q.v, from:'village', mood:m ? 'happy' : undefined, line:m ? m.line : null, gifts:m && m.gifts ? [m.gifts] : null }); else toast(`${VILLAGERS[q.v].name} has moved on. Check the Journal to see where.`); return; }
   if (k === 'vplace') { if (q.place === 'board') { calSeason = S.season; openSheet('calendar', { from:'village' }); } else openSheet('place', { p:q.place }); return; }
   if (k === 'exit') { leaveWood(); return; }
   if (k === 'shrine') { shrineVisit(); return; }
@@ -1512,6 +1531,7 @@ function update(dt) {
     if (busy) S.time += dt * 7.2 * paceMul();
     for (const x of S.visits || []) if (!x.seen && visitPresent(x)) { x.seen = true; toast(x.spouse ? `${VILLAGERS[x.v].name} is out in the garden.` : `${VILLAGERS[x.v].name} stopped by the garden. Tap them to say hello.`); }
     if (S.time >= passOut()) { S.time = passOut(); endDay(true); return; }
+    if (S.scene === 'village' && isFestDay() && S.time >= FEST_CLOSE) festClosedToast();
     if (S.scene === 'hollow') { updateHollow(dt); if (S.scene !== 'hollow' || sheetOpen) return; }
     if (witch.act > 0) witch.act -= dt;
     else if (queue.length) {
@@ -1568,8 +1588,8 @@ function endDay(passedOut) {
   S.time = 360; S.energy = passedOut ? Math.round(S.maxEnergy * .6) : S.maxEnergy; S.mana = S.manaMax || 0;
   // weather
   S.rain = S.nextRain; S.snow = S.season === 3 && Math.random() < .45;
-  if (S.day === 1 && S.year === 1 && S.season === 0) S.rain = false;
-  S.nextRain = !curseOn('drought') && Math.random() < RAIN[S.day >= DAYS ? (S.season + 1) % 4 : S.season];
+  if ((S.day === 1 && S.year === 1 && S.season === 0) || S.day === FEST_DAY) S.rain = false;
+  S.nextRain = !curseOn('drought') && S.day + 1 !== FEST_DAY && Math.random() < RAIN[S.day >= DAYS ? (S.season + 1) % 4 : S.season];
   if (S.rain) { for (const p of S.plots) if (p.t) p.w = true; lines.unshift({ t:'Rain fell at dawn. Every bed is watered today.', c:'gold' }); }
   if (S.snow) lines.unshift({ t:'Snow is falling. Only frostmoss grows outdoors now.', c:'gold' });
   // sprinklers
@@ -1599,7 +1619,7 @@ function endDay(passedOut) {
   eventMorning(lines);
   questMorning(lines);
   genVisits(); genWood(); S.scene = 'farm'; HV = null;
-  if (isFestDay()) lines.push({ t:`Tonight is the ${FEST[S.season].name}! Tap the noticeboard whenever you're ready to go. You'll spend the evening there.`, c:'gold', v:'odile', mood:'happy' });
+  if (isFestDay()) lines.push({ t:`It's the ${FEST[S.season].name} today! The stalls open in the village at 10 am, and everyone will be there: games, prizes and ${FEST_MAIN_NOUN[S.season]}. The farm can wait, if you like.`, c:'gold', v:'odile', mood:'happy' });
   mailMorning(lines);
   if (S.day % 7 === 0) lines.push({ t:'Tip: tap Sleep, then "Back up my save" to save a backup file. If your browser ever forgets your game, restore it from the title screen.' });
   witch.x = 1; witch.y = 2; cat.x = .4; cat.y = 2.4; cat.trail = [];
@@ -2258,63 +2278,229 @@ const FEST_DAY = 14;
 const FEST = [
   { name:'Flower Dance', mainTitle:'The dance', main:'dance',
     board:'Lanterns in the apple trees and a fiddle tuning up in the square.',
-    invite:`The Flower Dance is on spring 14, from dusk in the village square. Wear something nice. The cat is also invited, though historically it has not danced.\n\nOdile`,
+    invite:`The Flower Dance is on spring 14, in the village square. The stalls open at ten in the morning, and the dancing goes on till late. Wear something nice. The cat is also invited, though historically it has not danced.\n\nOdile`,
     intro:'Lanterns strung between the apple trees, a fiddle tuning up, and the whole village in their best clothes. Pip has flowers in their hair and more in their pockets.',
     ask:'The fiddle strikes up the old reel. Who will you dance with?',
     lines:{ mara:"I haven't danced since... well. Maybe tonight. Turnip's wearing a garland, look.", fen:"Too old for dancing. I'll hold everyone's drinks and judge harshly.", pip:'I made flower crowns for everybody! Yours has a mint leaf in it, for luck.', odile:'Thirty-one Flower Dances and I still step on toes. Tradition, really.', wren:'The bees are fussy about flowers. So am I. These are lovely.', rowan:"I don't dance. Isolde dragged me here. ...Is that a fiddle? Fine. One dance.", silas:"I'm playing tonight, so I can't dance. Unless you ask. Then I can dance.", theo:"I worked out the best route round the dance floor. It doesn't account for other people.", isolde:"First drink's on the house, love. Second one too. It's a dance, not a business.", juno:"Dancing's just fishing with your feet. You'll see.", hettie:"I danced with your aunt at this very dance, seventy years ago. We were terrible.", aldous:"The mayor traditionally opens the dance. Traditionally, nobody joins him.", zara:"I've danced the Flower Dance in nine valleys. Yours has the best fiddle.", bertram:"Fen and I are judging the dancing. We're very harsh. We give everyone ten.", tilly:"Pip and I made a flower crown for the cat. She's wearing it. Look!" },
     dance:{ mara:"Mara laughs the whole way through and only steps on you twice. 'Bramble always danced with me,' she says at the end, a little breathless.", fen:"Fen grumbles, then dances surprisingly well. 'Navy,' is all he'll say about it.", odile:'Odile counts the steps under her breath, then forgets to, and dances better for it.', wren:'Wren spins you so hard your hat flies off. Three villagers catch it at once.', rowan:"Rowan dances like he's afraid you'll break, then forgets to be careful and spins you right off your feet. He apologises for a full minute.", silas:"Silas hands his lute to Pip, who plays it terribly, and you dance anyway. He laughs more than you've ever heard him.", theo:"Theo counts the steps under his breath and treads on your foot exactly once. \"Statistically acceptable,\" he says, very pink.", isolde:"Isolde leads, firmly, and steers you round the whole square while catching up on gossip with every couple you pass.", juno:"Juno dances the way she dives: fast, fearless, and slightly too close to the bonfire.", hettie:"Hettie dances one slow, careful turn with you, then sits down, very pleased. \"Seventy years and I've still got it,\" she announces.", aldous:"Aldous bows very formally and dances a stately, old-fashioned step. Half the square claps. The other half joins in.", zara:"Zara teaches you a dance from somewhere far south, all clapping and stamping. By the end the whole square is doing it.", bertram:"Bertram dances like he's on a ship's deck in a gale, rolling with every step. It works surprisingly well." } },
   { name:'Lantern Night', mainTitle:'Make a wish', main:'lantern',
     board:'Paper lanterns on the river, and Fen has the ferry strung with lights.',
-    invite:`Lantern Night is on summer 14, down at the ferry after sunset. Bring a wish. Fen says bring two in case the first one sinks.\n\nOdile`,
+    invite:`Lantern Night is on summer 14, down by the river. The stalls open at ten in the morning, and the lanterns go out on the water whenever you're ready. Bring a wish. Fen says bring two in case the first one sinks.\n\nOdile`,
     intro:'Paper lanterns bob down the river in the warm dark. Fen has strung the ferry with lights, and everyone writes a wish before letting theirs go.',
     ask:'Write your wish on the lantern and let it go.',
     lines:{ mara:'I wished for rain. Not too much. Just right. You know.', fen:"Every year I wish for the same thing. Not telling. Hasn't come true yet, but it might.", pip:"I wished for a dragon. Ma says that's not how wishes work. Ma doesn't know everything.", odile:"The children's lanterns always sink first. They're heavy with wishes.", wren:'My bees think the lanterns are giant flowers. Poor confused things.', rowan:"I made the lantern hooks on the ferry. They'll hold. Probably.", silas:"Every lantern's a little song. That one's out of tune. It's Fen's.", theo:"I wrote my wish very small, so it fits more wishes.", isolde:"I wish for a full inn and an empty sink. Every year, half of it comes true.", juno:"I wished for floor fifteen. Somebody's got to see it.", hettie:"At my age you stop wishing for things and start wishing for people. I wished for all of you.", aldous:"Officially, the mayor wishes for prosperity. Unofficially, I wished for a new hat.", zara:"In the south the lanterns are cakes, and they eat them. I prefer yours.", bertram:"Lanterns on the water. Reminds me of the old light. Almost.", tilly:"I wished for a pony. Pip wished for a dragon. We're going to share." },
     wishes:{ growth:['A good harvest', 'Every growing crop grows an extra day tonight.'], fortune:['Good fortune', 'A little luck finds its way to you.'], friends:['Good friends', 'Everyone on the riverbank warms to you.'] } },
   { name:'Harvest Fair', mainTitle:'The judging', main:'fair',
     board:'Stalls of gourds and pies fill the square, and the judges look very serious.',
-    invite:`The Harvest Fair judging is on autumn 14. Enter your finest thing: a crop, a fish, a potion, anything. I am a judge this year, so I can't be seen to favour you. (Good luck.)\n\nOdile`,
+    invite:`The Harvest Fair is on autumn 14, in the square, from ten in the morning: stalls, games and the judging. Enter your finest thing: a crop, a fish, a potion, anything. I am a judge this year, so I can't be seen to favour you. (Good luck.)\n\nOdile`,
     intro:'Stalls of gourds and pies and jars fill the square, and a very serious panel of judges (the mayor, Odile, and Mara\'s goat) is inspecting everything.',
     ask:'Choose your finest item to put before the judges. You get it back afterwards.',
     lines:{ mara:"Turnip's a judge this year. She's already eaten two entries.", fen:'Smoked eel, my entry. Same as every year. Lost every year. Tradition.', pip:"I entered a cake shaped like you! It's mostly hat.", odile:"I'm judging, so officially I haven't seen you. Unofficially: good luck.", wren:"Honey cake. If I don't win, I'm blaming the goat.", rowan:"I entered a horseshoe. Polished. Nobody said it had to be a vegetable.", silas:"My first night in the valley, and there's a fair. I'm told I'm the entertainment.", theo:"I entered my best potion. Then I saw yours. I'm withdrawing on medical grounds.", isolde:"My pie's in the running again. If the goat eats it, that counts as a win.", juno:"I entered the biggest perch in the valley. It's mostly head, but still.", hettie:"Herb bundles. I've won with them every year since before the mayor was born. Twice.", aldous:"As mayor I am head judge. As head judge I am impartial. Mostly. Good luck.", zara:"I'm buying the losing entries at half price. Everyone wins, darling.", bertram:"I entered a jar of lighthouse sea salt. Fen entered smoked eel. One of us will lose. It'll be Fen.", tilly:"Pip and I entered a cake shaped like the cat. It's mostly ears." } },
   { name:'Star Feast', mainTitle:'The secret gift swap', main:'feast',
     board:'A long table under the star lanterns and a pot of spiced cider the size of your cauldron.',
-    invite:`The Star Feast is on winter 14, in the square. Everyone brings a gift for the secret swap. You'll find out whose name you drew when you arrive.\n\nOdile`,
+    invite:`The Star Feast is on winter 14, in the square, from ten in the morning till late. Everyone brings a gift for the secret swap. You'll find out whose name you drew when you arrive.\n\nOdile`,
     intro:'Snow on the square, a long table under the star lanterns, and a pot of spiced cider the size of your cauldron. Tonight everyone swaps secret gifts.',
     ask:'You drew a name for the gift swap. Pick something from your basket for them.',
     lines:{ mara:"Cider's my recipe. Well, Bramble's. I've made it every winter since she showed me.", fen:'Long night is the best night. More stars.', pip:"I know who has me for the gift swap. I'm not supposed to know. I definitely know.", odile:'The children sang for an hour. My ears are still ringing, happily.', wren:'The bees are asleep, so tonight I get to be a person. It is nice.', rowan:"Made a little iron star for everyone's door. Don't make a fuss. ...You can make a small fuss.", silas:"I'm playing carols. Isolde says no sad ones. All my carols are sad ones.", theo:"I brewed the cider this year. It's very scientific. It's also very strong.", isolde:"Longest night, fullest inn. My favourite night of the year, love.", juno:"Ice fishing at dawn tomorrow. Bertram's challenged me again. He'll lose. Again.", hettie:"Seventy Star Feasts I've seen. This one's got you in it. That's new.", aldous:"A toast! To the village, to the Guild, to the witch. A short toast. Isolde's watching the clock.", zara:"I timed my route to be here tonight. Don't tell anyone I'm sentimental.", bertram:"Clear sky, every star out. Good night to be a lighthouse keeper with no lighthouse.", tilly:"I got Pip for the gift swap! I'm giving Pip a frog. A pretend one. Mostly pretend." } }
 ];
 const festKey = () => `y${S.year}s${S.season}`;
 const isFestDay = () => S.day === FEST_DAY;
-function festState() { const k = festKey(); return S.fest[k] || (S.fest[k] = { m:{}, main:null, txt:'', home:false }); }
-function endFestival() { const f = festState(); if (f.home) return; f.home = true; if (S.time < 1320) S.time = 1320; save(); setTimeout(() => toast('You walk home under the lanterns, tired and happy.'), 0); }
+function festState() { const k = festKey(); const f = S.fest[k] || (S.fest[k] = { m:{}, main:null, txt:'', home:false }); f.plays = f.plays || {}; f.best = f.best || {}; f.got = f.got || {}; return f; }
 function festAfter(vs) {
   const out = []; for (const v of vs) applyGifts(v, out);
   checkStars(); return out.length ? ' ' + out.join(' ') : '';
 }
-function festRender() {
+
+/* ---------- the festival grounds (PLAN-festivals.md) ----------
+   On day 14 the village is dressed for the festival, and from FEST_OPEN to FEST_CLOSE everyone is there: where() says
+   'fest', and festSpots() stands each person on their own tile. Booths (festBooths) are tapped to open a 'booth' sheet:
+   the main event (the old festival sheet's dance, wish, judging or gift swap), a game (FGAMES, played full screen in #fg)
+   or the prize stall. A game pays tickets for its first FEST_TICKET_PLAYS plays each festival (TIER_TICKETS by medal),
+   and each play passes FEST_PLAY_MIN game minutes. Every game has a host with a best score (hostBest); beating it wins
+   that year's ribbon (S.ribbons[id] = [years]) and +80 friendship with the host. Tickets buy prizes (prizeStock). */
+const FEST_OPEN = 600, FEST_CLOSE = 1320, FEST_PLAY_MIN = 30, FEST_TICKET_PLAYS = 3, FEST_MAIN_TICKETS = 4, TIER_TICKETS = [1, 2, 4, 6], RIBBON_FR = 80;
+const festOn = () => isFestDay() && S.time >= FEST_OPEN && S.time < FEST_CLOSE;
+// Where booths stand: tile c, r (and width w), the host's tile, and the tile she stands on to use it.
+const FB_SPOT = {
+  left:  { c:1, r:5, host:[0, 5], host2:[2, 6], stand:[2, 5] },
+  right: { c:7, r:5, host:[8, 5], stand:[6, 5] },
+  top:   { c:6, r:1, host:[5, 1], stand:[6, 2] },
+  bl:    { c:2, r:10, host:[1, 10], stand:[3, 10] },
+  br:    { c:6, r:11, host:[7, 11], stand:[5, 11] },
+  main:  { c:3, r:7, w:3, stand:[4, 8] },
+  dock:  { c:6, r:9, stand:[6, 10] },
+  prizes:{ c:7, r:6, w:2, host:[6, 6], stand:[6, 7] }
+};
+const FEST_BOOTHS = [
+  [{ id:'dance', at:'main', main:true }, { id:'crowns', at:'left' }, { id:'petals', at:'right' }, { id:'prizes', at:'prizes' }],
+  [{ id:'wish', at:'dock', main:true }, { id:'fireflies', at:'left' }, { id:'ducks', at:'br' }, { id:'nightfish', at:'bl' }, { id:'prizes', at:'prizes' }],
+  [{ id:'judging', at:'main', main:true }, { id:'turnip', at:'left' }, { id:'ringtoss', at:'right' }, { id:'gourd', at:'top' }, { id:'prizes', at:'prizes' }],
+  [{ id:'swap', at:'main', main:true }, { id:'cookies', at:'left' }, { id:'snowball', at:'right' }, { id:'starmap', at:'br' }, { id:'prizes', at:'prizes' }]
+];
+const FEST_MAIN = ['dance', 'wish', 'judging', 'swap'], FEST_MAIN_TXT = ['your first dance', 'your lantern wish', 'entering the judging', 'the gift swap'], FEST_MAIN_NOUN = ['the dance', 'the lantern wishes', 'the judging', 'the gift swap'];
+const FEST_WELCOME = [
+  'The Flower Dance! Tap a stall to play, or a friend to say hello. The dance floor is in the middle of the square, and the prize stall is by the cart.',
+  'Lantern Night! Tap a stall to play, or a friend to say hello. The wish lanterns are on the dock, and the prize stall is by the cart.',
+  'The Harvest Fair! Tap a stall to play, or a friend to say hello. The judges\' table is in the middle of the square, and the prize stall is by the cart.',
+  'The Star Feast! Tap a stall to play, or a friend to say hello. The long table is in the middle of the square, and the prize stall is by the cart.'
+];
+function festBooths(season) {
+  const s = season === undefined ? S.season : season;
+  return FEST_BOOTHS[s].filter(b => b.main || b.id === 'prizes' || FGAMES[b.id]).map(b => Object.assign({}, FB_SPOT[b.at], b));
+}
+const prizeHost = () => arrived('zara') ? 'zara' : 'aldous';
+function boothHosts(id) {
+  if (id === 'prizes') return [prizeHost()];
+  if (id === 'dance') { const f = festState(); return f.main && VILLAGERS[f.main] ? [f.main] : []; }
+  const G = FGAMES[id]; return G ? G.host.filter(v => VILLAGERS[v]) : [];
+}
+// Everyone's tile at the festival: hosts by their booth, the rest spread over the square, the docks and the lanes.
+function festSpots() {
+  const m = {}, used = new Set(), key = (c, r) => c + ',' + r, booths = festBooths();
+  for (const b of booths) { for (let i = 0; i < (b.w || 1); i++) used.add(key(b.c + i, b.r)); used.add(key(b.stand[0], b.stand[1])); }
+  const take = (v, s) => { m[v] = s; used.add(key(s[0], s[1])); };
+  for (const b of booths) boothHosts(b.id).filter(v => arrived(v) && !m[v]).forEach((v, i) => { const h = i === 0 ? b.host : b.host2; if (h) take(v, [h[0], h[1], b.stand[0], b.stand[1]]); });
+  const pool = (S.season === 1 ? ['docks', 'square'] : ['square', 'docks']).concat(['lanes', 'school', 'inn', 'apothecary', 'smithy', 'mill']).flatMap(p => VSPOTS[p]);
+  for (const v of VIDS) {
+    if (m[v] || !arrived(v)) continue;
+    const s = pool.find(q => !used.has(key(q[0], q[1])) && !used.has(key(q[2], q[3])) && !festBoothAt(q[2], q[3], true));
+    if (s) take(v, s);
+  }
+  return m;
+}
+function festBoothAt(c, r, any) {
+  if (!any && !festOn()) return null;
+  return festBooths().find(b => r === b.r && c >= b.c && c < b.c + (b.w || 1)) || null;
+}
+function festMingle(v) {
+  if (!festOn()) return null;
+  const f = festState(); if (f.m[v]) return null;
+  f.m[v] = true; addFr(v, 30);
+  return { line:FEST[S.season].lines[v], gifts:festAfter([v]).trim() };
+}
+function goFest() {
+  closeSheet();
+  if (S.scene === 'village') { toast(festOn() ? 'You\'re at the festival. Tap a stall to play.' : 'The stalls open at 10 am.'); return; }
+  if (S.scene !== 'farm') { toast('Head home first, then down to the village.'); return; }
+  queue.push({ c:BUILD.gate.stand[0], r:BUILD.gate.stand[1], kind:'visit', b:'tovillage', place:'fest' });
+}
+function festArrive() {
+  if (!isFestDay()) return;
+  const f = festState();
+  if (S.time < FEST_OPEN) toast(`Everyone's putting up stalls for the ${FEST[S.season].name}. It opens at 10 am.`, 5200);
+  else if (festOn() && !f.arrived) { f.arrived = true; toast(FEST_WELCOME[S.season], 6400); }
+}
+// The card on the noticeboard and the calendar.
+function festCard() {
+  const F = FEST[S.season], before = S.time < FEST_OPEN, on = festOn();
+  return `<article class="card fest"><h4>Today: ${F.name}</h4><p class="sub">${before ? `${F.board} The stalls open at 10 am.` : on ? `${F.board} It's on until 10 pm.` : 'All over for this year. What a day it was.'}</p>${before || on ? `<div class="foot"><span class="due">Stall games, prizes and the whole village.</span><button class="btn" data-act="gofest" type="button" style="margin-left:auto">Go to the festival</button></div>` : ''}</article>`;
+}
+
+/* ---- tickets, hosts and ribbons ---- */
+function hostBest(id) { const G = FGAMES[id]; return Math.min(G.max - 1, G.best + (S.year - 1) * G.step); }
+function gameTier(id, score) { const t = FGAMES[id].tiers; return score >= t[2] ? 3 : score >= t[1] ? 2 : score >= t[0] ? 1 : 0; }
+const TIER_NAME = ['Well played', 'Bronze', 'Silver', 'Gold'];
+const ribbonYears = id => (S.ribbons && S.ribbons[id]) || [];
+const playsLeft = id => Math.max(0, FEST_TICKET_PLAYS - (festState().plays[id] || 0));
+const hostNames = vs => vs.map(v => VILLAGERS[v].name).join(' and ');
+function festPlayed(id, score) {
+  const f = festState(), G = FGAMES[id], hosts = boothHosts(id);
+  const n = f.plays[id] = (f.plays[id] || 0) + 1, tier = gameTier(id, score);
+  const tk = n <= FEST_TICKET_PLAYS ? TIER_TICKETS[tier] : 0;
+  S.tickets = (S.tickets || 0) + tk;
+  const newBest = score > (f.best[id] || 0); if (newBest) f.best[id] = score;
+  const hb = hostBest(id); let ribbon = false, first = false, gifts = '';
+  if (score > hb && hosts.length) {
+    S.ribbons = S.ribbons || {}; const r = S.ribbons[id] = S.ribbons[id] || [];
+    if (!r.includes(S.year)) { r.push(S.year); ribbon = true; first = r.length === 1; for (const v of hosts) addFr(v, RIBBON_FR); gifts = festAfter(hosts).trim(); }
+  }
+  S.time += FEST_PLAY_MIN;
+  return { score, tier, tk, n, ribbon, first, hb, newBest, gifts, hosts };
+}
+
+/* ---- the prize stall ---- */
+const FEST_DISHES = () => Object.keys(DISHES).filter(k => DISHES[k].from === 'fest');
+function prizeStock() {
+  const f = festState(), got = f.got, out = [];
+  out.push({ id:'starshard', name:'Starshard', col:ITEMS.starshard.col, cost:25, left:1 - (got.starshard || 0), desc:'One each festival' });
+  const sd = festSeed();
+  if (sd) out.push({ id:'seeds', name:`${CROPS[sd].name} seeds ×5`, col:CROPS[sd].col, cost:10, left:2 - (got.seeds || 0), desc:'The best seeds of the season. Two packets each festival' });
+  for (const k of FEST_DISHES()) if (DISHES[k].fest === S.season) out.push({ id:'r:' + k, name:`Recipe: ${DISHES[k].name}`, col:DISHES[k].col, cost:12, left:dishKnown(k) ? 0 : 1, desc:`Only at the ${FEST[S.season].name}. ${dishNeedTxt(k)}` });
+  for (const k of FEST_WEAR_IDS()) if (FEST_WEAR[k].fest === S.season) out.push({ id:'w:' + k, name:FEST_WEAR[k].name, col:FEST_WEAR[k].col, cost:FEST_WEAR[k].cost, left:prizeOwned(k) ? 0 : 1, desc:FEST_WEAR[k].desc });
+  for (const k of KEEPSAKE_IDS()) if (KEEPSAKES[k].fest === S.season) out.push({ id:'k:' + k, name:KEEPSAKES[k].name, col:KEEPSAKES[k].col, cost:KEEPSAKES[k].cost, left:prizeOwned(k) ? 0 : 1, desc:KEEPSAKES[k].desc });
+  return out;
+}
+// Extended by Parts 2 and 3: festival wardrobe pieces and farm keepsakes.
+const FEST_WEAR = {}, KEEPSAKES = {};
+const FEST_WEAR_IDS = () => Object.keys(FEST_WEAR), KEEPSAKE_IDS = () => Object.keys(KEEPSAKES);
+const prizeOwned = k => !!(S.prizes && S.prizes[k]);
+const dishNeedTxt = k => Object.entries(DISHES[k].need).map(([i, n]) => `${n} ${itemName(i)}`).join(' + ');
+function festSeed() { const ids = Object.keys(CROPS).filter(id => inSeason(id) && seedForSale(id)).sort((a, b) => CROPS[b].sell - CROPS[a].sell); return ids[0] || null; }
+function prizeBuy(id) {
+  const w = prizeStock().find(x => x.id === id), f = festState();
+  if (!w || w.left <= 0 || !festOn() || (S.tickets || 0) < w.cost) return false;
+  S.tickets -= w.cost; f.got[id] = (f.got[id] || 0) + 1;
+  if (id === 'starshard') S.inv.starshard = (S.inv.starshard || 0) + 1;
+  else if (id === 'seeds') { const sd = festSeed(); S.seeds[sd] = (S.seeds[sd] || 0) + 5; }
+  else if (id.startsWith('r:')) (S.recipes = S.recipes || {})[id.slice(2)] = true;
+  else (S.prizes = S.prizes || {})[id.slice(2)] = true;
+  return true;
+}
+function prizeRender() {
+  const host = prizeHost(), st = prizeStock(), tk = S.tickets || 0;
+  let h = `<div class="vhead">${portrait(host, 'happy', 72)}<div class="info"><span class="role">${host === 'zara' ? 'Zara runs the prize stall' : 'Mayor Aldous runs the prize table for the Guild'}</span><span class="meta tix">You have <b>${tk}</b> ticket${tk === 1 ? '' : 's'}</span></div></div>`;
+  h += `<div class="bubble">${host === 'zara' ? 'Tickets only, darling. Coins are for ordinary days.' : 'Win tickets at the stalls, and spend them here. The Guild has been saving these all year.'}</div>`;
+  h += `<p class="sub">Stall games pay tickets for the first ${FEST_TICKET_PLAYS} plays of each: ${TIER_TICKETS[1]} for bronze, ${TIER_TICKETS[2]} for silver, ${TIER_TICKETS[3]} for gold. ${FEST_MAIN_TXT[S.season][0].toUpperCase() + FEST_MAIN_TXT[S.season].slice(1)} gives ${FEST_MAIN_TICKETS}.</p>`;
+  for (const w of st) h += row(w.col, w.name, `${w.cost} tickets · ${w.desc}${w.left > 0 ? '' : ' · Got it'}`, w.left > 0 ? `<button class="btn" data-act="tbuy" data-id="${w.id}" type="button" ${tk < w.cost ? 'disabled' : ''}>Buy</button>` : '<span class="meta">✓</span>', w.left > 0 ? '' : 'dim');
+  if (zaraAtCart()) h += cartWares();
+  return h;
+}
+
+/* ---- booth sheets ---- */
+const boothTitle = id => id === 'prizes' ? (prizeHost() === 'zara' ? 'The prize stall' : 'The prize table') : FEST_MAIN.includes(id) ? FEST[S.season].mainTitle : FGAMES[id].name;
+function boothRender(id) {
+  if (id === 'prizes') return prizeRender();
+  if (FEST_MAIN.includes(id)) return mainRender(id);
+  return gameCard(id);
+}
+function gameCard(id) {
+  const G = FGAMES[id], f = festState(), hosts = boothHosts(id), left = playsLeft(id), rb = ribbonYears(id), won = rb.includes(S.year);
+  let h = hosts.length ? `<div class="crowd">${hosts.map(v => portrait(v, 'happy', 64)).join('')}</div>` : '';
+  if (G.hostLine) h += `<div class="bubble">${G.hostLine}</div>`;
+  h += `<p class="sub">${G.how}</p>`;
+  h += `<ul class="lines"><li class="gold">${hosts.length ? `${hostNames(hosts)}'s best: <b>${hostBest(id)}</b> ${G.unit}. ${won ? 'You beat it this year, and the ribbon is yours.' : 'Beat it to win a ribbon.'}` : ''}</li>`;
+  h += `<li>Bronze ${G.tiers[0]}, silver ${G.tiers[1]}, gold ${G.tiers[2]} ${G.unit}.${f.best[id] ? ` Your best today: <b>${f.best[id]}</b>.` : ''}</li>`;
+  h += `<li>${left ? `Your next ${left} play${left === 1 ? '' : 's'} win${left === 1 ? 's' : ''} tickets.` : 'No more tickets from this game today, but you can play just for fun.'} Each play takes about half an hour.</li>`;
+  if (rb.length) h += `<li class="gift">Ribbons won: ${rb.map(y => 'year ' + y).join(', ')}.</li>`;
+  h += `</ul><div class="cta-row"><button class="btn" data-act="fplay" data-id="${id}" type="button" ${festOn() ? '' : 'disabled'}>${festOn() ? 'Play' : 'Closed'}</button></div>`;
+  return h + `<p class="sub">You have ${S.tickets || 0} ticket${S.tickets === 1 ? '' : 's'}.</p>`;
+}
+// The main event: today's festival sheet, now at its own spot (the dance floor, the dock, the judges' table, the long table).
+function mainRender(id) {
   const F = FEST[S.season], f = festState(), who = VIDS.filter(arrived);
-  let h = `<p class="scene">${F.intro}</p><div class="crowd">${who.map(v => portrait(v, 'happy', 44)).join('')}</div><h4 class="sec">Mingle</h4>`;
-  for (const v of who) { const met = f.m[v]; h += `<button class="vrow" type="button" data-act="mingle" data-id="${v}" ${met ? 'disabled' : ''}>${portrait(v, met ? 'happy' : 'neutral', 40)}<div class="info"><span class="name">${VILLAGERS[v].name}</span><span class="meta">${met ? F.lines[v] : 'Tap to say hello'}</span></div></button>`; }
-  h += `<h4 class="sec">${F.mainTitle}</h4>`;
+  let h = `<p class="scene">${F.intro}</p>`;
   if (f.main) h += `<div class="bubble">${f.txt}</div>`;
   else {
-    h += `<p class="sub">${F.ask}</p>`;
-    if (F.main === 'dance') h += `<div class="cta-row">${who.filter(v => VILLAGERS[v].look.age !== 'kid').map(v => `<button class="btn alt" data-act="dance" data-id="${v}" type="button">${VILLAGERS[v].name}</button>`).join('')}</div>`;
-    if (F.main === 'lantern') for (const [id, [n, d]] of Object.entries(F.wishes)) h += row('#f2b84b', n, d, `<button class="btn" data-act="wish" data-id="${id}" type="button">Wish</button>`);
+    h += `<p class="sub">${F.ask}${id !== 'dance' ? ` Taking part wins ${FEST_MAIN_TICKETS} tickets.` : ''}</p>`;
+    if (F.main === 'dance') { h += `<p class="sub">Your partner gets a dance they'll remember (and you get ${FEST_MAIN_TICKETS} tickets). Then you can dance with them as often as you like.</p><div class="cta-row">${who.filter(v => VILLAGERS[v].look.age !== 'kid').map(v => `<button class="btn alt" data-act="dance" data-id="${v}" type="button">${VILLAGERS[v].name}</button>`).join('')}</div>`; }
+    if (F.main === 'lantern') for (const [wid, [n, d]] of Object.entries(F.wishes)) h += row('#f2b84b', n, d, `<button class="btn" data-act="wish" data-id="${wid}" type="button">Wish</button>`);
     if (F.main === 'fair' || F.main === 'feast') {
       const items = Object.entries(S.inv).filter(([k, n]) => n > 0 && !NOGIFT[k]).sort((a, b) => itemValue(b[0]) - itemValue(a[0])).slice(0, 10);
       if (F.main === 'feast') h += `<p class="sub">You drew <b>${VILLAGERS[feastTo()].name}</b>.</p>`;
       if (!items.length) h += `<p class="sub">Your basket is empty. Harvest something and come back before 10 pm.</p>`;
-      for (const [id] of items) h += row(itemCol(id), itemName(id), F.main === 'fair' ? `Worth ${itemValue(id)} points to the judges` : (((S.known[feastTo()] || {})[id] && REACT_LABEL[(S.known[feastTo()] || {})[id]]) || 'Not given before'), `<button class="btn" data-act="${F.main === 'fair' ? 'fairenter' : 'feastgive'}" data-id="${id}" type="button">${F.main === 'fair' ? 'Enter' : 'Give'}</button>`);
+      for (const [iid] of items) h += row(itemCol(iid), itemName(iid), F.main === 'fair' ? `Worth ${itemValue(iid)} points to the judges` : (((S.known[feastTo()] || {})[iid] && REACT_LABEL[(S.known[feastTo()] || {})[iid]]) || 'Not given before'), `<button class="btn" data-act="${F.main === 'fair' ? 'fairenter' : 'feastgive'}" data-id="${iid}" type="button">${F.main === 'fair' ? 'Enter' : 'Give'}</button>`);
     }
   }
-  return h + `<p class="sub">You'll head home at 10 pm.</p><div class="cta-row"><button class="btn" data-act="close" type="button">Head home</button></div>`;
+  if (id === 'dance' && f.main) h += `<h4 class="sec">Dance again</h4>` + gameCard('dance');
+  return h;
 }
+// Kept for the tests and old callers: the main event's sheet.
+const festRender = () => mainRender(FEST_MAIN[S.season]);
 const feastTo = () => { const who = VIDS.filter(arrived); return who[(hash(S.year, 31, 7) * who.length) | 0]; };
 function festAct(act, id) {
   const F = FEST[S.season], f = festState(), who = VIDS.filter(arrived);
   if (act === 'mingle') { if (f.m[id]) return; f.m[id] = true; addFr(id, 30); const g = festAfter([id]); if (g) toast(g.trim(), 5200); return; }
-  if (f.main) return;
+  if (f.main || !festOn()) return;
   if (act === 'dance') { if (VILLAGERS[id].look.age === 'kid' || !F.dance[id]) return; addFr(id, 150); f.main = id; f.txt = F.dance[id] + (isPartner(id) ? ` ${VILLAGERS[id].name} doesn't let go of your hand for the rest of the night.` : '') + (who.includes('pip') ? ' Afterwards, Pip crowns you with daisies and tells you it is very important to keep it on.' : ''); f.txt += festAfter([id]); }
   if (act === 'wish') {
     f.main = id;
@@ -2337,7 +2523,304 @@ function festAct(act, id) {
     f.main = id;
     f.txt = `${VILLAGERS[to].name} opens your ${itemName(id)}. ${r === 'love' ? 'They hug you so hard your hat comes off.' : r === 'like' ? 'They beam and tuck it away carefully.' : r === 'hate' ? "They're very polite about it." : 'They thank you warmly.'} Then ${VILLAGERS[from].name} slides a parcel across the table: a Starshard and 200 coins, wrapped in a page of an old almanac.` + festAfter([to]);
   }
+  if (f.main) { S.tickets = (S.tickets || 0) + FEST_MAIN_TICKETS; f.txt += ` You win ${FEST_MAIN_TICKETS} tickets for the prize stall.`; }
 }
+
+/* ---- drawing the grounds ---- */
+let festLights = [];
+function drawFestGrounds() {
+  festLights = [];
+  if (!isFestDay() || S.time >= FEST_CLOSE) return;
+  const u = T / 16; festDecor(S.season, u);
+  if (!festOn()) return;
+  const f = festState();
+  for (const b of festBooths()) {
+    if (b.id === 'prizes') { drawPrizeFlag(b, u); continue; }
+    if (b.main) drawMainBooth(b, u); else drawFestStall(b, u);
+    const played = b.main ? !!f.main : !!f.plays[b.id];
+    if (!played) { const bx = ox + (b.c + (b.w || 1) / 2) * T + 5 * u, by = oy + b.r * T - 2 * u - (reduceMotion ? 0 : Math.abs(Math.sin(clock * 3 + b.c)) * u); circ(ctx, bx, by, 3.4 * u, '#f2b84b'); ctx.fillStyle = '#2a1a05'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `700 ${Math.max(9, 5 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.fillText('!', bx, by + .3 * u); }
+  }
+}
+function lantern(x, y, r, col) { circ(ctx, x, y, r, col); R(ctx, x - r * .45, y - r * 1.25, r * .9, r * .35, '#3a2a1c'); festLights.push([x, y, r * 5]); }
+function stringLights(x0, y0, x1, y1, sag, n, cols) {
+  ctx.strokeStyle = 'rgba(40,28,20,.8)'; ctx.lineWidth = Math.max(1, T / 40);
+  ctx.beginPath(); for (let i = 0; i <= 20; i++) { const k = i / 20, x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k + Math.sin(k * Math.PI) * sag; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+  for (let i = 1; i < n; i++) { const k = i / n, x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k + Math.sin(k * Math.PI) * sag; lantern(x, y + T * .12, T * .07, cols[i % cols.length]); }
+}
+function festDecor(s, u) {
+  const X = c => ox + c * T, Y = r => oy + r * T;
+  if (s === 0) { // garlands over the square, flower tubs
+    stringLights(X(2.5), Y(3.6), X(6.5), Y(3.6), T * .5, 8, ['#ffd0e0', '#fff4c8', '#cdbbff']);
+    stringLights(X(2.5), Y(8.2), X(6.5), Y(8.2), T * .35, 7, ['#ffd0e0', '#fff4c8']);
+    for (const [c, r] of [[2.6, 4.4], [6.4, 4.4], [2.6, 7.6], [6.4, 7.6]]) { R(ctx, X(c) - 4 * u, Y(r), 8 * u, 5 * u, '#8a5a3a'); for (let i = 0; i < 5; i++) circ(ctx, X(c) + (i - 2) * 2 * u, Y(r) - u - (i % 2) * u, 1.8 * u, ['#ef9aac', '#fff', '#cdbbff', '#f2d36b'][i % 4]); }
+  } else if (s === 1) { // lanterns on the river, lights along the dock
+    for (let i = 0; i < 9; i++) { const k = ((i * 1.31 + (reduceMotion ? 0 : clock * .06)) % 9.6) - .3, x = X(k), y = Y(V_RIVER) + T * (.45 + .12 * Math.sin(i * 2 + clock)); if (k > 3.7 && k < 5.3) continue; R(ctx, x - 3 * u, y + 2 * u, 6 * u, 1.5 * u, '#a57a4f'); lantern(x, y, 2.4 * u, ['#ffcf6b', '#ffb07a', '#fff0a8'][i % 3]); }
+    stringLights(X(4.2), Y(8.4), X(6.8), Y(8.9), T * .25, 5, ['#ffcf6b', '#fff0a8']);
+    stringLights(X(6.8), Y(8.9), X(8.5), Y(10.1), T * .2, 4, ['#ffcf6b', '#ffb07a']);
+  } else if (s === 2) { // bunting, hay bales and gourds
+    const bunt = (x0, x1, y) => { for (let i = 0; i < 10; i++) { const x = x0 + (x1 - x0) * i / 10, w = (x1 - x0) / 10, yy = y + Math.sin(i / 10 * Math.PI) * T * .3; ctx.fillStyle = ['#c94a3a', '#f2b84b', '#3a8a5a', '#e07a2a'][i % 4]; ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); ctx.lineTo(x + w / 2, yy + 5 * u); ctx.closePath(); ctx.fill(); } };
+    bunt(X(2.5), X(6.5), Y(3.7)); bunt(X(2.5), X(6.5), Y(8.15));
+    for (const [c, r] of [[2.55, 7.55], [6.45, 4.45]]) { R(ctx, X(c) - 5 * u, Y(r) - 2 * u, 10 * u, 6 * u, '#d8b860'); R(ctx, X(c) - 5 * u, Y(r), 10 * u, .8 * u, '#b8983a'); }
+    for (const [c, r] of [[2.6, 4.5], [6.4, 7.5]]) for (let i = 0; i < 3; i++) circ(ctx, X(c) + (i - 1) * 3.2 * u, Y(r) + (i === 1 ? -1.5 : 0) * u, 2.4 * u, ['#f08c2a', '#e0a040', '#c86a20'][i]);
+  } else { // star lanterns on poles, a garland
+    for (const [c, r] of [[2.55, 4.3], [6.45, 4.3], [2.55, 7.6], [6.45, 7.6]]) { R(ctx, X(c) - .6 * u, Y(r) - 6 * u, 1.2 * u, 10 * u, '#5a3d26'); starShape(ctx, X(c), Y(r) - 7 * u, 3.2 * u, '#fff0a8'); festLights.push([X(c), Y(r) - 7 * u, T * .6]); }
+    stringLights(X(2.5), Y(3.6), X(6.5), Y(3.6), T * .45, 8, ['#fff0a8', '#d83a4a', '#a8e6ff']);
+  }
+}
+function starShape(g, x, y, r, col) { g.fillStyle = col; g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fill(); }
+function drawFestStall(b, u) {
+  const G = FGAMES[b.id], x = ox + b.c * T, y = oy + b.r * T, aw = G.look[0];
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x + T / 2, y + 15 * u, 7 * u, 1.8 * u, 0, 0, 7); ctx.fill();
+  R(ctx, x + 2 * u, y + 3 * u, 1.2 * u, 12 * u, '#5a3d26'); R(ctx, x + T - 3.2 * u, y + 3 * u, 1.2 * u, 12 * u, '#5a3d26');
+  R(ctx, x + u, y + 9 * u, T - 2 * u, 5 * u, '#a57a4f'); R(ctx, x + u, y + 9 * u, T - 2 * u, u, '#c9a675');
+  for (let i = 0; i < 4; i++) R(ctx, x + i * T / 4, y + u, T / 4 + .5, 4 * u, i % 2 ? '#f2e8dc' : aw);
+  for (let i = 0; i < 4; i++) { ctx.fillStyle = i % 2 ? '#f2e8dc' : aw; ctx.beginPath(); ctx.arc(x + (i + .5) * T / 4, y + 5 * u, T / 8, 0, Math.PI); ctx.fill(); }
+  ctx.fillStyle = '#2a1d36'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `700 ${Math.max(10, 7 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`;
+  circ(ctx, x + T / 2, y + 11.5 * u, 3.6 * u, '#f4ead9'); ctx.fillStyle = aw === '#f2e8dc' ? '#2a1d36' : shade(aw, -40); ctx.fillText(G.look[1], x + T / 2, y + 11.8 * u);
+  festLights.push([x + T / 2, y + 6 * u, T * .7]);
+}
+function drawPrizeFlag(b, u) {
+  const x = ox + b.c * T, y = oy + b.r * T;
+  if (!cartHere()) { R(ctx, x + 2 * u, y + 7 * u, 2 * T - 4 * u, 6 * u, '#a57a4f'); R(ctx, x + 2 * u, y + 7 * u, 2 * T - 4 * u, 1.2 * u, '#f2e8dc'); R(ctx, x + 4 * u, y + 13 * u, 1.2 * u, 3 * u, '#5a3d26'); R(ctx, x + 2 * T - 5 * u, y + 13 * u, 1.2 * u, 3 * u, '#5a3d26'); for (let i = 0; i < 4; i++) R(ctx, x + (6 + i * 5) * u, y + 4 * u, 3.6 * u, 3 * u, ['#ef9aac', '#f2d36b', '#8fcf6a', '#6cc3ef'][i]); }
+  R(ctx, x + 2 * T - 3 * u, y - 7 * u, u, 10 * u, '#5a3d26');
+  ctx.fillStyle = '#f2b84b'; ctx.beginPath(); ctx.moveTo(x + 2 * T - 2 * u, y - 7 * u); ctx.lineTo(x + 2 * T + 6 * u, y - 4.5 * u); ctx.lineTo(x + 2 * T - 2 * u, y - 2 * u); ctx.closePath(); ctx.fill();
+  festLights.push([x + T, y + 6 * u, T]);
+}
+function drawMainBooth(b, u) {
+  const x = ox + b.c * T, y = oy + b.r * T, w = (b.w || 1) * T, s = S.season;
+  if (b.id === 'dance') { // a wooden floor ringed with flowers
+    R(ctx, x + 2 * u, y + 2 * u, w - 4 * u, T - 3 * u, '#b08a5a'); for (let i = 1; i < 6; i++) R(ctx, x + 2 * u, y + 2 * u + i * (T - 3 * u) / 6, w - 4 * u, .6 * u, '#8a6a40');
+    for (let i = 0; i < 14; i++) { const k = i / 14, px = x + 2 * u + k * (w - 4 * u); circ(ctx, px, y + 2 * u, 1.6 * u, ['#ef9aac', '#fff', '#cdbbff'][i % 3]); circ(ctx, px + u, y + T - u, 1.6 * u, ['#cdbbff', '#ef9aac', '#fff'][i % 3]); }
+  } else if (b.id === 'wish') { // a pile of paper lanterns waiting on the dock
+    for (let i = 0; i < 3; i++) lantern(x + (5 + i * 3.2) * u, y + (7 + (i % 2) * 2) * u, 2.6 * u, ['#ffcf6b', '#fff0a8', '#ffb07a'][i]);
+  } else { // the judges' table or the long feast table
+    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x + w / 2, y + 14.5 * u, w * .45, 2 * u, 0, 0, 7); ctx.fill();
+    R(ctx, x + 2 * u, y + 6 * u, w - 4 * u, 7 * u, s === 3 ? '#f4f0ea' : '#e8e0d0'); R(ctx, x + 2 * u, y + 11 * u, w - 4 * u, 2 * u, s === 3 ? '#c94a3a' : '#3a8a5a');
+    for (const px of [x + 4 * u, x + w - 5 * u]) R(ctx, px, y + 13 * u, 1.2 * u, 3 * u, '#5a3d26');
+    if (b.id === 'judging') { circ(ctx, x + w * .3, y + 5 * u, 3 * u, '#f08c2a'); R(ctx, x + w * .5 - 2 * u, y + 2 * u, 4 * u, 4 * u, '#d05a8a'); circ(ctx, x + w * .7, y + 5 * u, 2.4 * u, '#9fd86a'); circ(ctx, x + w * .5, y + 9 * u, 1.8 * u, '#3a6ab0'); }
+    else { R(ctx, x + w * .45, y + u, 6 * u, 5 * u, '#3a3a42'); for (let i = 0; i < 4; i++) R(ctx, x + (5 + i * 9) * u, y + 3 * u, 4 * u, 3.4 * u, ['#c94a3a', '#3a8a5a', '#f2b84b', '#6cc3ef'][i]); festLights.push([x + w / 2, y + 4 * u, T * 1.2]); }
+  }
+}
+
+/* ---- the game overlay ----
+   FG = { id, phase:'intro'|'play'|'done', st, w, h, d, res }. Games are { name, host, how, unit, tiers, best, step, max,
+   secs?, look:[awning colour, glyph], init(w, h), update(st, dt, w, h), tap(st, x, y, w, h), draw(g, st, w, h), hud?(st) }.
+   They end when st.t reaches secs, or when st.over is set. */
+const FGAMES = {};
+let FG = null;
+function openGame(id) {
+  if (!FGAMES[id] || !festOn()) return;
+  closeSheet(); sheetOpen = 'fgame'; queue = [];
+  FG = { id, phase:'intro', st:null, w:0, h:0, d:1, raf:0 };
+  $('fg').hidden = false; $('fgTitle').textContent = FGAMES[id].name; fgSize(); fgCard(); fgDraw();
+}
+function fgSize() {
+  if (!FG) return; const c = $('fgC'), r = $('fgStage').getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1);
+  FG.w = Math.max(200, r.width || 360); FG.h = Math.max(200, r.height || 560); FG.d = d; c.width = Math.round(FG.w * d); c.height = Math.round(FG.h * d);
+}
+function fgStart() {
+  if (!FG || !festOn()) return;
+  const G = FGAMES[FG.id]; FG.st = G.init(FG.w, FG.h); FG.st.t = 0; FG.st.score = FG.st.score || 0; FG.phase = 'play'; FG.res = null;
+  $('fgCard').hidden = true; FG.last = performance.now(); cancelAnimationFrame(FG.raf); FG.raf = requestAnimationFrame(fgLoop);
+}
+function fgStep(st, id, dt, w, h) { const G = FGAMES[id]; st.t += dt; G.update(st, dt, w, h); return !!(st.over || (G.secs && st.t >= G.secs)); }
+function fgLoop(now) {
+  if (!FG || FG.phase !== 'play') return;
+  const dt = Math.min(.05, Math.max(0, (now - FG.last) / 1000)); FG.last = now;
+  const end = fgStep(FG.st, FG.id, dt, FG.w, FG.h); fgDraw();
+  if (end) fgFinish(); else FG.raf = requestAnimationFrame(fgLoop);
+}
+function fgFinish() {
+  FG.phase = 'done'; const sc = Math.max(0, Math.round(FG.st.score));
+  FG.res = festPlayed(FG.id, sc); SND.gift(); fgCard(); fgDraw(); updateHUD(); save();
+}
+function fgClose() {
+  if (!FG) return; const id = FG.id; cancelAnimationFrame(FG.raf); FG = null;
+  $('fg').hidden = true; $('fgCard').innerHTML = ''; sheetOpen = null; updateHUD(); save();
+  if (festOn()) openSheet('booth', { p:id }); else festClosedToast();
+}
+function festClosedToast() { const f = festState(); if (f.closed) return; f.closed = true; toast(`The ${FEST[S.season].name} winds down. Everyone drifts home under the lanterns, tired and happy.`, 5600); }
+function fgDraw() {
+  if (!FG) return; const G = FGAMES[FG.id], g = $('fgC').getContext('2d'); g.setTransform(FG.d, 0, 0, FG.d, 0, 0);
+  g.clearRect(0, 0, FG.w, FG.h);
+  const st = FG.st || G.init(FG.w, FG.h); if (st.t === undefined) st.t = 0;
+  G.draw(g, st, FG.w, FG.h);
+  const live = FG.phase === 'play' && FG.st;
+  $('fgScore').textContent = live ? (G.hud ? G.hud(FG.st) : `${Math.round(FG.st.score)} ${G.unit}`) : '';
+  $('fgTime').textContent = live && G.secs ? `${Math.max(0, Math.ceil(G.secs - FG.st.t))}s` : '';
+}
+function fgCard() {
+  const G = FGAMES[FG.id], hosts = boothHosts(FG.id), el = $('fgCard'); let h = '';
+  if (FG.phase === 'intro') {
+    h += hosts.length ? `<div class="crowd">${hosts.map(v => portrait(v, 'happy', 56)).join('')}</div>` : '';
+    if (G.hostLine) h += `<div class="bubble">${G.hostLine}</div>`;
+    h += `<p class="sub">${G.how}</p>`;
+    h += `<p class="sub">Bronze ${G.tiers[0]} · silver ${G.tiers[1]} · gold ${G.tiers[2]} ${G.unit}.${hosts.length ? ` ${hostNames(hosts)}'s best is <b>${hostBest(FG.id)}</b>.` : ''}</p>`;
+    h += `<div class="cta-row"><button class="btn fgo" data-gact="go" type="button">Play</button><button class="btn alt" data-gact="back" type="button">Not now</button></div>`;
+  } else if (FG.phase === 'done') {
+    const r = FG.res;
+    h += `<p class="fg-score">${r.score} <span>${G.unit}</span></p><p class="fg-medal t${r.tier}">${TIER_NAME[r.tier]}${r.tier ? '!' : ''}</p>`;
+    h += `<ul class="lines">`;
+    h += `<li class="gold">${r.tk ? `+${r.tk} tickets. You have ${S.tickets}.` : `No tickets this time (the first ${FEST_TICKET_PLAYS} plays of each game win them). You have ${S.tickets}.`}</li>`;
+    if (r.ribbon) h += `<li class="gift">${G.beat || `You beat ${hostNames(r.hosts)}'s best!`} A ribbon for year ${S.year}.${r.gifts ? ' ' + r.gifts : ''}</li>`;
+    else if (r.hosts.length) h += `<li>${ribbonYears(FG.id).includes(S.year) ? 'You already won this year\'s ribbon.' : `${hostNames(r.hosts)}'s best is ${r.hb}. ${r.score >= r.hb ? 'So close!' : 'Next time!'}`}</li>`;
+    if (r.newBest && r.n > 1) h += `<li>A new best for today.</li>`;
+    h += `</ul>`;
+    if (!festOn()) h += `<p class="sub">It's 10 pm, and the stalls are packing up.</p>`;
+    h += `<div class="cta-row"><button class="btn fgo" data-gact="go" type="button" ${festOn() ? '' : 'disabled'}>Play again</button><button class="btn alt" data-gact="back" type="button">Back to the festival</button></div>`;
+  }
+  el.innerHTML = h; el.hidden = !h; el.scrollTop = 0;
+}
+
+/* ---- game helpers ---- */
+const rnd = (a, b) => a + Math.random() * (b - a);
+const FG_SKY = [['#4a3a6a', '#c98aa8'], ['#0f1a3a', '#2a3a6a'], ['#5a3a2a', '#d08a4a'], ['#141a34', '#3a4a7a']];
+function fgSky(g, w, h, s) {
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, FG_SKY[s][0]); gr.addColorStop(1, FG_SKY[s][1]); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  if (s === 1 || s === 3) for (let i = 0; i < 40; i++) circ(g, hash(i, 3, s) * w, hash(i, 4, s) * h * .55, hash(i, 5, s) * 1.4 + .4, 'rgba(255,250,220,.7)');
+}
+function fgText(g, t, x, y, size, col, align) { g.fillStyle = col || '#f4ead9'; g.textAlign = align || 'center'; g.textBaseline = 'middle'; g.font = `700 ${size}px "Atkinson Hyperlegible", system-ui, sans-serif`; g.fillText(t, x, y); }
+function fgPop(st, x, y, t, col) { (st.pops = st.pops || []).push({ x, y, t, col, life:.8 }); }
+function fgPops(st, dt) { if (!st.pops) return; for (const p of st.pops) { p.life -= dt; p.y -= 40 * dt; } st.pops = st.pops.filter(p => p.life > 0); }
+function fgDrawPops(g, st) { for (const p of st.pops || []) { g.globalAlpha = Math.min(1, p.life * 2); fgText(g, p.t, p.x, p.y, 20, p.col || '#f2d36b'); } g.globalAlpha = 1; }
+function flower(g, x, y, r, col, glow) {
+  if (glow) { const gr = g.createRadialGradient(x, y, r * .3, x, y, r * 2); gr.addColorStop(0, 'rgba(255,230,140,.7)'); gr.addColorStop(1, 'rgba(255,230,140,0)'); g.fillStyle = gr; g.fillRect(x - r * 2, y - r * 2, r * 4, r * 4); }
+  for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 - Math.PI / 2; circ(g, x + Math.cos(a) * r * .55, y + Math.sin(a) * r * .55, r * .48, col); }
+  circ(g, x, y, r * .32, '#f2b84b');
+}
+function fgPortrait(g, v, x, y, s) { const img = porImage(v); if (img.complete && img.naturalWidth) g.drawImage(img, x - s / 2, y - s / 2, s, s); else circ(g, x, y, s / 2, VILLAGERS[v].col); }
+
+/* ---- Part 1 games ---- */
+// The dance (Flower Dance, with her partner): tap the flower that lights up on the beat.
+FGAMES.dance = { name:'The dance', fest:0, host:[], unit:'steps', tiers:[10, 16, 24], best:27, step:1, max:30, look:['#ef9aac', '♪'],
+  how:'The fiddle plays the old reel. One of the three flowers lights up on every beat: tap it while it glows. Thirty beats, and the reel gets faster as it goes.',
+  get hostLine() { const f = S && festState(), v = f && f.main; return v ? `${VILLAGERS[v].name} takes your hands. "Ready? Follow the flowers."` : ''; },
+  beat:'Your partner laughs out loud. "You\'re better at this than me!"',
+  init:() => ({ t:0, score:0, k:-1, lit:-1, win:0, hit:false, n:30, next:1, fl:[0, 0, 0], over:false }),
+  iv:k => 1 - .32 * k / 29, // the reel speeds up: a beat a second at first, faster by the end
+  update(st, dt) {
+    fgPops(st, dt); for (let i = 0; i < 3; i++) st.fl[i] = Math.max(0, st.fl[i] - dt);
+    st.win -= dt;
+    if (st.t >= st.next && st.k < st.n - 1) { st.k++; const iv = this.iv(st.k); st.next += iv; let l; do l = (Math.random() * 3) | 0; while (l === st.lit && Math.random() < .5); st.lit = l; st.win = iv * .75; st.hit = false; }
+    else if (st.k >= st.n - 1 && st.t >= st.next + .3) st.over = true;
+  },
+  tap(st, x, y, w, h) {
+    if (y < h * .45) return; const i = Math.min(2, Math.max(0, Math.floor(x / (w / 3))));
+    if (i === st.lit && st.win > 0 && !st.hit) { st.hit = true; st.score++; st.fl[i] = .35; fgPop(st, (i + .5) * w / 3, h * .62, '+1'); blip(700 + i * 150, 1000 + i * 150, .08, 'sine', .04); }
+  },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 0);
+    const f = S && festState(), v = f && f.main;
+    for (let i = 0; i < 9; i++) circ(g, (i + .5) * w / 9, h * .08 + Math.sin(i) * 6, 5, ['#ffd0e0', '#fff4c8', '#cdbbff'][i % 3]);
+    if (v) { const bob = st.hit && st.win > .4 ? -8 : 0; fgPortrait(g, v, w / 2, h * .25 + bob, Math.min(w * .42, h * .26)); }
+    R(g, 0, h * .45, w, h * .55, 'rgba(176,138,90,.85)'); for (let i = 1; i < 8; i++) R(g, 0, h * .45 + i * h * .07, w, 1.5, 'rgba(110,80,50,.6)');
+    for (let i = 0; i < 3; i++) { const lit = i === st.lit && st.win > 0 && !st.hit; flower(g, (i + .5) * w / 3, h * .7, Math.min(w / 7.5, 52) * (lit ? 1.15 : 1) * (1 + st.fl[i]), lit ? '#ffb0c8' : ['#c98aa8', '#b8a0d8', '#d8b8c8'][i], lit); }
+    fgText(g, st.k >= 0 ? `Beat ${Math.min(st.n, st.k + 1)} of ${st.n}` : 'Get ready…', w / 2, h * .92, 16, '#2a1d36');
+    fgDrawPops(g, st);
+  } };
+
+// Night fishing (Lantern Night, Juno): wait for a bite, tap, then tap again as the marker crosses the green.
+const NIGHT_FISH = ['Moonlit Perch', 'Lantern Minnow', 'Silver Eel', 'River Trout', 'Glowfin Carp', 'Starry Bream'];
+FGAMES.nightfish = { name:'Night fishing', fest:1, host:['juno'], unit:'cm', tiers:[70, 90, 108], best:116, step:3, max:165, look:['#6cc3ef', '~'],
+  hostLine:'"Three casts each, biggest total wins. The river\'s full of lanterns, so the fish are curious tonight."',
+  how:'Wait for the bobber to dip, then tap. Then tap again as the marker crosses the green: the closer to the middle, the bigger the fish. Three casts.',
+  beat:'Juno whistles. "That\'s a bigger catch than mine. Don\'t tell Bertram."',
+  hud:st => `Cast ${Math.min(3, st.cast + 1)} of 3 · ${st.score} cm`,
+  init:() => ({ t:0, score:0, cast:0, ph:'wait', pt:rnd(1.4, 2.8), bites:0, rt:0, m:0, zc:.5, zw:.22, last:'', over:false }),
+  update(st, dt) {
+    fgPops(st, dt); st.pt -= dt;
+    if (st.ph === 'wait' && st.pt <= 0) { st.ph = 'bite'; st.pt = 1.1; }
+    else if (st.ph === 'bite' && st.pt <= 0) { st.bites++; if (st.bites >= 3) this.land(st, 6, 'A tiny minnow nibbles the hook and gives itself up'); else { st.ph = 'wait'; st.pt = rnd(1, 2); st.last = 'It nibbled and swam off. Wait for the next bite.'; } }
+    else if (st.ph === 'reel') { st.rt += dt; st.m = this.mark(st.rt); }
+    else if (st.ph === 'show' && st.pt <= 0) { st.cast++; if (st.cast >= 3) st.over = true; else { st.ph = 'wait'; st.pt = rnd(1.2, 2.6); st.bites = 0; st.last = ''; } }
+  },
+  mark:rt => (Math.sin(rt * Math.PI * 2 / 1.6 - Math.PI / 2) + 1) / 2,
+  land(st, cm, msg) { st.score += cm; st.ph = 'show'; st.pt = 1.7; st.last = `${msg}: ${cm} cm!`; },
+  tap(st, x, y, w, h) {
+    if (st.ph === 'wait') { st.last = 'Not yet. Wait for the bobber to dip.'; return; }
+    if (st.ph === 'bite') { st.ph = 'reel'; st.rt = 0; st.m = 0; st.zc = rnd(.25, .75); st.last = ''; blip(400, 800, .1, 'sine', .04); return; }
+    if (st.ph === 'reel') {
+      const d = Math.abs(st.m - st.zc), half = st.zw / 2, q = d <= half ? 1 - d / half * .3 : Math.max(0, .6 - (d - half) * 2);
+      const cm = Math.round(rnd(20, 36) * (.5 + q)); fgPop(st, w / 2, h * .5, `${cm} cm`, '#9ff0ff'); blip(600, 1200, .15, 'sine', .05);
+      this.land(st, cm, `A ${NIGHT_FISH[(Math.random() * NIGHT_FISH.length) | 0]}`);
+    }
+  },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 1);
+    const wy = h * .42; R(g, 0, wy, w, h - wy, '#13284a'); for (let i = 0; i < 12; i++) R(g, (hash(i, 1, 2) * w + st.t * 10) % w, wy + 10 + hash(i, 2, 2) * (h - wy - 20), 18, 2, 'rgba(160,200,255,.25)');
+    for (let i = 0; i < 6; i++) { const x = (i * w / 5.5 + st.t * 8) % (w + 30) - 15, y = wy + 14 + (i % 3) * 22; circ(g, x, y, 6, ['#ffcf6b', '#fff0a8', '#ffb07a'][i % 3]); }
+    const bx = w / 2, by = wy + (h - wy) * .3 + (st.ph === 'bite' ? 8 + Math.sin(st.t * 30) * 3 : Math.sin(st.t * 2) * 2);
+    g.strokeStyle = 'rgba(240,240,255,.7)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(w * .08, h * .1); g.quadraticCurveTo(w * .3, h * .2, bx, by - 6); g.stroke();
+    circ(g, bx, by, 8, '#f4f0ea'); R(g, bx - 8, by, 16, 6, '#d9533a');
+    if (st.ph === 'bite') fgText(g, '!', bx + 22, by - 18, 34, '#f2d36b');
+    if (st.ph === 'reel') {
+      const bw = w * .82, x0 = (w - bw) / 2, y0 = h * .78; R(g, x0, y0, bw, 26, 'rgba(255,255,255,.15)');
+      R(g, x0 + (st.zc - st.zw / 2) * bw, y0, st.zw * bw, 26, 'rgba(127,224,122,.7)'); R(g, x0 + st.zc * bw - 1, y0, 2, 26, '#e8ffe8');
+      R(g, x0 + st.m * bw - 3, y0 - 6, 6, 38, '#f2d36b'); fgText(g, 'Tap when the marker is in the green!', w / 2, y0 + 50, 15);
+    } else if (st.last) fgText(g, st.last, w / 2, h * .82, 15);
+    else if (st.ph === 'wait') fgText(g, 'Watch the bobber…', w / 2, h * .82, 15, 'rgba(244,234,217,.7)');
+    fgDrawPops(g, st);
+  } };
+
+// Ring toss (Harvest Fair, Rowan): the marker swings along the pegs; tap to throw. Small far pegs score more.
+FGAMES.ringtoss = { name:'Ring toss', fest:2, host:['rowan'], unit:'points', tiers:[7, 11, 16], best:18, step:1, max:30, look:['#c94a3a', '◎'],
+  hostLine:'"Made the pegs myself. Ten rings. The little one in the middle is worth three, and nobody ever gets it. Prove me wrong."',
+  how:'A marker swings back and forth along the pegs. Tap to throw your ring where it is. The middle peg scores 3, the next ones 2, the outside ones 1. Ten rings.',
+  beat:'Rowan stares at the pegs, then at you. "...Huh. Fine. You win. I\'ll make the pegs smaller next year."',
+  hud:st => `Ring ${Math.min(st.n, st.ring + 1)} of ${st.n} · ${st.score} points`,
+  pegs:[{ x:.12, p:1, r:.065 }, { x:.31, p:2, r:.048 }, { x:.5, p:3, r:.032 }, { x:.69, p:2, r:.048 }, { x:.88, p:1, r:.065 }],
+  mark:sw => .07 + .86 * (Math.sin(sw * Math.PI * 2 / 2.4) + 1) / 2,
+  init:() => ({ t:0, score:0, ring:0, n:10, ph:'aim', sw:Math.random() * 2, mx:.5, fly:0, fx:0, wait:0, on:[], over:false }),
+  update(st, dt) {
+    fgPops(st, dt);
+    if (st.ph === 'aim') { st.sw += dt; st.mx = this.mark(st.sw); }
+    else if (st.ph === 'fly') { st.fly += dt; if (st.fly >= .5) {
+      const pg = this.pegs.find(p => Math.abs(p.x - st.fx) <= p.r);
+      if (pg) { st.score += pg.p; st.on.push(pg.x); st.msg = pg.p === 3 ? 'The middle peg!' : 'Ringer!'; blip(800, 1300, .12, 'sine', .05); } else { st.msg = 'Clink. Just missed.'; blip(300, 200, .1, 'triangle', .03); }
+      st.ring++; st.ph = 'wait'; st.wait = .45; } }
+    else if (st.ph === 'wait') { st.wait -= dt; if (st.wait <= 0) { if (st.ring >= st.n) st.over = true; else st.ph = 'aim'; } }
+  },
+  tap(st) { if (st.ph === 'aim') { st.ph = 'fly'; st.fly = 0; st.fx = st.mx; } },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 2);
+    R(g, 0, h * .5, w, h * .5, '#7a5a3a'); R(g, 0, h * .5, w, 6, '#5a3d26');
+    const py = h * .46;
+    for (const p of this.pegs) { R(g, p.x * w - 3, py - 46, 6, 50, '#c9a675'); R(g, (p.x - p.r) * w, py + 2, p.r * 2 * w, 6, 'rgba(255,240,200,.35)'); fgText(g, String(p.p), p.x * w, py - 60, 18, '#f2d36b'); }
+    for (const x of st.on) { g.strokeStyle = '#c94a3a'; g.lineWidth = 4; g.beginPath(); g.ellipse(x * w, py, 12, 4, 0, 0, 7); g.stroke(); }
+    if (st.ph === 'aim') { const x = st.mx * w; g.fillStyle = '#f2d36b'; g.beginPath(); g.moveTo(x, py + 20); g.lineTo(x - 9, py + 36); g.lineTo(x + 9, py + 36); g.closePath(); g.fill(); }
+    if (st.ph === 'fly') { const k = Math.min(1, st.fly / .5), x = st.fx * w, y = h * .85 + (py - h * .85) * k - Math.sin(k * Math.PI) * 60; g.strokeStyle = '#c94a3a'; g.lineWidth = 5; g.beginPath(); g.ellipse(x, y, 14, 6, 0, 0, 7); g.stroke(); }
+    for (let i = 0; i < st.n - st.ring - (st.ph === 'fly' ? 1 : 0); i++) { g.strokeStyle = '#c94a3a'; g.lineWidth = 4; g.beginPath(); g.ellipse(24 + i * 18, h * .92, 8, 4, 0, 0, 7); g.stroke(); }
+    if (st.msg && st.ph !== 'aim') fgText(g, st.msg, w / 2, h * .7, 18);
+    else fgText(g, 'Tap to throw', w / 2, h * .7, 16, 'rgba(244,234,217,.7)');
+  } };
+
+// Snowball toss (Star Feast, Odile): tap the targets as they pop up. Gold stars count double.
+FGAMES.snowball = { name:'Snowball toss', fest:3, host:['odile'], unit:'points', tiers:[34, 48, 62], best:70, step:2, max:90, secs:40, look:['#cfe2ec', '❄'],
+  hostLine:'"The children built the targets, so some of them are snowmen and one of them is, I think, me. Forty seconds. Aim for the gold stars."',
+  how:'Targets pop up in the snow and duck back down. Tap them before they go. Gold stars are worth 2. Forty seconds.',
+  beat:'Odile claps, delighted. "Top of the class! I\'m putting that on the wall."',
+  init:() => ({ t:0, score:0, tg:[], sp:.6, over:false }),
+  update(st, dt) {
+    fgPops(st, dt); st.sp -= dt;
+    for (const q of st.tg) q.life -= dt; st.tg = st.tg.filter(q => q.life > 0);
+    if (st.sp <= 0 && st.t < 39) { st.sp = .62; const free = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(i => !st.tg.some(q => q.i === i)); if (free.length && st.tg.length < 3) st.tg.push({ i:free[(Math.random() * free.length) | 0], life:1.35, max:1.35, gold:Math.random() < .16, kind:(Math.random() * 3) | 0 }); }
+  },
+  cell(i, w, h) { const cw = w / 3, ch = h * .7 / 3; return { x:(i % 3 + .5) * cw, y:h * .22 + (Math.floor(i / 3) + .5) * ch, r:Math.min(cw, ch) * .36 }; },
+  tap(st, x, y, w, h) {
+    for (const q of st.tg) { const c = this.cell(q.i, w, h); if (Math.hypot(x - c.x, y - c.y) < c.r * 1.25) { st.score += q.gold ? 2 : 1; fgPop(st, c.x, c.y - c.r, q.gold ? '+2' : '+1', q.gold ? '#f2d36b' : '#fff'); st.tg = st.tg.filter(z => z !== q); blip(q.gold ? 1100 : 800, 400, .08, 'triangle', .04); return; } }
+  },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 3);
+    R(g, 0, h * .2, w, h * .8, '#e8eef4'); for (let i = 0; i < 3; i++) R(g, 0, h * .22 + (i + 1) * h * .7 / 3 - 6, w, 6, '#cfd8e2');
+    for (const q of st.tg) {
+      const c = this.cell(q.i, w, h), up = Math.min(1, (q.max - q.life) * 6, q.life * 6), y = c.y + (1 - up) * c.r;
+      if (q.gold) starShape(g, c.x, y, c.r, '#f2d36b');
+      else if (q.kind === 0) { circ(g, c.x, y + c.r * .35, c.r * .6, '#fff'); circ(g, c.x, y - c.r * .35, c.r * .42, '#fff'); circ(g, c.x - c.r * .14, y - c.r * .42, c.r * .06, '#2a1d36'); circ(g, c.x + c.r * .14, y - c.r * .42, c.r * .06, '#2a1d36'); R(g, c.x - c.r * .05, y - c.r * .32, c.r * .25, c.r * .08, '#f08c2a'); }
+      else { circ(g, c.x, y, c.r * .8, '#c94a3a'); circ(g, c.x, y, c.r * .56, '#fff'); circ(g, c.x, y, c.r * .3, '#c94a3a'); }
+      R(g, c.x - c.r, c.y + c.r * .7, c.r * 2, c.r * .5, '#e8eef4');
+    }
+    fgDrawPops(g, st);
+  } };
 
 /* ---------- mail ---------- */
 const LETTERS = {
@@ -3725,6 +4208,7 @@ const VPLACES = {
   square:    { name:'the square', title:'The square', sub:'The noticeboard, the old well and the best gossip in the valley.' },
   cart:      { name:"Zara's cart", title:"Zara's cart", sub:'A painted wagon with a striped awning, full of things from far away.' },
   docks:     { name:'the docks', title:'The docks', sub:"Fen's ferry, Juno's boat and a lot of opinions about the weather." },
+  fest:      { name:'the festival', title:'The festival', sub:'The whole village, dressed up for the day.' },
   lighthouse:{ name:'the lighthouse', title:'The lighthouse', indoor:true, sub:"Bertram's lighthouse at the river mouth. The lamp turns all night." }
 };
 const SCHED = {
@@ -3752,7 +4236,7 @@ function where(v, t, d, wet) {
   if (V.market && !sp && !(d % 7 === 5 || d === FEST_DAY)) return 'away';
   if (d === S.day && S.evToday) { const e = evNow(); if (e && e.who.includes(v)) { const E = EVENTS[e.id]; if (t >= E.from && t < E.to) return evPlace(E, wet); } }
   if (d === S.day) for (const x of S.visits || []) if (x.v === v && t >= x.from && t < x.to) return 'garden';
-  if (d === FEST_DAY && t >= 1020) return sp ? 'cottage' : 'square';
+  if (d === FEST_DAY && t >= FEST_OPEN && t < FEST_CLOSE) return 'fest';
   const sc = SCHED[v], list = (restDay(d) && sc.rest) || sc.day;
   let p = list[0][1]; for (const [m, q] of list) if (t >= m) p = q;
   if (V.market && sp && !(d % 7 === 5 || d === FEST_DAY) && p === 'cart') p = 'home';
@@ -3854,7 +4338,7 @@ function cartStock() {
   const got = cartState().got;
   return Object.keys(CART_FIXED).concat(cartRoad()).map(id => ({ id, price:cartPrice(id), left:Math.max(0, (CART_FIXED[id] ? CART_FIXED[id].n : 3) - (got[id] || 0)), road:!CART_FIXED[id] }));
 }
-const zaraAtCart = () => S.scene === 'village' && cartHere() && where('zara') === 'cart';
+const zaraAtCart = () => S.scene === 'village' && cartHere() && (where('zara') === 'cart' || (festOn() && where('zara') === 'fest'));
 function cartBuy(id) {
   const w = cartStock().find(x => x.id === id);
   if (!w || !w.left || !zaraAtCart() || S.coins < w.price) return false;
@@ -3885,6 +4369,7 @@ function villageFolk() {
   const out = [], by = {};
   for (const v of VIDS) { const p = where(v); if (VPLACES[p]) (by[p] = by[p] || []).push(v); }
   for (const p in by) {
+    if (p === 'fest') { const fs = festSpots(); by[p].forEach(v => { const q = fs[v]; out.push(q ? { v, p, c:q[0], r:q[1], wc:q[2], wr:q[3] } : { v, p, inside:true }); }); continue; }
     const spots = S.rain && VPLACES[p].indoor ? [] : VSPOTS[p];
     by[p].forEach((v, i) => out.push(i < spots.length ? { v, p, c:spots[i][0], r:spots[i][1], wc:spots[i][2], wr:spots[i][3] } : { v, p, inside:true }));
   }
@@ -3894,12 +4379,14 @@ const folkAt = p => VIDS.filter(v => where(v) === p);
 function enterVillage(seek, place) {
   S.scene = 'village'; witch.x = V_EXIT[0]; witch.y = V_EXIT[1]; cat.x = 4.4; cat.y = 12.6; cat.trail = []; queue = [];
   if (!S.villageSeen) { S.villageSeen = true; toast('The village. Tap someone to chat, or tap a building to see who\'s inside. The path home is at the bottom.', 5600); }
+  festArrive();
   if (seek) seekInVillage(seek);
   else if (place) { const B = VB[place] || (place === 'square' ? VB.well : null); if (B) queue.push({ c:B.stand[0], r:B.stand[1], kind:'visit', b:'vplace', place }); }
 }
 function leaveVillage() { S.scene = 'farm'; witch.x = 0; witch.y = 6; cat.x = .4; cat.y = 6.5; cat.trail = []; queue = []; }
 function enqueueVillage(t, fromDrag) {
   if (fromDrag) return;
+  if (isFestDay() && S.time < FEST_CLOSE) { const fb = festBoothAt(t.c, t.r, true); if (fb) { if (festOn()) queue.push({ c:fb.stand[0], r:fb.stand[1], kind:'visit', b:'fbooth', id:fb.id }); else toast('The stalls open at 10 am.'); return; } }
   const folk = villageFolk().filter(f => !f.inside);
   const f = folk.find(z => z.c === t.c && z.r === t.r) || (vBuildingAt(t.c, t.r) ? null : folk.find(z => z.c === t.c && z.r === t.r + 1));
   if (f) { queue.push({ c:f.wc, r:f.wr, kind:'visit', b:'vperson', v:f.v }); return; }
@@ -4070,6 +4557,7 @@ function drawVillageDynamic() {
   const u = T / 16;
   if (cartHere()) drawCart();
   { const ep = evProp(); if (ep) drawEventProp(ep); }
+  drawFestGrounds();
   const folk = villageFolk(), inside = {};
   for (const f of folk) if (f.inside) inside[f.p] = (inside[f.p] || 0) + 1;
   for (const f of folk.filter(z => !z.inside).sort((a, b) => a.r - b.r)) drawFolk(f.v, f.c, f.r);
@@ -4084,6 +4572,7 @@ function drawVillageDynamic() {
 function villageGlows(glow, k) {
   for (const [x, y, w, h, kind] of VWINS) glow(x + w / 2, y + h / 2, T * (kind === 'lamp' ? 1.6 : .9), kind === 'lamp' ? '255,230,140' : '255,190,90', (kind === 'lamp' ? .6 : .42) * k);
   if (cartHere()) glow(ox + (VB.cart.c + 1) * T, oy + (VB.cart.r + .4) * T, T * 1.1, '255,200,120', .35 * k);
+  for (const [x, y, r] of festLights) glow(x, y, r, '255,210,120', .5 * k);
   if (evProp() === 'bonfire') glow(ox + 5.5 * T, oy + 12.3 * T, T * 2.2, '255,150,70', .7 * k);
 }
 function drawVillageWindows(night) {
@@ -4146,7 +4635,12 @@ const DISHES = {
   honeycake:  { name:'Honey Cake',        need:{ honey:2 },               energy:40, col:'#f2c04b', from:'wren' },
   chowder:    { name:'Mudcat Chowder',    need:{ mudcat:1, ember:1 },     energy:45, col:'#b8a07a', from:'fen' },
   gourdsoup:  { name:'Hearty Gourd Soup', need:{ gourd:1, hazel:1 },      energy:45, col:'#f08c2a', from:'hettie', hearty:true },
-  startart:   { name:'Starfruit Tart',    need:{ star:1, honey:1 },       energy:40, col:'#ffd84a', from:'mara' }
+  startart:   { name:'Starfruit Tart',    need:{ star:1, honey:1 },       energy:40, col:'#ffd84a', from:'mara' },
+  // Festival recipes: one per festival, bought with tickets at the prize stall.
+  moonsponge: { name:'Moonpetal Sponge',   need:{ moon:1, violet:1 },      energy:35, col:'#e8dcff', from:'fest', fest:0 },
+  lanternskew:{ name:'Lantern Skewers',    need:{ sunfish:1, pepper:1 },   energy:45, col:'#ff9a4a', from:'fest', fest:1 },
+  fairpie:    { name:'Harvest Fair Pie',   need:{ gourd:1, chanter:1 },    energy:50, col:'#e8a04a', from:'fest', fest:2, hearty:true },
+  starpudding:{ name:'Star Feast Pudding', need:{ holly:1, frost:1 },      energy:45, col:'#d8505a', from:'fest', fest:3, hearty:true }
 };
 for (const [k, d] of Object.entries(DISHES)) ITEMS[k] = { name:d.name, col:d.col, dish:true, sell:Math.max(5, Math.round(Object.entries(d.need).reduce((a, [i, n]) => a + ITEMS[i].sell * n, 0) / 2 / 5) * 5) };
 const RECIPE_LETTERS = {
@@ -5443,9 +5937,8 @@ function openSheet(kind, data) {
   setTimeout(() => { const b = $('sheet').querySelector('.btn:not(:disabled), .x'); if (b && matchMedia('(hover:hover)').matches) b.focus(); }, 30);
 }
 function closeSheet() {
-  if (sheetOpen === 'wedding') return;
+  if (sheetOpen === 'wedding' || sheetOpen === 'fgame') return;
   const was = sheetOpen;
-  if (sheetOpen === 'festival') endFestival();
   if (sheetOpen === 'board') { S.reqs.forEach(q => q.fresh = false); boardDone = []; boardOrder = []; }
   if (sheetOpen === 'fish') stopFishing();
   sheetOpen = null; lastSheetKey = ''; $('scrim').hidden = true; $('sheet').hidden = true; if (mode === 'play') { updateHUD(); save(); }
@@ -5490,7 +5983,7 @@ function vRow(v, from) {
 }
 function renderSheet(kind, data) {
   const body = $('shBody'); let h = '', title = '';
-  $('shClose').textContent = kind === 'morning' ? 'Start the day' : (kind === 'festival' ? 'Head home' : 'Close');
+  $('shClose').textContent = kind === 'morning' ? 'Start the day' : 'Close';
   if (kind === 'seeds') {
     title = 'Seed pouch';
     h += `<p class="sub">Pick what to plant. ${S.greenhouse ? 'Out-of-season seeds grow under the greenhouse glass.' : `It's ${SEASONS[S.season].toLowerCase()}, so only ${SEASONS[S.season].toLowerCase()} crops grow outdoors.`}</p>`;
@@ -5543,7 +6036,7 @@ function renderSheet(kind, data) {
     }
   } else if (kind === 'board') {
     title = 'Village requests';
-    if (isFestDay()) { const F = FEST[S.season], f = festState(); h += `<article class="card fest"><h4>Tonight: ${F.name}</h4><p class="sub">${f.home ? 'You had a lovely evening. See you there next year.' : F.board}</p>${f.home ? '' : `<div class="foot"><span class="due">Going ends your working day.</span><button class="btn" data-act="gofest" type="button" style="margin-left:auto">Go to the festival</button></div>`}</article>`; }
+    if (isFestDay()) h += festCard();
     if (!S.reqs.length && !boardDone.length) h += `<p class="sub">Nothing pinned right now. New requests go up in the morning.</p>`;
     // Filled requests stay put as thank-you cards until the board is closed, so nothing jumps under her finger.
     const doneCard = d => `<article class="card"><div class="who">${portrait(d.v, d.scene ? 'love' : 'happy', 44)}<div><div class="nm">${VILLAGERS[d.v].name}</div><div class="role">Done · thank you!</div></div><span class="rw">+${fmt(d.reward)} coins</span></div>
@@ -5578,7 +6071,7 @@ function renderSheet(kind, data) {
     }
     if (away) h += `<p class="sub">The stove is at home, but you can eat from your basket down here.</p>`;
     const hid = Object.keys(DISHES).filter(id => !dishKnown(id)).length;
-    if (hid) h += `<p class="sub">${hid} more recipe${hid === 1 ? '' : 's'} to find: some are sold as recipe cards at the market, and some friends may share theirs.</p>`;
+    if (hid) h += `<p class="sub">${hid} more recipe${hid === 1 ? '' : 's'} to find: some are sold as recipe cards at the market, some friends may share theirs, and each festival's prize stall has one.</p>`;
   } else if (kind === 'cauldron') {
     title = 'Cauldron';
     h += brewTabs();
@@ -5801,7 +6294,7 @@ function renderSheet(kind, data) {
     title = 'The garden gate';
     const n = VIDS.filter(v => VPLACES[where(v)]).length, finds = (S.wood && S.wood.key === dayKey() ? S.wood.spots.length : 5);
     h += `<p class="sub">The lane forks just past the gate. Where to?</p>`;
-    h += `<button class="vrow" data-act="govillage" type="button"><div class="info"><span class="name">Down to the village</span><span class="meta">${n ? `${n} ${n === 1 ? 'person is' : 'people are'} about right now` : 'Quiet. Everyone is home'}${S.rain ? '. Most are indoors out of the rain' : ''}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+    h += `<button class="vrow" data-act="govillage" type="button"><div class="info"><span class="name">Down to the village</span><span class="meta">${festOn() ? `The ${FEST[S.season].name} is on! Everyone's there` : `${n ? `${n} ${n === 1 ? 'person is' : 'people are'} about right now` : 'Quiet. Everyone is home'}${S.rain ? '. Most are indoors out of the rain' : ''}`}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
     h += `<button class="vrow" data-act="gowood" type="button"><div class="info"><span class="name">Into the Old Wood</span><span class="meta">${finds ? `${finds} find${finds === 1 ? '' : 's'} glinting today` : 'Picked clean for today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
     h += `<button class="btn alt" data-act="close" type="button">Stay in the garden</button>`;
   } else if (kind === 'place') {
@@ -5825,7 +6318,7 @@ function renderSheet(kind, data) {
     const si = calSeason, known = v => S.year > 1 || VILLAGERS[v].arrive <= S.season;
     title = `${SEASONS[si]} calendar`;
     h += `<div class="tabs" role="tablist">${SEASONS.map((sn, i) => `<button class="tab" role="tab" aria-selected="${i === si}" data-act="calseason" data-id="${i}" type="button">${sn}</button>`).join('')}</div>`;
-    if (si === S.season && isFestDay() && !festState().home) h += `<article class="card fest"><h4>Tonight: ${FEST[si].name}</h4><div class="foot"><button class="btn" data-act="gofest" type="button" style="margin-left:auto">Go to the festival</button></div></article>`;
+    if (si === S.season && isFestDay()) h += festCard();
     { const e = si === S.season ? evNow() : null; if (e && !S.events[evKey(e.id)] && S.time < EVENTS[e.id].to) { const E = EVENTS[e.id], p = evPlace(E, S.rain);
       h += `<article class="card fest"><h4>Today: ${E.name}</h4><p class="sub">${cap(VPLACES[p].name)}, ${evTime(E)}.</p>${S.scene === 'farm' || S.scene === 'village' ? `<div class="foot"><button class="btn" data-act="goplace" data-id="${p}" type="button" style="margin-left:auto">Go to ${VPLACES[p].name}</button></div>` : ''}</article>`; } }
     const bds = VIDS.filter(v => known(v) && VILLAGERS[v].bday[0] === si);
@@ -5839,7 +6332,7 @@ function renderSheet(kind, data) {
     }
     h += `</div><ul class="lines">`;
     const ev = bds.map(v => ({ d:VILLAGERS[v].bday[1], t:`${VILLAGERS[v].name}'s birthday${si === S.season && VILLAGERS[v].bday[1] === S.day ? ' (today!)' : ''}`, c:'gift' }));
-    ev.push({ d:FEST_DAY, t:`${FEST[si].name}, in the evening`, c:'gold' });
+    ev.push({ d:FEST_DAY, t:`${FEST[si].name}, all day from 10 am`, c:'gold' });
     for (const id of EIDS) if (EVENTS[id].season === si) ev.push({ d:EVENTS[id].day, t:evCalLine(id), c:'gold' });
     for (const e of ev.sort((a, b) => a.d - b.d)) h += `<li class="${e.c}">Day ${e.d}: ${e.t}</li>`;
     if (known('zara')) h += `<li>Market days, when Zara's cart comes: 5, 12, 19 and 26 (the dots)</li>`;
@@ -5860,8 +6353,8 @@ function renderSheet(kind, data) {
     h += `<div class="vhead">${fromPic(m.from, 56)}<div class="info"><span class="name">From ${fromName(m.from)}</span><span class="meta">${m.day}</span></div></div><div class="letter">${m.text || "(This letter's words weren't kept in your save backup, but you've already read it.)"}</div>`;
     if (data.got) h += `<ul class="lines"><li class="gift">${data.got}</li></ul>`;
     h += `<button class="btn alt" data-act="mailback" type="button">Back to mail</button>`;
-  } else if (kind === 'festival') {
-    title = FEST[S.season].name; h += festRender();
+  } else if (kind === 'booth') {
+    title = boothTitle(data.p); h += boothRender(data.p);
   } else if (kind === 'wardrobe') {
     title = 'The mirror';
     const L = lookOf();
@@ -5990,6 +6483,15 @@ function finishWedding() {
   genVisits(); updateHUD(); save(); cloudPush();
   toast(`You and ${VILLAGERS[v].name} are married. Welcome home, both of you.`, 5200);
 }
+$('fgCard').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled || !FG) return;
+  if (b.dataset.gact === 'go') fgStart(); else if (b.dataset.gact === 'back') fgClose();
+});
+$('fgC').addEventListener('pointerdown', e => {
+  if (!FG || FG.phase !== 'play') return; e.preventDefault();
+  const r = $('fgC').getBoundingClientRect(); FGAMES[FG.id].tap(FG.st, e.clientX - r.left, e.clientY - r.top, FG.w, FG.h);
+});
+addEventListener('resize', () => { if (FG) { fgSize(); fgDraw(); } });
 $('wed').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || !S || !S.wedding) return;
   if (b.dataset.wact === 'ido') { SND.gift(); showWedding(2); }
@@ -6075,8 +6577,10 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'cast') { castSpell(id); renderSheet('spells'); }
   else if (act === 'letter') { const i = +b.dataset.i, m = S.mail[i]; let got = null; if (!m.read) { m.read = true; got = applyLetterGift(m.gift); } sheetOpen = 'letter'; renderSheet('letter', { i, got }); updateHUD(); save(); return; }
   else if (act === 'mailback') { journalTab = 'mail'; sheetOpen = 'journal'; renderSheet('journal'); }
-  else if (act === 'gofest') { sheetOpen = 'festival'; renderSheet('festival'); return; }
-  else if (['mingle', 'dance', 'wish', 'fairenter', 'feastgive'].includes(act)) { festAct(act, id); renderSheet('festival'); }
+  else if (act === 'gofest') { goFest(); return; }
+  else if (['dance', 'wish', 'fairenter', 'feastgive'].includes(act)) { festAct(act, id); SND.gift(); updateHUD(); renderSheet('booth', { p:FEST_MAIN[S.season] }); }
+  else if (act === 'fplay') { openGame(id); return; }
+  else if (act === 'tbuy') { if (prizeBuy(id)) { SND.coin(); toast(id.startsWith('r:') ? `New recipe: ${DISHES[id.slice(2)].name}. Cook it in the Kitchen.` : 'Yours!'); updateHUD(); } renderSheet('booth', { p:'prizes' }); }
   else if (act === 'mirror') { sheetOpen = 'wardrobe'; renderSheet('wardrobe'); return; }
   else if (act === 'look') { S.look = Object.assign(lookOf(), { [b.dataset.k]:b.dataset.c }); renderSheet('wardrobe'); }
   else if (act === 'wear') { const L = lookOf(), w = (L.wear || []).filter(k => k !== id); if (!(L.wear || []).includes(id)) w.push(id); S.look = Object.assign(L, { wear:w }); renderSheet('wardrobe'); }
@@ -6115,7 +6619,7 @@ $('shBody').addEventListener('click', e => {
   updateHUD(); save();
 });
 $('shClose').addEventListener('click', closeSheet);
-$('scrim').addEventListener('click', () => { if ((fishing && fishing.phase === 'reel') || sheetOpen === 'festival') return; closeSheet(); });
+$('scrim').addEventListener('click', () => { if (fishing && fishing.phase === 'reel') return; closeSheet(); });
 const play = fn => () => { if (mode === 'play' && !sheetOpen) fn(); };
 $('clock').addEventListener('click', play(() => openSheet('clock')));
 $('calBtn').addEventListener('click', play(() => { calSeason = S.season; openSheet('calendar'); }));
@@ -6199,7 +6703,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 20, BUILD_DATE = 'Nov 9'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 21, BUILD_DATE = 'Nov 10'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();
