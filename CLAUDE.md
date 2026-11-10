@@ -15,6 +15,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - Leave the keys off when you want a local test build.
   - **Build number:** a keyed build bumps `src/BUILD` (commit it) and stamps `BUILD_NO`/`BUILD_DATE` (Chicago date) into the page. It shows as "Build N · Mon D" under the title buttons (`#buildTag`) and at the bottom of the Sleep sheet (`buildLabel()`), so Matt and his wife can check the phone has the latest. Keyless test builds say "Test build". `--same` restamps without bumping. (`BUILD` itself is the farm buildings table, hence `BUILD_NO`.)
 - `index.html`: the built site. Never hand-edit it; edit src and rebuild. The current keys are inside it (`const CLOUD`). The Firebase web apiKey is public by design.
+- `stats.html`: Matt's players page, live at /brambleroot/stats.html (every cloud save: where they are, how often they play). Hand-written, not built. Google sign-in through Firebase Auth (compat SDK from gstatic), then lists `saves` over REST with the ID token. Needs Google enabled in Firebase Authentication, `mfleshner.github.io` as an authorized domain, and the `allow list` rule for his email (see Cloud saves). When save fields change shape (spouse, Hollow depth, Hew), check its card still reads them.
 - `tests/`: see Testing.
 
 ## Who she is as a player (design rules)
@@ -158,7 +159,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - `firebolt` (2 mana, retargets so no bolt is wasted), `frostRing` (6 mana)
   - Aggro range is 6 tiles.
   - `MANA_PER_KILL = 1`, `SPRING_FRAC = .1` (a cleared floor gives back 10% of `refundBase()`)
-- **Play time:** `S.play = { first, last, sessions, days:{ 'YYYY-MM-DD': seconds } }` (her local dates, last 120 days), counted by `trackPlay()` in `frame()` from wall-clock time, only while playing and visible; `startGame` counts sessions. Matt has a standalone `brambleroot-stats.html` (not in this repo, so it isn't published) that lists every cloud save with a Google access token, or looks saves up by name, and reads this field. Keep `S.play`'s shape stable.
+- **Play time:** `S.play = { first, last, sessions, days:{ 'YYYY-MM-DD': seconds } }` (her local dates, last 120 days), counted by `trackPlay()` in `frame()` from wall-clock time, only while playing and visible; `startGame` counts sessions. Matt's stats page `stats.html` reads this field. Keep `S.play`'s shape stable.
 - **Saves:** see below.
 
 ## Gotchas found so far (important)
@@ -182,7 +183,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 7. **Cloud saves:** Firebase Firestore through the REST API (no SDK).
    - Project `brambleroot-80f9e`, owned by Matt's Google account.
    - Document `saves/{name}` with fields `data` (the code string), `updated`, `v`.
-   - The security rules allow **get, create and update only**, for names of 12+ characters. There is **no delete and no list**: test docs can't be removed from the game; delete them in the Firebase console.
+   - The security rules allow **get, create and update**, for names of 12+ characters, plus **list only for Matt's signed-in Google account** (for stats.html). There is **no delete**: test docs can't be removed from the game; delete them in the Firebase console.
    - Names look like `word-word-word-NN` (`newCloudName`). `cleanCloudName` lowercases them and turns spaces into dashes.
    - When it pushes:
      - every 120 s of play
@@ -253,3 +254,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 21. Festivals Part 1: festival day runs 10 am to 10 pm in a dressed-up village, stalls with games, tickets, ribbons and a prize stall; the dance, night fishing, ring toss and snowball toss (Nov 10, 2026).
 22. Festivals Part 2: flower crowns, petal catch, firefly jars and duck scoop, eight pieces of festival finery, and a Festivals page in the almanac (Nov 10, 2026).
 23. Festivals Part 3: Catch Turnip, guess the gourd, star map and cookie icing, and four garden keepsakes from the prize stalls (Nov 10, 2026).
+24. stats.html on the site: every player's progress and play time, behind Matt's Google sign-in (Nov 10, 2026).

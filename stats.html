@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brambleroot players</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{--ink:#1c1324;--ink2:#2a1d36;--ink3:#33243f;--line:#4a3858;--text:#f2e8dc;--muted:#b9a8c2;--gold:#f2b84b;--moss:#8fcf6a;--water:#6cc3ef;--rose:#ef7a8c;
+  --display:'IM Fell English SC','Palatino Linotype',Georgia,serif;--body:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--text);font:16px/1.45 var(--body)}
+main{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+h1{font:400 34px/1.1 var(--display);margin:0 0 4px}
+h2{font:400 24px/1.1 var(--display);margin:28px 0 10px}
+.lede{color:var(--muted);margin:0 0 18px}
+.panel{background:var(--ink2);border:1px solid var(--line);border-radius:14px;padding:14px}
+label{display:block;font-size:14px;color:var(--muted);margin:0 0 6px}
+input,textarea{width:100%;font:16px var(--body);color:var(--text);background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:70px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button{font:700 15px var(--body);border:0;border-radius:10px;padding:10px 16px;background:var(--gold);color:#2a1d36;cursor:pointer}
+button.alt{background:var(--ink3);color:var(--text);border:1px solid var(--line)}
+button:disabled{opacity:.5;cursor:default}
+details{margin-top:12px;color:var(--muted);font-size:14px}
+details summary{cursor:pointer;color:var(--text)}
+details ol{padding-left:20px;margin:8px 0}
+code{background:var(--ink);border:1px solid var(--line);border-radius:6px;padding:1px 5px;font-size:13px;word-break:break-all}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;background:var(--ink3);color:var(--muted);border:1px solid var(--line);font-weight:400}
+.tabs button[aria-selected="true"]{background:var(--gold);color:#2a1d36;font-weight:700;border-color:var(--gold)}
+.msg{margin-top:10px;font-size:14px}
+.msg.bad{color:var(--rose)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.tile{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:12px}
+.tile b{display:block;font:400 30px/1.1 var(--display);color:var(--gold)}
+.tile span{color:var(--muted);font-size:13px}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0 12px;font-size:14px;color:var(--muted)}
+.bar select{font:15px var(--body);background:var(--ink2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.bar input[type=checkbox]{width:auto;margin-right:4px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--ink2);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.card.hot{border-color:rgba(143,207,106,.7)}
+.top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.nm{font:400 21px/1.1 var(--display)}
+.nick{font-size:14px;color:var(--gold);background:none;border:0;border-bottom:1px dashed var(--line);border-radius:0;padding:0 0 1px;width:auto;min-width:0}
+.when{font-size:13px;color:var(--muted);text-align:right;white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px;background:var(--line)}
+.dot.on{background:var(--moss)}
+.date{font-size:15px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:14px;margin:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0}
+.spark{display:flex;align-items:flex-end;gap:2px;height:38px;border-bottom:1px solid var(--line)}
+.spark i{flex:1;background:var(--water);border-radius:2px 2px 0 0;min-height:1px;opacity:.85}
+.spark i.z{background:var(--line);opacity:.5}
+.sl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted)}
+.pct{height:6px;background:var(--ink);border-radius:4px;overflow:hidden}
+.pct i{display:block;height:100%;background:var(--gold)}
+.empty{color:var(--muted);text-align:center;padding:30px 10px}
+@media (max-width:420px){h1{font-size:28px}.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Brambleroot players</h1>
+  <p class="lede">Where everyone is in the game, and how often they play. Reads the cloud saves in Firebase; nothing is changed. Only the project owner can see anything here.</p>
+
+  <section class="panel">
+    <div id="signedOut">
+      <p style="margin:0 0 10px">Sign in with the Google account that owns the game's Firebase project. This device remembers you after that.</p>
+      <button type="button" id="signIn">Sign in with Google</button>
+    </div>
+    <div id="signedIn" class="row" hidden style="margin:0">
+      <span id="who" class="note" style="flex:1"></span>
+      <button type="button" class="alt" id="reload">Refresh</button>
+      <button type="button" class="alt" id="signOut">Sign out</button>
+    </div>
+    <div class="msg" id="msg" aria-live="polite"></div>
+  </section>
+
+  <div id="out"></div>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+(() => {
+const PROJECT = 'brambleroot-80f9e', API_KEY = 'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs';
+firebase.initializeApp({ apiKey:API_KEY, authDomain:`${PROJECT}.firebaseapp.com`, projectId:PROJECT });
+const auth = firebase.auth();
+const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/saves`;
+const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'], DAYS = 28;
+const NAMES = { mara:'Mara', fen:'Old Fen', pip:'Pip', odile:'Odile', wren:'Wren', rowan:'Rowan', silas:'Silas', theo:'Theo', isolde:'Isolde', juno:'Juno', hettie:'Granny Hettie', aldous:'Mayor Aldous', zara:'Zara', bertram:'Bertram', tilly:'Tilly' };
+const STORIES = { secret:"The aunt's secret", brews:'Rival brews', goat:'The lost goat', lamp:'The lighthouse lamp', deep:'The deepest floor', archive:'The charter archive' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const fmt = n => Math.round(n || 0).toLocaleString('en-US');
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+let rows = [], nicks = store.get('bramble-stats-nicks', {});
+
+// ---- reading saves (the same formats the game writes) ----
+const unb64 = str => { const s = atob(str.replace(/\s+/g, '')), b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; };
+async function inflate(bytes) { const out = new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))); return new TextDecoder().decode(await out.arrayBuffer()); }
+async function decode(code) {
+  if (!code) return null;
+  try {
+    let i = code.indexOf('BRAMBLE2:'); if (i >= 0) return JSON.parse(await inflate(unb64(code.slice(i + 9))));
+    i = code.indexOf('BRAMBLE1:'); if (i >= 0) return JSON.parse(new TextDecoder().decode(unb64(code.slice(i + 9))));
+    if (code.trim()[0] === '{') return JSON.parse(code);
+  } catch (e) {}
+  return null;
+}
+async function toRow(doc) {
+  const f = doc.fields || {}, name = decodeURIComponent(doc.name.split('/').pop());
+  const S = await decode(f.data && f.data.stringValue);
+  const updated = new Date((f.updated && f.updated.timestampValue) || doc.updateTime);
+  return { name, S, created:new Date(doc.createTime), updated };
+}
+
+// ---- loading ----
+async function loadAll() {
+  const user = auth.currentUser; if (!user) return;
+  busy(true); say('Loading every save…');
+  const docs = []; let page = '';
+  try {
+    const token = await user.getIdToken();
+    do {
+      const r = await fetch(`${BASE}?pageSize=300${page ? '&pageToken=' + encodeURIComponent(page) : ''}`, { headers:{ Authorization:'Bearer ' + token } });
+      if (r.status === 403) throw new Error("Signed in, but Firebase won't list the saves for this account. Check the Firestore rule (the allow list line), and that you signed in with the account that owns the project.");
+      if (r.status === 401) throw new Error('Your sign-in has expired. Tap Sign out, then sign in again.');
+      if (!r.ok) throw new Error(`Firebase said no (HTTP ${r.status}).`);
+      const j = await r.json(); docs.push(...(j.documents || [])); page = j.nextPageToken || '';
+    } while (page);
+    rows = await Promise.all(docs.map(toRow));
+    say(`${rows.length} save${rows.length === 1 ? '' : 's'} loaded, ${new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' })}.`);
+    render();
+  } catch (e) { say(/fetch|network|load failed/i.test(e.message || '') ? "Couldn't reach Firebase. Check your internet." : e.message, true); }
+  busy(false);
+}
+const AUTH_ERR = {
+  'auth/unauthorized-domain':"This site isn't allowed to sign in yet. In Firebase: Authentication → Settings → Authorized domains, add mfleshner.github.io.",
+  'auth/operation-not-allowed':'Google sign-in is turned off. In Firebase: Authentication → Sign-in method → Google → Enable.',
+  'auth/configuration-not-found':"Authentication isn't set up yet. In Firebase, open Authentication and tap Get started, then turn on Google.",
+  'auth/popup-closed-by-user':'The sign-in window was closed. Try again.',
+  'auth/cancelled-popup-request':'',
+  'auth/network-request-failed':"Couldn't reach Google. Check your internet."
+};
+async function signIn() {
+  say('');
+  const provider = new firebase.auth.GoogleAuthProvider(); provider.setCustomParameters({ prompt:'select_account' });
+  try { await auth.signInWithPopup(provider); }
+  catch (e) {
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') { try { await auth.signInWithRedirect(provider); return; } catch (e2) { e = e2; } }
+    const m = AUTH_ERR[e.code]; if (m !== '') say(m || `Sign-in didn't work (${e.code || e.message}).`, true);
+  }
+}
+function say(t, bad) { $('msg').textContent = t; $('msg').className = 'msg' + (bad ? ' bad' : ''); }
+function busy(b) { $('reload').disabled = b; }
+
+// ---- what a save tells us ----
+const absDay = S => (S.year - 1) * 4 * DAYS + S.season * DAYS + S.day;
+const heartsOf = (S, v) => Math.min(v === S.spouse || v === S.dating ? 10 : 8, Math.floor(((S.fr || {})[v] || 0) / 100));
+const dkey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function ago(d) {
+  const m = (Date.now() - d) / 60000;
+  if (m < 2) return 'just now'; if (m < 60) return `${Math.round(m)} min ago`;
+  const h = m / 60; if (h < 24) return `${Math.round(h)} hour${Math.round(h) === 1 ? '' : 's'} ago`;
+  const days = h / 24; if (days < 14) return `${Math.round(days)} day${Math.round(days) === 1 ? '' : 's'} ago`;
+  return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+}
+const mins = sec => { const m = Math.round(sec / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
+function facts(r) {
+  const S = r.S; if (!S) return null;
+  const day = absDay(S), realDays = Math.max(1, (r.updated - r.created) / 864e5);
+  const stars = Object.values(S.charters || {}).reduce((n, c) => n + (c.stars || []).filter(x => x.done).length, 0);
+  const friends = Object.keys(NAMES).map(v => [v, heartsOf(S, v)]).filter(([, h]) => h > 0).sort((a, b) => b[1] - a[1]);
+  const stories = Object.entries(S.quests || {}).filter(([, q]) => q && q.done).map(([k]) => STORIES[k] || k);
+  const open = Object.entries(S.quests || {}).filter(([, q]) => q && !q.done).length;
+  const P = S.play && S.play.days ? S.play : null;
+  const last = [];
+  for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); last.push((P && P.days[dkey(d)]) || 0); }
+  const week = last.slice(7).reduce((a, b) => a + b, 0), daysWeek = last.slice(7).filter(x => x > 0).length;
+  return { day, perDay:day / realDays, stars, friends, stories, open, P, last, week, daysWeek, sessions:P ? P.sessions || 0 : null };
+}
+
+// ---- drawing ----
+function render() {
+  const out = $('out');
+  if (!rows.length) { out.innerHTML = '<p class="empty">No saves to show.</p>'; return; }
+  const now = Date.now(), dayMs = 864e5;
+  const real = rows.filter(r => r.S && absDay(r.S) > 1);
+  const d1 = rows.filter(r => now - r.updated < dayMs).length, d7 = rows.filter(r => now - r.updated < 7 * dayMs).length;
+  const furthest = real.slice().sort((a, b) => absDay(b.S) - absDay(a.S))[0];
+  const tracked = rows.map(r => r.S && facts(r)).filter(f => f && f.P);
+  const weekAll = tracked.reduce((a, f) => a + f.week, 0);
+  let h = `<h2>At a glance</h2><div class="tiles">
+    <div class="tile"><b>${rows.length}</b><span>saves${rows.length - real.length ? ` (${rows.length - real.length} never got past day 1)` : ''}</span></div>
+    <div class="tile"><b>${d1}</b><span>played in the last 24 hours</span></div>
+    <div class="tile"><b>${d7}</b><span>played in the last 7 days</span></div>
+    <div class="tile"><b>${furthest ? `Y${furthest.S.year} ${SEASONS[furthest.S.season].slice(0, 3)} ${furthest.S.day}` : '–'}</b><span>furthest along${furthest ? `: ${esc(nicks[furthest.name] || furthest.name)}` : ''}</span></div>
+    <div class="tile"><b>${tracked.length ? mins(weekAll) : '–'}</b><span>played this week, all saves${tracked.length < rows.length ? ` (${tracked.length} save${tracked.length === 1 ? '' : 's'} with play-time yet)` : ''}</span></div>
+  </div>`;
+  const sort = $('sort') ? $('sort').value : 'recent', hide = $('hide') ? $('hide').checked : true;
+  h += `<h2>Every save</h2><div class="bar"><label style="margin:0">Sort <select id="sort">
+    <option value="recent"${sort === 'recent' ? ' selected' : ''}>Last played</option>
+    <option value="far"${sort === 'far' ? ' selected' : ''}>Furthest in the game</option>
+    <option value="week"${sort === 'week' ? ' selected' : ''}>Most played this week</option>
+    <option value="new"${sort === 'new' ? ' selected' : ''}>Newest</option></select></label>
+    <label style="margin:0"><input type="checkbox" id="hide"${hide ? ' checked' : ''}>Hide saves still on day 1</label></div><div class="cards">`;
+  let list = rows.map(r => ({ r, f:facts(r) }));
+  if (hide) list = list.filter(x => x.f && x.f.day > 1);
+  const by = { recent:x => -x.r.updated, far:x => -(x.f ? x.f.day : 0), week:x => -(x.f ? x.f.week : 0), new:x => -x.r.created };
+  list.sort((a, b) => by[sort](a) - by[sort](b));
+  for (const { r, f } of list) h += card(r, f);
+  if (!list.length) h += '<p class="empty">Every save is still on day 1. Untick the box to see them.</p>';
+  out.innerHTML = h + '</div><p class="note" style="margin-top:16px">Real play time starts counting from the game update on Nov 8, 2026, so older saves only show it once they\'ve been played since. "Started" is when the save first reached the cloud.</p>';
+  $('sort').onchange = render; $('hide').onchange = render;
+  for (const el of out.querySelectorAll('.nick')) el.onchange = e => { const n = e.target.dataset.n, v = e.target.value.trim(); if (v) nicks[n] = v; else delete nicks[n]; store.set('bramble-stats-nicks', nicks); };
+}
+function card(r, f) {
+  const hot = Date.now() - r.updated < 864e5;
+  let h = `<article class="card${hot ? ' hot' : ''}"><div class="top"><div><div class="nm">${esc(r.name)}</div>
+    <input class="nick" data-n="${esc(r.name)}" value="${esc(nicks[r.name] || '')}" placeholder="add a nickname" aria-label="Nickname for ${esc(r.name)}"></div>
+    <div class="when"><span class="dot${hot ? ' on' : ''}"></span>${ago(r.updated)}<br>started ${r.created.toLocaleDateString(undefined, { month:'short', day:'numeric' })}</div></div>`;
+  if (!f) return h + '<p class="note">This save couldn\'t be read.</p></article>';
+  const S = r.S, yr = Math.min(1, ((S.season * DAYS + S.day) / (4 * DAYS)));
+  h += `<div class="date">Year ${S.year}, ${SEASONS[S.season]} ${S.day} <span class="note">· in-game day ${f.day}</span></div><div class="pct" title="through the year"><i style="width:${(yr * 100).toFixed(0)}%"></i></div>`;
+  const H = S.hew || {}, rom = H.wed ? 'Married to Hew the Almighty' : H.dating ? 'Dating Hew the Almighty' : S.spouse ? `Married to ${NAMES[S.spouse] || S.spouse}` : S.wedding ? `Engaged to ${NAMES[S.wedding.v] || S.wedding.v}` : S.dating ? `Dating ${NAMES[S.dating] || S.dating}` : '';
+  h += `<dl class="kv">
+    <dt>Coins</dt><dd>${fmt(S.coins)}</dd>
+    <dt>Charter stars</dt><dd>${f.stars} earned</dd>
+    <dt>Closest</dt><dd>${f.friends.length ? f.friends.slice(0, 3).map(([v, n]) => `${NAMES[v]} ${n}♥`).join(', ') : 'nobody yet'}</dd>
+    ${rom ? `<dt>Romance</dt><dd>${rom}</dd>` : ''}
+    <dt>Stories</dt><dd>${f.stories.length} of 6 finished${f.open ? `, ${f.open} open` : ''}</dd>
+    <dt>Hollow</dt><dd>${!S.hollowMax ? 'not found yet' : S.hollowMax > 100 ? `floor ${S.hollowMax} (the Endless Below)` : `floor ${S.hollowMax} of 100`}</dd>
+    <dt>Spells</dt><dd>${(S.spells || []).length}${S.ribbons && Object.keys(S.ribbons).length ? ` · ${Object.values(S.ribbons).reduce((n, y) => n + (y.length || 0), 0)} festival ribbons` : ''}${H.met ? ` · Hew ${Math.min(H.dating || H.wed ? 10 : 8, Math.floor((H.fr || 0) / 100))}♥` : ''}</dd>
+    <dt>Requests</dt><dd>${fmt(S.helped)} filled · ${fmt(S.fishCaught)} fish caught</dd>
+    <dt>Pace</dt><dd>${f.perDay >= 10 ? Math.round(f.perDay) : f.perDay.toFixed(1)} in-game days per real day</dd>
+  </dl>`;
+  if (f.P) {
+    const max = Math.max(...f.last, 60);
+    h += `<div class="note">Last 14 days: played ${f.last.filter(x => x > 0).length} days · this week ${mins(f.week)} over ${f.daysWeek} day${f.daysWeek === 1 ? '' : 's'}${f.sessions ? ` · opened ${f.sessions} time${f.sessions === 1 ? '' : 's'} in all` : ''}</div>
+      <div class="spark" aria-label="Minutes played each day for the last 14 days">${f.last.map(s => `<i class="${s ? '' : 'z'}" style="height:${s ? Math.max(6, s / max * 100) : 4}%" title="${mins(s)}"></i>`).join('')}</div><div class="sl"><span>2 weeks ago</span><span>today</span></div>`;
+  } else h += '<p class="note">No play-time record yet. It starts once this save is played on the updated game.</p>';
+  return h + '</article>';
+}
+
+// ---- sign-in ----
+$('signIn').onclick = signIn;
+$('signOut').onclick = () => { auth.signOut(); rows = []; $('out').innerHTML = ''; say(''); };
+$('reload').onclick = loadAll;
+auth.getRedirectResult().catch(e => { const m = AUTH_ERR[e.code]; if (m) say(m, true); });
+auth.onAuthStateChanged(user => {
+  $('signedOut').hidden = !!user; $('signedIn').hidden = !user;
+  if (user) { $('who').textContent = `Signed in as ${user.email}`; loadAll(); }
+});
+if (typeof DecompressionStream === 'undefined') say('This browser is too old to read the saves. Use a recent Chrome or Safari.', true);
+})();
+</script>
+</body>
+</html>
