@@ -194,6 +194,7 @@ h4.nbh{font-size:17px}
   padding-left:max(20px, env(safe-area-inset-left,0px));padding-right:max(20px, env(safe-area-inset-right,0px))}
 .tw{max-width:520px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .kicker{margin:0;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--moss)}
+.build{margin:14px 0 0;text-align:center;font-size:12px;letter-spacing:.04em;opacity:.55}
 #title h1{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(52px,15vw,84px);line-height:.9;color:var(--text);text-shadow:0 2px 0 #3a2148, 0 0 30px rgba(242,184,75,.25)}
 .story{margin:0;font-size:16px;line-height:1.5;color:#e6dbe9;max-width:42ch}
 .story b{color:var(--gold)}
@@ -248,6 +249,7 @@ h4.nbh{font-size:17px}
       <li><span>Brew</span><span>potions overnight. They sell for far more than raw herbs.</span></li>
     </ul>
     <div class="cta-row" id="titleBtns"></div>
+    <p class="build" id="buildTag"></p>
   </div>
 </section>
 
@@ -5679,7 +5681,7 @@ function renderSheet(kind, data) {
     if (S.spouse) h += `<li>${VILLAGERS[S.spouse].name} has left the lamp on for you.</li>`;
     if (S.wedding && !S.spouse && S.wedding.at === absDay() + 1) h += `<li class="gold">Tomorrow is your wedding day.</li>`;
     h += `<li>You'll wake at 6:00 am with full energy.</li></ul>`;
-    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button>${S.hollowMax ? `<button class="btn alt" data-act="relics" type="button">The relic shelf${Object.keys(HS().relics || {}).length ? ` (${Object.keys(HS().relics).length})` : ''}</button>` : ''}<button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>${S.hew && S.hew.met && !S.hew.wed ? `<button class="btn alt" data-act="hewease" type="button">Hew's curses: ${S.hew.ease ? 'eased (no effects)' : 'on'}</button>` : ''}`;
+    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button>${S.hollowMax ? `<button class="btn alt" data-act="relics" type="button">The relic shelf${Object.keys(HS().relics || {}).length ? ` (${Object.keys(HS().relics).length})` : ''}</button>` : ''}<button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>${S.hew && S.hew.met && !S.hew.wed ? `<button class="btn alt" data-act="hewease" type="button">Hew's curses: ${S.hew.ease ? 'eased (no effects)' : 'on'}</button>` : ''}<p class="build">${buildLabel()}</p>`;
   } else if (kind === 'clock') {
     title = 'The clock';
     h += `<p class="sub">Time only moves while you're walking or working. Stand still, and it waits for you.</p>`;
@@ -6184,7 +6186,10 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'', projectId:'' };
+const BUILD_NO = 0, BUILD_DATE = ''; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
+if ($('buildTag')) $('buildTag').textContent = buildLabel();
 const CLOUD_WORDS = 'moss fern owl moon toad wren mint thorn ember glow lantern acorn bramble willow hazel clover meadow river pebble honey candle cinder frost ivy maple oak pine reed sage thistle violet berry cloud dew dusk dawn fox hare heron kettle lily marsh nettle orchard poppy quill raven rowan sparrow star tansy vale wisp yarrow badger beetle bluebell cottage cauldron feather firefly garnet hearth heather juniper lark linden mallow nutmeg otter parsley plum robin sorrel thyme truffle wheat yew amber birch cobble fennel gorse hollow moth newt'.split(' ');
 function newCloudName() { const w = () => CLOUD_WORDS[(Math.random() * CLOUD_WORDS.length) | 0]; return `${w()}-${w()}-${w()}-${10 + ((Math.random() * 90) | 0)}`; }
 const cleanCloudName = t => (t || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');

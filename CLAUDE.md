@@ -12,6 +12,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - Fills in `const CLOUD = { apiKey:'', projectId:'' };`.
   - Wraps the page with doctype, apple-mobile-web-app metas, theme color and the home-screen icon (icon180.png as a data URI).
   - Leave the keys off when you want a local test build.
+  - **Build number:** a keyed build bumps `src/BUILD` (commit it) and stamps `BUILD_NO`/`BUILD_DATE` (Chicago date) into the page. It shows as "Build N · Mon D" under the title buttons (`#buildTag`) and at the bottom of the Sleep sheet (`buildLabel()`), so Matt and his wife can check the phone has the latest. Keyless test builds say "Test build". `--same` restamps without bumping. (`BUILD` itself is the farm buildings table, hence `BUILD_NO`.)
 - `index.html`: the built site. Never hand-edit it; edit src and rebuild. The current keys are inside it (`const CLOUD`). The Firebase web apiKey is public by design.
 - `tests/`: see Testing.
 
@@ -230,3 +231,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 17. Cooking: the Kitchen tab, 17 dishes, recipe cards and letters (Nov 9, 2026).
 18. Hew the Almighty Wizard: his tower, seasonal curses, hearts, a duel and romance (PLAN-hew.md Parts 2–3, Nov 9, 2026).
 19. Dialog overhaul: about 1,580 new lines (14 chat lines per heart tier, seasonal and rainy-day lines, more garden greetings, crush and engaged lines, three times the dating and married lines, more for Hew), and no line repeats back to back (Nov 9, 2026).
+20. Build number on the title screen and Sleep sheet, starting at Build 20 (Nov 9, 2026).

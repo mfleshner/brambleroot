@@ -1,6 +1,15 @@
 import base64,re,sys
 src=open(sys.argv[1]).read(); outp=sys.argv[2]
 if len(sys.argv) > 4: src=src.replace("const CLOUD = { apiKey:'', projectId:'' };", "const CLOUD = { apiKey:'%s', projectId:'%s' };" % (sys.argv[3], sys.argv[4]), 1)
+# Build number: a real (keyed) build bumps BUILD (next to this script) and stamps it with today's date in Matt's time zone.
+# Local test builds (no keys) stay at 0 and show "Test build". Pass --same to restamp without bumping.
+if len(sys.argv) > 4:
+    import os, datetime, zoneinfo
+    bf=os.path.join(os.path.dirname(os.path.abspath(__file__)),'BUILD'); n=int(open(bf).read().strip() or 0)
+    if '--same' not in sys.argv: n+=1; open(bf,'w').write('%d\n' % n)
+    d=datetime.datetime.now(zoneinfo.ZoneInfo('America/Chicago')); day=d.strftime('%b ')+str(d.day)
+    src=src.replace("const BUILD_NO = 0, BUILD_DATE = '';", "const BUILD_NO = %d, BUILD_DATE = '%s';" % (n, day), 1)
+    print('build', n, day)
 icon='data:image/png;base64,'+base64.b64encode(open('icon180.png','rb').read()).decode()
 title=re.search(r'<title>.*?</title>',src).group(0); links=re.findall(r'<link [^>]*>\n?',src); style=re.search(r'<style>.*?</style>',src,re.S).group(0)
 body=src
