@@ -5,6 +5,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 - Live site: https://mfleshner.github.io/brambleroot/ (GitHub Pages, deploys from `main` root)
 - The villager plan (**PLAN-villagers.md**) is finished: all three parts shipped Nov 8, 2026.
 - **The deep Hollow (PLAN-hollow.md)**: 100 floors plus the Endless Below, in 3 parts. **Part 1 shipped Nov 8, 2026** (floors 1–30). **Part 2 shipped Nov 9, 2026** (floors 31–70). **Part 3 shipped Nov 9, 2026** (floors 71–100, the Heart, the Endless Below). The plan is finished.
+- **The festival overhaul (PLAN-festivals.md)**: festivals as walkable grounds with mini games, tickets and a prize stall, in 3 parts. Decided Nov 10, 2026; not started.
 
 ## Files
 - `src/brambleroot.html`: **the source** (about 250 KB, one file: HTML, CSS and JS in one IIFE). Cloud keys are empty here.
