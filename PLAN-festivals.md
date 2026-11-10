@@ -68,7 +68,7 @@ Hosts are all there by their festival: Wren (summer arrival) only hosts in winte
   - **A festival recipe**, one per festival (a dish for the Kitchen).
   - **Rare seeds** for the season.
   - **One Starshard** per festival.
-- Rough numbers to tune with the sim: a whole festival day pays about 40 to 60 tickets. Wardrobe 30–40, keepsakes 25, recipes 15, seeds 10, Starshard 25. She should get one or two nice things each festival and the full set in about two years.
+- Rough numbers to tune with the sim: a whole festival day pays about 40 to 60 tickets. Wardrobe 30–40, keepsakes 25, recipes 15, seeds 10, Starshard 25. (Shipped: 25 to 57 tickets a festival depending on how keen she is; wardrobe 25, keepsakes 15, recipes 10.) She should get one or two nice things each festival and the full set in about two years.
 - **No new coins from games.** The four main events keep today's rewards, so the charters don't get easier.
 
 ## Save
@@ -80,7 +80,9 @@ Hosts are all there by their festival: Wren (summer arrival) only hosts in winte
 1. **The grounds — DONE Nov 10, 2026.** Shipped as planned, plus: scores to beat and ribbons are in from the start (the Journal page comes in Part 2); taking part in the main event pays 4 tickets; the festival recipes are in the stall from Part 1 (wardrobe pieces in Part 2, keepsakes in Part 3). Medal targets come from human-like bots (`festtest.js`). With one game a festival she earns about 10–22 tickets.
    The plan was: the 10 am to 10 pm day, everyone at the festival place, no rain, the four dressed maps, booths and hellos in the world, the game overlay, tickets, Zara's stall (and Aldous's table), and **one game per festival** so every festival has something new from the start: the dance, night fishing, ring toss and snowball toss. The other main events move to booths.
 2. **Flower Dance and Lantern Night — DONE Nov 10, 2026.** Flower crowns (a 4×4 memory match), petal catch, firefly jars and duck scoop (only the red-star ducks count). The Festivals page is a row on the Journal's Almanac tab (a sixth tab would crowd the phone). The eight wardrobe pieces at 30 tickets each. With three games, a festival pays a keen player about 45–60 tickets and a relaxed one about 40.
-3. **Harvest Fair and Star Feast:** Catch Turnip, guess the gourd, star map and cookie icing. The garden keepsakes.
+3. **Harvest Fair and Star Feast — DONE Nov 10, 2026.** Catch Turnip, guess the gourd (eight rounds), star map and cookie icing (seven cookies). The four garden keepsakes. Prices came down a little once all twelve games were in (finery 25, keepsakes 15, recipes 10): each festival's one-off prizes cost 75 tickets, so a keen player collects a festival's set in about a year and a half, a relaxed one in about three.
+
+**The plan is finished.**
 
 ## Every part
 - Old saves load with nothing lost (`mig.js`, `savesuite.js` 32/32).

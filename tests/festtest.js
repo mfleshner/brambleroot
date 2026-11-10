@@ -2,7 +2,7 @@
 // played by bots (scores, medals, no errors), old saves and sheets. Run from a folder with b.js and shot-save.json.
 // Usage: node festtest.js [runs per bot]
 const fs = require('fs');
-const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", "globalThis.__t={get S(){return S},set S(x){S=x},startGame,endDay,closeSheet,openSheet,renderSheet,get sheet(){return sheetOpen},get queue(){return queue},VILLAGERS,VIDS,where,villageFolk,enterVillage,leaveVillage,festOn,festBooths,festSpots,festBoothAt,festState,festPlayed,festAct,festMingle,hostBest,gameTier,boothHosts,boothRender,prizeStock,prizeBuy,FGAMES,fgStep,FEST,FEST_BOOTHS,FB_SPOT,VB,VSPOTS,DISHES,ITEMS,migrate,addFr,heartsOf,visit,update,draw,zaraAtCart,cartHere,openGame,fgStart,fgClose,get FG(){return FG},TIER_TICKETS,FEST_TICKET_PLAYS,FEST_MAIN_TICKETS,FEST_WEAR,KEEPSAKES,prizeOwned,festCard,ribbonYears,buildStatic,witchSVG,wearingK:k=>wearing(k),witchSVGbare:n=>{const L=S.look;S.look=Object.assign({},L||{},{wear:[]});const r=witchSVG(n).length;S.look=L;return r},festDecor:()=>drawFestGrounds()};\n})();");
+const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", "globalThis.__t={get S(){return S},set S(x){S=x},startGame,endDay,closeSheet,openSheet,renderSheet,get sheet(){return sheetOpen},get queue(){return queue},VILLAGERS,VIDS,where,villageFolk,enterVillage,leaveVillage,festOn,festBooths,festSpots,festBoothAt,festState,festPlayed,festAct,festMingle,hostBest,gameTier,boothHosts,boothRender,prizeStock,prizeBuy,FGAMES,fgStep,FEST,FEST_BOOTHS,FB_SPOT,VB,VSPOTS,DISHES,ITEMS,migrate,addFr,heartsOf,visit,update,draw,zaraAtCart,cartHere,openGame,fgStart,fgClose,get FG(){return FG},TIER_TICKETS,FEST_TICKET_PLAYS,FEST_MAIN_TICKETS,FEST_WEAR,KEEPSAKES,prizeOwned,festCard,ribbonYears,buildStatic,VISIT_SPOT,VISIT_STAND,witchSVG,wearingK:k=>wearing(k),witchSVGbare:n=>{const L=S.look;S.look=Object.assign({},L||{},{wear:[]});const r=witchSVG(n).length;S.look=L;return r},festDecor:()=>drawFestGrounds()};\n})();");
 const sim7 = fs.readFileSync('sim7.js', 'utf8').split('\n').slice(2, 7).join('\n'); eval(sim7);
 const store = {}; globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => store[k] = v, removeItem: k => delete store[k] };
 eval(src); const t = __t; t.startGame(true); let S = t.S;
@@ -136,6 +136,12 @@ const BOTS = {
   petals:(st, g, lv) => { if (busy(st, lv)) return; for (const q of st.ps) if (reacts(st, q.id, lv)) { if (Math.random() > lv.slip) g.tap(st, q.x, q.y, W, H); tapped(st, lv); break; } },
   fireflies:(st, g, lv) => { if (busy(st, lv)) return; for (const q of st.ff) if (reacts(st, q.id, lv)) { const jx = gauss() * (lv === LV.keen ? 8 : 14), jy = gauss() * (lv === LV.keen ? 8 : 14); g.tap(st, q.x + jx, q.y + jy, W, H); tapped(st, lv); break; } },
   ducks:(st, g, lv) => { if (busy(st, lv)) return; for (const d of st.dk) if (d.x > 10 && d.x < W - 10 && reacts(st, d.id, lv) && (d.star || Math.random() < lv.slip * .3)) { g.tap(st, d.x, g.lanes[d.lane] * H, W, H); tapped(st, lv); break; } },
+  turnip:(st, g, lv) => { if (st.ph !== 'eat') { st._e = null; return; } if (busy(st, lv)) return; if (reacts(st, 'e' + st.n, lv)) { if (Math.random() > lv.slip) g.tap(st, st.x * W, H * .66, W, H); tapped(st, lv); } },
+  gourd:(st, g, lv) => { if (st.ph !== 'pick' || !reacts(st, 'r' + st.r, lv === LV.keen ? { react:1.2, rsd:.3 } : { react:1, rsd:.3 })) return;
+    const left = [0, 1, 2].filter(i => i !== st.ruled), pick = lv === LV.keen ? (st.g[left[0]].s >= st.g[left[1]].s ? left[0] : left[1]) : (Math.random() < .5 ? left[0] : left[1]);
+    const p = g.pos(pick, W, H); g.tap(st, p.x, p.y, W, H); },
+  starmap:(st, g, lv) => { if (busy(st, lv) || st.wait > 0 || !st.stars.length) return; const q = st.stars.find(z => z.i === st.next); if (!q || !reacts(st, 's' + st.made + '-' + st.next, lv)) return; g.tap(st, q.x + gauss() * 6, q.y + gauss() * 6, W, H); tapped(st, lv); },
+  cookies:(st, g, lv) => { if (st.ph !== 'copy' || busy(st, lv)) return; const L = st.seq.length, p = lv === LV.keen ? 1 - .012 * L : 1 - .035 * L; const d = Math.random() < p ? st.seq[st.k] : (st.seq[st.k] + 1) % 9; const q = g.dot(d, W, H); g.tap(st, q.x, q.y, W, H); tapped(st, lv); },
   snowball:(st, g, lv) => { if (busy(st, lv)) return; for (const q of st.tg) { q._id = q._id || Math.random(); if (reacts(st, q._id, lv)) { const c = g.cell(q.i, W, H); if (Math.random() > lv.slip) g.tap(st, c.x, c.y, W, H); tapped(st, lv); break; } } },
 };
 const report = [], TK = {};
@@ -155,7 +161,7 @@ for (const [id, G] of Object.entries(t.FGAMES)) {
   }
   ok(res.keen.med >= G.tiers[1], `${id}: a keen player should reach silver (median ${res.keen.med})`);
   ok(res.casual.med >= G.tiers[0], `${id}: a casual player should reach bronze (median ${res.casual.med})`);
-  ok(res.keen.hi < G.max, `${id}: max reachable too easily`);
+  ok(!G.secs || res.keen.hi < G.max, `${id}: max reachable too easily`); // timed games have no natural cap; round-based ones can be played perfectly
   ok(res.keen.med <= G.best, `${id}: a keen player usually beats the host (median ${res.keen.med}, host ${G.best})`);
   TK[id] = { keen:res.keen.tiers.reduce((a, c, k) => a + c * t.TIER_TICKETS[k], 0) / RUNS * t.FEST_TICKET_PLAYS, casual:res.casual.tiers.reduce((a, c, k) => a + c * t.TIER_TICKETS[k], 0) / RUNS * t.FEST_TICKET_PLAYS };
   report.push(`${id.padEnd(10)} ${String(res.secs).padStart(3)}s  keen med ${res.keen.med} (${res.keen.lo}-${res.keen.hi}) medals ${res.keen.tiers.join('/')}  casual med ${res.casual.med} (${res.casual.lo}-${res.casual.hi}) medals ${res.casual.tiers.join('/')}  tiers ${G.tiers.join('/')} host ${G.best}`);
@@ -201,6 +207,17 @@ for (let s = 0; s < 4; s++) {
   for (const k of wear) { const L = Object.assign({}, S.look || {}); S.look = Object.assign(L, { wear:[k] }); ok(t.wearingK(k), k + ' worn'); const svg = t.witchSVG(100); ok(svg.length > t.witchSVGbare(100) && clean(svg), k + ' drawn in the mirror'); try { t.draw(); } catch (e) { ok(false, k + ' world draw ' + e.message); } }
 }
 { S.prizes = {}; S.look = { wear:['crown'] }; ok(!t.wearingK('crown'), 'wearing a crown she does not own'); }
+// --- garden keepsakes: one per festival, drawn on the farm ---
+for (let s = 0; s < 4; s++) {
+  setDay(2, s, 14, 700); S.fest = {}; S.tickets = 100; S.prizes = {};
+  const ks = Object.keys(t.KEEPSAKES).filter(k => t.KEEPSAKES[k].fest === s); ok(ks.length === 1, 'one keepsake s' + s);
+  ok(t.prizeBuy('k:' + ks[0]) && t.prizeOwned(ks[0]) && !t.prizeBuy('k:' + ks[0]), 'keepsake bought once s' + s);
+}
+{ S.prizes = { maypole:1, lanternpost:1, scarecrow:1, starlantern:1 }; S.scene = 'farm'; S.time = 1300; try { t.buildStatic(); t.draw(); ok(true, 'keepsakes draw'); } catch (e) { ok(false, 'keepsake draw ' + e.message); }
+  const tiles = Object.values(t.KEEPSAKES).map(k => k.at.join(',')); ok(new Set(tiles).size === 4, 'keepsake tiles unique');
+  for (const k of Object.values(t.KEEPSAKES)) { const [c, r] = k.at; ok(!(c >= 1 && c <= 7 && r >= 3 && r <= 10), k.name + ' in the field'); ok(!Object.values(t.VISIT_SPOT).some(v => v[0] === c && v[1] === r) && !Object.values(t.VISIT_STAND).some(v => v[0] === c && v[1] === r), k.name + ' on a visitor spot'); }
+  S.prizes = {}; }
+
 // --- the Festivals page ---
 S.fbest = { ringtoss:14 }; S.ribbons = { ringtoss:[1, 2], crowns:[2] }; S.tickets = 9;
 t.openSheet('journal'); ok(true, 'journal'); t.renderSheet('festbook'); { const h = body(); ok(clean(h) && /Ring toss/.test(h) && /yours 14/.test(h) && /year 1, year 2/.test(h) && /Ribbons won: 3/.test(h), 'festbook'); } close();

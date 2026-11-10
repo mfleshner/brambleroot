@@ -1285,7 +1285,7 @@ function draw() {
   if (S.scene === 'hollow') drawHollowDynamic();
   else if (S.scene === 'wood') drawWoodDynamic();
   else if (S.scene === 'village') { drawVillageWindows(night); drawVillageDynamic(); }
-  else { for (let i = 0; i < 56; i++) drawPlot(S.plots[i], plotCol(i), plotRow(i), i); drawGreenhouse(); drawHives(); drawDynamicBuildings(night); drawMailbox(); drawVisitors(); }
+  else { for (let i = 0; i < 56; i++) drawPlot(S.plots[i], plotCol(i), plotRow(i), i); drawGreenhouse(); drawHives(); drawDynamicBuildings(night); drawMailbox(); drawKeepsakes(); drawVisitors(); }
   const u = T / 16;
   ctx.strokeStyle = 'rgba(242,184,75,.85)'; ctx.lineWidth = Math.max(1.5, u * .8); ctx.setLineDash([u * 2, u * 1.5]);
   for (const q of queue) ctx.strokeRect(ox + q.c * T + u, oy + q.r * T + u, T - 2 * u, T - 2 * u);
@@ -1306,6 +1306,7 @@ function draw() {
     glow(ox + cb.c * T + cb.w * T * .22, wy, T * 1.3, '255,190,90', .5 * k);
     glow(ox + cb.c * T + cb.w * T * .8, wy, T * 1.3, '255,190,90', .5 * k);
     glow(ox + (BUILD.cauldron.c + .5) * T, oy + (BUILD.cauldron.r + .9) * T, T * 1.1, '255,140,60', .45 * k);
+    keepsakeGlows(glow, k);
     if (S.lantern) glow(ox + (witch.x + .5) * T, oy + (witch.y + .5) * T, T * 1.6, '255,210,120', .35 * k);
     for (let i = 0; i < 56; i++) {
       const p = S.plots[i];
@@ -2430,7 +2431,7 @@ function prizeStock() {
   out.push({ id:'starshard', name:'Starshard', col:ITEMS.starshard.col, cost:25, left:1 - (got.starshard || 0), desc:'One each festival' });
   const sd = festSeed();
   if (sd) out.push({ id:'seeds', name:`${CROPS[sd].name} seeds ×5`, col:CROPS[sd].col, cost:10, left:2 - (got.seeds || 0), desc:'The best seeds of the season. Two packets each festival' });
-  for (const k of FEST_DISHES()) if (DISHES[k].fest === S.season) out.push({ id:'r:' + k, name:`Recipe: ${DISHES[k].name}`, col:DISHES[k].col, cost:12, left:dishKnown(k) ? 0 : 1, desc:`Only at the ${FEST[S.season].name}. ${dishNeedTxt(k)}` });
+  for (const k of FEST_DISHES()) if (DISHES[k].fest === S.season) out.push({ id:'r:' + k, name:`Recipe: ${DISHES[k].name}`, col:DISHES[k].col, cost:10, left:dishKnown(k) ? 0 : 1, desc:`Only at the ${FEST[S.season].name}. ${dishNeedTxt(k)}` });
   for (const k of FEST_WEAR_IDS()) if (FEST_WEAR[k].fest === S.season) out.push({ id:'w:' + k, name:FEST_WEAR[k].name, col:FEST_WEAR[k].col, cost:FEST_WEAR[k].cost, left:prizeOwned(k) ? 0 : 1, desc:FEST_WEAR[k].desc });
   for (const k of KEEPSAKE_IDS()) if (KEEPSAKES[k].fest === S.season) out.push({ id:'k:' + k, name:KEEPSAKES[k].name, col:KEEPSAKES[k].col, cost:KEEPSAKES[k].cost, left:prizeOwned(k) ? 0 : 1, desc:KEEPSAKES[k].desc });
   return out;
@@ -2686,6 +2687,11 @@ function fgSky(g, w, h, s) {
   if (s === 1 || s === 3) for (let i = 0; i < 40; i++) circ(g, hash(i, 3, s) * w, hash(i, 4, s) * h * .55, hash(i, 5, s) * 1.4 + .4, 'rgba(255,250,220,.7)');
 }
 function fgText(g, t, x, y, size, col, align) { g.fillStyle = col || '#f4ead9'; g.textAlign = align || 'center'; g.textBaseline = 'middle'; g.font = `700 ${size}px "Atkinson Hyperlegible", system-ui, sans-serif`; g.fillText(t, x, y); }
+function fgWrap(g, t, x, y, maxW, size, col) {
+  g.font = `700 ${size}px "Atkinson Hyperlegible", system-ui, sans-serif`; const lines = []; let cur = '';
+  for (const wd of t.split(' ')) { const nx = cur ? cur + ' ' + wd : wd; if (g.measureText(nx).width > maxW && cur) { lines.push(cur); cur = wd; } else cur = nx; }
+  lines.push(cur); lines.forEach((l, i) => fgText(g, l, x, y + (i - (lines.length - 1) / 2) * size * 1.3, size, col));
+}
 function fgPop(st, x, y, t, col) { (st.pops = st.pops || []).push({ x, y, t, col, life:.8 }); }
 function fgPops(st, dt) { if (!st.pops) return; for (const p of st.pops) { p.life -= dt; p.y -= 40 * dt; } st.pops = st.pops.filter(p => p.life > 0); }
 function fgDrawPops(g, st) { for (const p of st.pops || []) { g.globalAlpha = Math.min(1, p.life * 2); fgText(g, p.t, p.x, p.y, 20, p.col || '#f2d36b'); } g.globalAlpha = 1; }
@@ -2961,14 +2967,14 @@ function lanternGlow(g, x, y) { const gr = g.createRadialGradient(x, y, 1, x, y,
 
 /* ---- festival wardrobe (Part 2): two pieces at each festival's prize stall, worn from the mirror like the treasures ---- */
 Object.assign(FEST_WEAR, {
-  crown:   { name:'Flower Crown',     fest:0, cost:30, col:'#ef9aac', desc:'Daisies and apple blossom, for your hat brim.' },
-  shawl:   { name:'Petal Shawl',      fest:0, cost:30, col:'#f7c6d6', desc:'Soft pink, over your shoulders.' },
-  earrings:{ name:'Lantern Earrings', fest:1, cost:30, col:'#f2d36b', desc:'Two tiny paper lanterns that catch the light.' },
-  sash:    { name:'Firefly Sash',     fest:1, cost:30, col:'#7aa04a', desc:'Green silk, dotted with glowing thread.' },
-  rosette: { name:'Prize Rosette',    fest:2, cost:30, col:'#3a6ab0', desc:'A blue ribbon from the Harvest Fair.' },
-  scarf:   { name:'Autumn Scarf',     fest:2, cost:30, col:'#c8502a', desc:'Russet wool, knitted by Isolde.' },
-  snowpin: { name:'Snowflake Pin',    fest:3, cost:30, col:'#e8f6ff', desc:'Silver frost for your hat band.' },
-  cape:    { name:'Snow Cape',        fest:3, cost:30, col:'#f4f6fa', desc:'A short white capelet, warm as toast.' }
+  crown:   { name:'Flower Crown',     fest:0, cost:25, col:'#ef9aac', desc:'Daisies and apple blossom, for your hat brim.' },
+  shawl:   { name:'Petal Shawl',      fest:0, cost:25, col:'#f7c6d6', desc:'Soft pink, over your shoulders.' },
+  earrings:{ name:'Lantern Earrings', fest:1, cost:25, col:'#f2d36b', desc:'Two tiny paper lanterns that catch the light.' },
+  sash:    { name:'Firefly Sash',     fest:1, cost:25, col:'#7aa04a', desc:'Green silk, dotted with glowing thread.' },
+  rosette: { name:'Prize Rosette',    fest:2, cost:25, col:'#3a6ab0', desc:'A blue ribbon from the Harvest Fair.' },
+  scarf:   { name:'Autumn Scarf',     fest:2, cost:25, col:'#c8502a', desc:'Russet wool, knitted by Isolde.' },
+  snowpin: { name:'Snowflake Pin',    fest:3, cost:25, col:'#e8f6ff', desc:'Silver frost for your hat band.' },
+  cape:    { name:'Snow Cape',        fest:3, cost:25, col:'#f4f6fa', desc:'A short white capelet, warm as toast.' }
 });
 const festWearOwned = () => FEST_WEAR_IDS().filter(prizeOwned);
 // SVG for the mirror (witchSVG's 80x100 box)
@@ -3020,6 +3026,175 @@ function festBookRender() {
   const ribbons = Object.values(S.ribbons || {}).reduce((a, r) => a + r.length, 0);
   h += `<p class="sub">Ribbons won: ${ribbons}. Beat a host's best to win one, once a year for each game.</p>`;
   return h + `<button class="btn alt" data-act="fbback" type="button">Back to the almanac</button>`;
+}
+
+
+/* ---- Part 3 games: the Harvest Fair and the Star Feast ---- */
+// Catch Turnip (Harvest Fair, Mara): the goat darts between the stalls. Tap her while she stops to nibble something.
+FGAMES.turnip = { name:'Catch Turnip', fest:2, host:['mara'], unit:'catches', tiers:[16, 22, 32], best:37, step:1, max:60, secs:40, look:['#c9a675', '♣'],
+  hostLine:'"Turnip has escaped. Again. She\'s going stall to stall eating everyone\'s entries. Catch her when she stops to nibble, and I\'ll owe you a pie."',
+  how:'Turnip runs from stall to stall. When she stops to nibble something, tap her. Tapping while she\'s running doesn\'t count. Forty seconds.',
+  beat:'Mara laughs so hard she has to lean on a hay bale. "Nobody\'s ever caught her that often! Not even me. Turnip looks deeply offended."',
+  spots:[.12, .31, .5, .69, .88],
+  init:() => ({ t:0, score:0, at:2, to:2, ph:'eat', pt:1.2, x:.5, face:1, over:false, n:0 }),
+  update(st, dt) {
+    fgPops(st, dt); st.pt -= dt;
+    if (st.ph === 'run') { const k = 1 - Math.max(0, st.pt) / st.dur; st.x = this.spots[st.at] + (this.spots[st.to] - this.spots[st.at]) * k; if (st.pt <= 0) { st.at = st.to; st.x = this.spots[st.at]; st.ph = 'eat'; st.pt = rnd(.55, .85); st.n++; } }
+    else if (st.pt <= 0) this.go(st);
+  },
+  go(st) { let to; do to = (Math.random() * 5) | 0; while (to === st.at); st.to = to; st.face = to > st.at ? 1 : -1; st.ph = 'run'; st.dur = st.pt = .45 + Math.abs(to - st.at) * .12; },
+  tap(st, x, y, w, h) {
+    if (Math.hypot(x - st.x * w, y - h * .64) > 56) return;
+    if (st.ph === 'eat') { st.score++; fgPop(st, st.x * w, h * .52, 'Got her!'); blip(500, 300, .15, 'square', .03); this.go(st); }
+    else fgPop(st, st.x * w, h * .52, 'Too quick!', 'rgba(244,234,217,.7)');
+  },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 2);
+    R(g, 0, h * .7, w, h * .3, '#8a6a3a');
+    this.spots.forEach((x, i) => { const sx = x * w; R(g, sx - 26, h * .44, 52, 6, ['#c94a3a', '#3a8a5a', '#e07a2a', '#3a6ab0', '#c94a6a'][i]); R(g, sx - 22, h * .45, 3, h * .24, '#5a3d26'); R(g, sx + 19, h * .45, 3, h * .24, '#5a3d26'); R(g, sx - 24, h * .58, 48, 10, '#a57a4f'); circ(g, sx - 8, h * .57, 6, ['#f08c2a', '#9fd86a', '#d05a8a', '#f2d36b', '#cdbbff'][i]); circ(g, sx + 8, h * .57, 5, '#f08c2a'); });
+    // Turnip
+    const sc = 1.5, x0 = st.x * w, y0 = h * .66 + (st.ph === 'run' ? -Math.abs(Math.sin(st.t * 18)) * 7 : 0), f = st.face;
+    g.save(); g.translate(x0, y0); g.scale(sc, sc); const x = 0, y = 0;
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x, 12, 24, 5, 0, 0, 7); g.fill();
+    for (const lx of [-12, -5, 7, 13]) R(g, x + lx, y + 6, 3.4, 12, '#6a5a4a');
+    g.fillStyle = '#ece6da'; g.beginPath(); g.ellipse(x, y, 22, 13, 0, 0, 7); g.fill();
+    circ(g, x + f * 22, y - 10, 10, '#ece6da'); R(g, x + f * 18 - 1, y - 24, 3, 8, '#8a7a6a'); R(g, x + f * 24 - 1, y - 24, 3, 8, '#8a7a6a');
+    circ(g, x + f * 25, y - 12, 1.8, '#2a1d36'); R(g, x + f * 28 - (f < 0 ? 4 : 0), y - 4, 4, 5, '#d8d0c4');
+    for (let k = 0; k < 4; k++) circ(g, x + f * (14 + k * 4), y - 3 + (k % 2) * 2, 2.6, ['#ef9aac', '#f2d36b', '#fff', '#cdbbff'][k]);
+    if (st.ph === 'eat') { circ(g, x + f * 34, y - 30, 11, '#f4ead9'); fgText(g, '♪', x + f * 34, y - 30, 13, '#2a1d36'); }
+    g.restore();
+    fgDrawPops(g, st);
+  } };
+
+// Guess the gourd (Harvest Fair, Isolde): pick the heaviest of three. Her hint rules one out; the size is a clue, not a promise.
+const GOURD_KINDS = [{ n:'orange one', col:'#f08c2a' }, { n:'striped one', col:'#5a8a3a', stripe:true }, { n:'pale one', col:'#e8d8a0' }, { n:'warty one', col:'#c8902a', warts:true }, { n:'yellow one', col:'#f2d36b' }];
+const GOURD_HINTS = ["It isn't the {}. I'd bet my best pie on it.", "Not the {}, love. It's lighter than it looks.", "Whatever you do, don't pick the {}.", "The {} is mostly air. Trust me."];
+FGAMES.gourd = { name:'Guess the gourd', fest:2, host:['isolde'], unit:'right', tiers:[4, 5, 6], best:7, step:0, max:9, look:['#f08c2a', '●'],
+  hostLine:'"Three gourds, one prize. Pick the heaviest. I\'ll give you a hint each time, because I like you. Don\'t tell the mayor."',
+  how:'Pick the heaviest of three gourds. Isolde rules one out each time. The bigger one is usually heavier, but not always. Eight rounds.',
+  beat:'Isolde slaps the table. "You\'ve got a grocer\'s eye! Come and do my ordering at the inn."',
+  hud:st => `Round ${Math.min(8, st.r + 1)} of 8 · ${st.score} right`,
+  round(st) {
+    const kinds = [0, 1, 2, 3, 4].sort(() => Math.random() - .5).slice(0, 3), wt = [rnd(6, 14), rnd(6, 14), rnd(6, 14)].map(x => Math.round(x * 10) / 10);
+    for (let i = 1; i < 3; i++) while (wt.slice(0, i).includes(wt[i])) wt[i] = Math.round((wt[i] + .3) * 10) / 10;
+    const H = wt.indexOf(Math.max(...wt)), others = [0, 1, 2].filter(i => i !== H), ruled = others[(Math.random() * 2) | 0], other = others.find(i => i !== ruled);
+    const size = wt.map(x => .7 + (x - 6) / 8 * .5); if (Math.random() < .3) { const s = size[H]; size[H] = size[other]; size[other] = s; } // usually, the heaviest looks it
+    st.g = kinds.map((k, i) => ({ k, w:wt[i], s:size[i] })); st.H = H; st.ruled = ruled; st.pick = -1; st.ph = 'pick'; st.hint = GOURD_HINTS[(Math.random() * GOURD_HINTS.length) | 0].replace('{}', GOURD_KINDS[kinds[ruled]].n);
+  },
+  init() { const st = { t:0, score:0, r:0, ph:'pick', pt:0, over:false }; this.round(st); return st; },
+  update(st, dt) { fgPops(st, dt); if (st.ph === 'show') { st.pt -= dt; if (st.pt <= 0) { st.r++; if (st.r >= 8) st.over = true; else this.round(st); } } },
+  pos(i, w, h) { return { x:(i + .5) * w / 3, y:h * .58 }; },
+  choose(st, i) { if (st.ph !== 'pick' || i === st.ruled) return; st.pick = i; st.ph = 'show'; st.pt = 1.5; if (i === st.H) { st.score++; blip(800, 1200, .12, 'sine', .05); } else blip(300, 200, .12, 'triangle', .03); },
+  tap(st, x, y, w, h) { for (let i = 0; i < 3; i++) { const p = this.pos(i, w, h); if (Math.abs(x - p.x) < w / 6 && Math.abs(y - p.y) < h * .2) { this.choose(st, i); return; } } },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 2);
+    R(g, 0, h * .7, w, h * .3, '#e8e0d0'); R(g, 0, h * .7, w, 6, '#3a8a5a');
+    fgWrap(g, `Isolde: "${st.hint}"`, w / 2, h * .17, w * .86, 17, '#f4ead9');
+    st.g.forEach((q, i) => {
+      const p = this.pos(i, w, h), K = GOURD_KINDS[q.k], r = Math.min(w / 7.2, 60) * q.s, dim = i === st.ruled;
+      g.globalAlpha = dim ? .35 : 1;
+      g.fillStyle = K.col; g.beginPath(); g.ellipse(p.x, p.y + (1 - q.s) * 30, r, r * .82, 0, 0, 7); g.fill();
+      if (K.stripe) { g.strokeStyle = '#3a6a2a'; g.lineWidth = 3; for (const dx of [-.5, 0, .5]) { g.beginPath(); g.ellipse(p.x + dx * r * .6, p.y + (1 - q.s) * 30, r * .2, r * .8, 0, 0, 7); g.stroke(); } }
+      if (K.warts) for (let k = 0; k < 6; k++) circ(g, p.x + Math.cos(k) * r * .55, p.y + (1 - q.s) * 30 + Math.sin(k * 1.7) * r * .45, r * .08, '#a8702a');
+      R(g, p.x - 3, p.y + (1 - q.s) * 30 - r * .82 - 8, 6, 10, '#5a3d26');
+      if (st.ph === 'show') { const ty = h * .77; if (i === st.H) R(g, p.x - 32, ty - 13, 64, 26, '#f2b84b'); fgText(g, `${q.w} lb`, p.x, ty, 17, '#2a1d36'); }
+      g.globalAlpha = 1;
+      if (st.ph === 'show' && i === st.pick) { g.strokeStyle = i === st.H ? '#f2d36b' : '#c94a3a'; g.lineWidth = 4; g.beginPath(); g.arc(p.x, p.y + (1 - q.s) * 30, r + 8, 0, 7); g.stroke(); }
+    });
+    if (st.ph === 'show') fgText(g, st.pick === st.H ? 'The heaviest!' : 'Not quite', w / 2, h * .9, 20, '#2a1d36');
+    else fgText(g, 'Tap the heaviest gourd', w / 2, h * .9, 16, '#5a4a3a');
+    fgDrawPops(g, st);
+  } };
+
+// Star map (Star Feast, Bertram): tap the stars in order to draw each constellation.
+const CONSTELLATIONS = ['the Heron', 'the Ferry', 'the Lantern', 'the Old Cat', 'the Kettle', 'the Bramble', 'the Lighthouse', 'the Sleeping Goat'];
+FGAMES.starmap = { name:'Star map', fest:3, host:['bertram'], unit:'stars', tiers:[40, 56, 70], best:80, step:2, max:120, secs:45, look:['#8f80ff', '★'],
+  hostLine:'"Clear night, every star out. Sailors learn the shapes so they can find their way home. Tap them in order, one, two, three, and the shape draws itself."',
+  how:'Each star in a shape has a small number. Tap them in order, from 1, to draw the constellation. A finished shape is worth 3 extra. Forty-five seconds.',
+  beat:'Bertram looks up from your map to the sky and back. "You\'d have made a fine navigator. Better than Fen. Don\'t tell him."',
+  sky(st, w, h) {
+    const n = 5 + ((Math.random() * 3) | 0), pts = [];
+    for (let tries = 0; pts.length < n + 4 && tries < 400; tries++) { const x = rnd(.1, .9) * w, y = rnd(.24, .86) * h; if (pts.every(p => Math.hypot(p.x - x, p.y - y) > 58)) pts.push({ x, y }); }
+    st.stars = pts.slice(0, n).map((p, i) => ({ ...p, i:i + 1 })); st.decoy = pts.slice(n); st.next = 1; st.name = CONSTELLATIONS[st.made % CONSTELLATIONS.length]; st.wait = 0;
+  },
+  init() { return { t:0, score:0, made:0, stars:[], decoy:[], next:1, wait:0, shake:0, over:false, name:'' }; },
+  update(st, dt, w, h) { fgPops(st, dt); st.shake = Math.max(0, st.shake - dt); if (!st.stars.length) this.sky(st, w, h); if (st.wait > 0) { st.wait -= dt; if (st.wait <= 0) { st.made++; this.sky(st, w, h); } } },
+  tap(st, x, y) {
+    if (st.wait > 0) return;
+    const s = st.stars.find(q => Math.hypot(q.x - x, q.y - y) < 30);
+    if (!s) { if (st.decoy.some(q => Math.hypot(q.x - x, q.y - y) < 30) || st.stars.some(q => Math.hypot(q.x - x, q.y - y) < 40)) st.shake = .25; return; }
+    if (s.i !== st.next) { if (s.i > st.next) st.shake = .25; return; }
+    st.next++; st.score++; blip(700 + s.i * 80, 900 + s.i * 80, .08, 'sine', .04);
+    if (st.next > st.stars.length) { st.score += 3; st.wait = .9; fgPop(st, s.x, s.y - 26, `${st.name[0].toUpperCase() + st.name.slice(1)}! +3`, '#f2d36b'); blip(900, 1600, .25, 'sine', .05); }
+  },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 3);
+    for (const q of st.decoy) circ(g, q.x, q.y, 3, 'rgba(255,250,220,.55)');
+    g.strokeStyle = 'rgba(242,211,107,.8)'; g.lineWidth = 2.5; g.beginPath();
+    st.stars.filter(q => q.i < st.next).forEach((q, k) => k ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y)); g.stroke();
+    const sx = st.shake ? Math.sin(st.t * 80) * 4 : 0;
+    for (const q of st.stars) { const done = q.i < st.next, nx = q.i === st.next; if (nx) { const gr = g.createRadialGradient(q.x, q.y, 1, q.x, q.y, 22); gr.addColorStop(0, 'rgba(255,240,170,.45)'); gr.addColorStop(1, 'rgba(255,240,170,0)'); g.fillStyle = gr; g.fillRect(q.x - 22, q.y - 22, 44, 44); } starShape(g, q.x + (nx ? sx : 0), q.y, done ? 9 : 7, done ? '#f2d36b' : '#fff8e0'); fgText(g, String(q.i), q.x + 14, q.y - 13, 13, done ? '#f2d36b' : 'rgba(255,250,220,.85)'); }
+    fgText(g, st.wait > 0 ? st.name[0].toUpperCase() + st.name.slice(1) : `Find star ${st.next}`, w / 2, h * .94, 16, 'rgba(244,234,217,.85)');
+    fgDrawPops(g, st);
+  } };
+
+// Cookie icing (Star Feast, Wren): watch the dots light up on the cookie, then tap them in the same order.
+FGAMES.cookies = { name:'Cookie icing', fest:3, host:['wren'], unit:'dots', tiers:[14, 20, 25], best:28, step:1, max:33, look:['#f2c04b', '✱'],
+  hostLine:'"Honey cookies for the long table. I do the pattern first, you copy it. If it goes wrong we eat that one. Everyone wins."',
+  how:'Wren ices a pattern on the cookie, one dot at a time. Then tap the dots in the same order. A slip ends that cookie (you eat it). Seven cookies, each a little trickier.',
+  beat:'Wren holds your cookie up to the lantern. "That\'s neater than mine. The bees would approve. That\'s the highest praise I have."',
+  hud:st => `Cookie ${Math.min(7, st.r + 1)} of 7 · ${st.score} dots`,
+  lens:[3, 3, 4, 4, 5, 6, 8],
+  cookie(st) { const L = this.lens[st.r], seq = []; while (seq.length < L) { const d = (Math.random() * 9) | 0; if (d !== seq[seq.length - 1]) seq.push(d); } st.seq = seq; st.k = 0; st.ph = 'show'; st.pt = .7; st.lit = -1; st.mine = []; st.msg = 'Watch Wren…'; },
+  init() { const st = { t:0, score:0, r:0, over:false, pops:[] }; this.cookie(st); return st; },
+  update(st, dt) {
+    fgPops(st, dt); st.pt -= dt;
+    if (st.ph === 'show' && st.pt <= 0) { if (st.lit >= 0) { st.lit = -1; st.k++; st.pt = .16; } else if (st.k < st.seq.length) { st.lit = st.seq[st.k]; st.pt = .5; } else { st.ph = 'copy'; st.k = 0; st.msg = 'Your turn: tap the dots in order'; } }
+    else if (st.ph === 'next' && st.pt <= 0) { st.r++; if (st.r >= this.lens.length) st.over = true; else this.cookie(st); }
+    if (st.flash > 0) st.flash -= dt;
+  },
+  dot(i, w, h) { const R0 = Math.min(w, h * .7) * .36, cx = w / 2, cy = h * .55; return { x:cx + ((i % 3) - 1) * R0 * .62, y:cy + (Math.floor(i / 3) - 1) * R0 * .62, r:Math.max(18, R0 * .17) }; },
+  press(st, i) {
+    if (st.ph !== 'copy') return;
+    st.mine.push(i); st.flashI = i; st.flash = .25;
+    if (i === st.seq[st.k]) { st.k++; st.score++; blip(600 + i * 60, 800 + i * 60, .07, 'sine', .04); if (st.k >= st.seq.length) { st.ph = 'next'; st.pt = .9; st.msg = 'Perfect!'; } }
+    else { st.ph = 'next'; st.pt = 1.1; st.msg = 'A smudge! You eat that one. Delicious.'; blip(300, 200, .12, 'triangle', .03); }
+  },
+  tap(st, x, y, w, h) { for (let i = 0; i < 9; i++) { const d = this.dot(i, w, h); if (Math.hypot(x - d.x, y - d.y) < d.r * 1.5) { this.press(st, i); return; } } },
+  draw(g, st, w, h) {
+    fgSky(g, w, h, 3);
+    const R0 = Math.min(w, h * .7) * .36, cx = w / 2, cy = h * .55;
+    circ(g, cx, cy + 5, R0 + 6, 'rgba(0,0,0,.3)'); circ(g, cx, cy, R0 + 4, '#c8902a'); circ(g, cx, cy, R0 - 4, '#e8b860');
+    for (let i = 0; i < 9; i++) {
+      const d = this.dot(i, w, h), on = (st.ph === 'show' && st.lit === i) || (st.flash > 0 && st.flashI === i), iced = st.ph !== 'show' && st.seq.slice(0, st.k).includes(i);
+      circ(g, d.x, d.y, d.r, on ? '#fff8e0' : iced ? '#f4ead9' : 'rgba(255,255,255,.22)');
+      if (on) { const gr = g.createRadialGradient(d.x, d.y, d.r * .4, d.x, d.y, d.r * 2); gr.addColorStop(0, 'rgba(255,248,224,.6)'); gr.addColorStop(1, 'rgba(255,248,224,0)'); g.fillStyle = gr; g.fillRect(d.x - d.r * 2, d.y - d.r * 2, d.r * 4, d.r * 4); }
+    }
+    fgText(g, st.msg, w / 2, h * .14, 16);
+    fgDrawPops(g, st);
+  } };
+
+/* ---- garden keepsakes (Part 3): one per festival, stood at a fixed spot on the farm once won ---- */
+Object.assign(KEEPSAKES, {
+  maypole:    { name:'Little Maypole',   fest:0, cost:15, col:'#ef9aac', at:[8, 3], desc:'Ribbons for the garden, by the well.' },
+  lanternpost:{ name:'Lantern Post',     fest:1, cost:15, col:'#ffcf6b', at:[0, 10], desc:'A paper lantern on a post by the gate, lit at night.' },
+  scarecrow:  { name:'Prize Scarecrow',  fest:2, cost:15, col:'#c9a675', at:[8, 6], desc:'He won third place once. He likes to mention it.' },
+  starlantern:{ name:'Star Lantern',     fest:3, cost:15, col:'#fff0a8', at:[7, 12], desc:'A tin star by the stall that glows all night.' }
+});
+function drawKeepsakes() {
+  const u = T / 16;
+  for (const k of KEEPSAKE_IDS()) {
+    if (!prizeOwned(k)) continue; const [c, r] = KEEPSAKES[k].at, x = ox + (c + .5) * T, y = oy + (r + .9) * T;
+    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x, y, 4 * u, 1.3 * u, 0, 0, 7); ctx.fill();
+    if (k === 'maypole') { R(ctx, x - .6 * u, y - 15 * u, 1.2 * u, 15 * u, '#c9a675'); circ(ctx, x, y - 15 * u, 1.3 * u, '#f2b84b'); ['#ef9aac', '#8fd0ff', '#f2d36b', '#9fe0b0'].forEach((col, i) => { ctx.strokeStyle = col; ctx.lineWidth = .8 * u; ctx.beginPath(); ctx.moveTo(x, y - 14 * u); ctx.quadraticCurveTo(x + (i - 1.5) * 3 * u, y - 9 * u + Math.sin(clock * 2 + i) * u, x + (i - 1.5) * 4 * u, y - 4 * u); ctx.stroke(); }); }
+    else if (k === 'lanternpost') { R(ctx, x - .6 * u, y - 13 * u, 1.2 * u, 13 * u, '#5a3d26'); R(ctx, x - .6 * u, y - 13 * u, 4 * u, .9 * u, '#5a3d26'); circ(ctx, x + 3.2 * u, y - 10.5 * u, 2 * u, '#ffcf6b'); }
+    else if (k === 'scarecrow') { R(ctx, x - .6 * u, y - 12 * u, 1.2 * u, 12 * u, '#5a3d26'); R(ctx, x - 5 * u, y - 9 * u, 10 * u, 1.2 * u, '#5a3d26'); ctx.fillStyle = '#7a4a8a'; ctx.beginPath(); ctx.moveTo(x - 3.4 * u, y - 9.6 * u); ctx.lineTo(x + 3.4 * u, y - 9.6 * u); ctx.lineTo(x + 2.4 * u, y - 4 * u); ctx.lineTo(x - 2.4 * u, y - 4 * u); ctx.closePath(); ctx.fill(); circ(ctx, x, y - 12.5 * u, 2.4 * u, '#e8d8a0'); R(ctx, x - 3.2 * u, y - 15 * u, 6.4 * u, 1 * u, '#a07a3a'); R(ctx, x - 2 * u, y - 17 * u, 4 * u, 2.4 * u, '#a07a3a'); circ(ctx, x + 2.6 * u, y - 7 * u, .9 * u, '#3a6ab0'); }
+    else if (k === 'starlantern') { R(ctx, x - .5 * u, y - 10 * u, 1 * u, 10 * u, '#6a6a78'); starShape(ctx, x, y - 12 * u, 3.4 * u, '#fff0a8'); }
+  }
+}
+function keepsakeGlows(glow, k) {
+  if (prizeOwned('lanternpost')) { const [c, r] = KEEPSAKES.lanternpost.at; glow(ox + (c + .5) * T + T * .2, oy + (r + .25) * T, T * 1.1, '255,200,110', .5 * k); }
+  if (prizeOwned('starlantern')) { const [c, r] = KEEPSAKES.starlantern.at; glow(ox + (c + .5) * T, oy + (r + .15) * T, T * 1.1, '255,240,170', .5 * k); }
 }
 
 /* ---------- mail ---------- */
@@ -6910,7 +7085,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 22, BUILD_DATE = 'Nov 10'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 23, BUILD_DATE = 'Nov 10'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();
