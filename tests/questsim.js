@@ -58,9 +58,9 @@ ok(Object.keys(S().quests).length === 0, 'no stories on day 2');
 // unlock everything
 S().spells.push('firebolt');
 for (const v of t.VIDS) S().fr[v] = MODE === 'heart' ? 850 : MODE === 'match' ? 650 : 450;
-if (HEART) { S().year = 2; for (const v of t.VIDS) S().scenes[v + 8] = true; }
+if (HEART) { S().year = 3; for (const v of t.VIDS) S().scenes[v + 8] = true; }
 sleep();
-if (MODE === 'heart') { ok(QL.filter(id => S().quests[id]).length === 1, 'one heart story a morning'); untilFound(() => QL.every(id => S().quests[id]), 20); }
+if (MODE === 'heart') { ok(QL.filter(id => S().quests[id]).length === 1, 'one heart story a morning'); untilFound(() => QL.every(id => S().quests[id]), 26); }
 const unlocked = Object.keys(S().quests).filter(id => QL.includes(id));
 ok(unlocked.length === QL.length, 'every story unlocked: ' + unlocked.join(','));
 // 3. walk each story

@@ -714,7 +714,70 @@ const VILLAGERS = {
              6:"Tilly turns up on her own, quiet for once. Pip has a cold and can't come out. She helps you water the garden, and by the end she's humming. She leaves with a jar of mint for Pip's tea.",
              8:"Tilly and Pip make you a sign for the gate: BRAMBLEROOT, WHERE THE BEST WITCH LIVES. The letters are all different sizes and one is backwards. You hang it at once." },
     gifts:{ 3:{ kind:'items', items:{ jam:2 }, text:"Tilly and Pip brought you two jars of jam they \"helped\" make. It's mostly jam." },
-            6:{ kind:'items', items:{ glimmer:3, raven:1 }, text:"Tilly gave you her best Wood finds: three Glimmerberries and a Raven Feather." } } }
+            6:{ kind:'items', items:{ glimmer:3, raven:1 }, text:"Tilly gave you her best Wood finds: three Glimmerberries and a Raven Feather." } } },
+  rosa: { name:'Rosa', role:'Postmistress', col:'#e0607a', arrive:0, arriveY:2, bday:[0, 16], place:'square', romance:false,
+    look:{ skin:'#7a4a2e', hair:'#1e1410', style:'curls', hat:'#2a4a7a', shirt:'#3a5a9a', glasses:true, earrings:true, age:'young' },
+    loves:['cordial', 'star', 'moonfish'], likes:['honey', 'mint', 'melon', 'trout', 'violet', 'minttea'], hates:['wolf', 'mudcat', 'icicle'],
+    story:[
+      [ { item:'violet', n:3, min:2, text:"Rosa, new postmistress! I'm pressing a violet into every letter this spring. It's my little signature. I've run out already." },
+        { item:'mint', n:4, min:5, text:"Mint tea for the sorting room, please. Four bundles. Sorting the valley's post is thirsty work, and Parcel likes the leaves." } ],
+      [ { item:'sunberry', n:4, min:2, text:"Sunberries for the post office window. Everyone who comes in for a stamp gets one. It's very good for business." },
+        { item:'star', n:1, min:5, text:"A Starfruit, please, for a parcel going over the hills. It's a birthday present. I can't say who for. Post office rules." } ],
+      [ { item:'hazel', n:4, min:2, text:"Hazelnuts for Parcel. He's my tortoise. He doesn't eat them, he just likes to sit near them. We all have our ways." },
+        { item:'gourd', n:1, min:5, text:"A Hollowgourd for the counter. I'm going to carve it into a post box. A seasonal one. Don't laugh." } ],
+      [ { item:'holly', n:3, min:2, text:"Holly for the Star Feast parcels. Every one gets a sprig. I've two hundred to wrap and the holly ran out at forty." },
+        { item:'frost', n:2, min:5, text:"Frostmoss, please, to pack the fragile parcels. It's the softest thing in the valley, and it never squashes." } ] ],
+    odd:["Post office supplies, please! I'd fetch them myself, but who'd mind the counter?", "For the sorting room. Everything has its place, and these go on the second shelf."],
+    talk:[ ["Rosa, postmistress. The valley hasn't had a proper post office in thirty years. Now it does. You're welcome!", "This is Parcel. He's a tortoise. He's in charge of second-class post."],
+           ["You get more letters than anyone in the valley. I'm not prying. I just notice. It's my job to notice.", "I never read the letters. I do read the envelopes. Very closely. Professionally."],
+           ["I've started saving you the prettiest stamps. Don't tell the mayor. He collects them.", "When I came here I thought I'd stay a season. I've ordered a second sorting cabinet. That's a commitment, in my line of work."] ],
+    scenes:{ 2:"Rosa shows you round the new post office, which used to be the old toll house. Every pigeonhole is labelled in tiny neat letters. One of them already says BRAMBLEROOT. \"You'll need the biggest,\" she says. \"I can tell.\"",
+             4:"Rosa tells you she used to sort mail in the city, a million letters a day and never one for her. \"Here I know everyone by their handwriting,\" she says. \"Hettie writes like a spider in a hurry. Fen writes like he's angry at the paper.\"",
+             6:"You find Rosa in the sorting room after closing, holding a letter with no address, just \"To someone kind\". \"It comes every year,\" she says. \"Same handwriting. I've never known where to send it.\" She tucks it in your basket. \"I think it's yours now.\"",
+             8:"Rosa gives you a stamp she designed herself: a little witch's hat over a crooked chimney, in green ink. \"It's the valley's very own,\" she says. \"First one off the press. I wanted it to be you on it.\"" },
+    gifts:{ 3:{ kind:'items', items:{ honey:1, cordial:1 }, text:"Rosa sent a parcel tied with string: a jar of honey and a Melon Cordial. \"Delivered by hand,\" says the label." },
+            6:{ kind:'coins', n:400, text:"Rosa found a postal order addressed to your aunt that was never cashed, forty years old. It's yours now: 400 coins." } } },
+  corin: { name:'Corin', role:'Guild surveyor', col:'#c87a3a', arrive:1, arriveY:2, bday:[1, 27], place:'inn', romance:false,
+    look:{ skin:'#f0d0b8', hair:'#c0602a', style:'messy', shirt:'#4a7a5a', freckles:true, age:'young' },
+    loves:['hearth', 'truffle', 'chanpie'], likes:['pepper', 'trout', 'perch', 'hazel', 'glow', 'ward'], hates:['thorn', 'jam', 'raven'],
+    story:[
+      [],
+      [ { item:'sunberry', n:4, min:2, text:"Sunberries! I've been lost in the Wood since breakfast. I mean surveying. Very thorough surveying. Mostly lost." },
+        { item:'pepper', n:2, min:5, text:"Two Sunpeppers for the inn's stew. I've been eating there every night and Isolde says I'm too thin for a man who walks this much." } ],
+      [ { item:'chanter', n:3, min:2, text:"Chanterelles mark the old paths through the Wood. If I pick some, I'll find my way back. That's the theory." },
+        { item:'wolf', n:1, min:5, text:"A sprig of Wolfsbane, please. There's a symbol on the old Guild maps I think means it. I want to check." } ],
+      [ { item:'holly', n:3, min:2, text:"Holly to mark the boundary stones under the snow. Otherwise I'll survey the same field four times. Again." },
+        { item:'icicle', n:2, min:5, text:"Two icicles from the Wood. I'm measuring how fast they melt, for the Guild. They asked. Nobody asked." } ] ],
+    odd:["Survey supplies, please. Or just something for the long walks.", "For the map! Everything's for the map."],
+    talk:[ ["Corin. Guild surveyor. I'm here to map the valley. Which way's the square? I've been looking for an hour.", "The Guild's maps of this valley are sixty years old. Half the bridges are wrong. One of them is a cow."],
+           ["I've mapped the mill, the inn and most of the river. I've got lost going to each of them at least twice.", "Fen showed me a short cut. I've been trying to find it again for three days."],
+           ["I used to think maps were about places. They're really about people. Where they go. Who they visit.", "My map's nearly finished. There's one blank bit. It's your cottage. I keep walking straight past it."] ],
+    scenes:{ 2:"Corin turns up at your gate, very muddy, holding a map upside down. \"Is this the square?\" It's your garden. You give him tea. He draws your cottage on his map, then rubs it out, because he's drawn it in the river.",
+             4:"Corin shows you the Guild's sixty-year-old map of the valley. Your aunt has scribbled all over it in green ink: corrections, rude notes, and a drawing of a frog over the Guild's own office. \"I wasn't supposed to bring this,\" he says. \"I couldn't leave it in a drawer.\"",
+             6:"You find Corin sitting on a stile with his head in his hands. \"The Guild want me back in the city by spring. Map done or not.\" He looks at the valley spread out below. \"I've never wanted to finish a job less.\"",
+             8:"Corin gives you a little brass compass. The needle doesn't point north. It points at your cottage, wherever you stand. \"I asked Theo how,\" he says. \"He said it's easier to make it point at a place you love than at a place that's just there.\"" },
+    gifts:{ 3:{ kind:'items', items:{ truffle:1, hazel:3 }, text:"Corin left a truffle and three hazelnuts on your step, with a note: \"Found while lost. Thought of you.\"" },
+            6:{ kind:'seeds', n:4, rare:true, text:"Corin found a patch of something rare on the far side of the river, where nobody goes. He brought you some, carefully wrapped:" } } },
+  marigold: { name:'Marigold', role:'Retired Guild witch', col:'#e0a030', arrive:2, arriveY:2, bday:[3, 2], place:'lanes', romance:false,
+    look:{ skin:'#e8c8b0', hair:'#d8d8e0', style:'bun', shirt:'#6a4a8a', glasses:true, earrings:true, age:'old' },
+    loves:['starlight', 'dream', 'truffle'], likes:['moon', 'calming', 'amber', 'holly', 'raven', 'wolf'], hates:['jam', 'minnow', 'gourd'],
+    story:[
+      [],
+      [],
+      [ { item:'raven', n:1, min:2, text:"A Raven Feather. I write with nothing else. The Guild gave me a pen when I retired. I gave it to a goat." },
+        { item:'chanter', n:3, min:5, text:"Chanterelles for my tea. Three. It's an old Guild recipe. Bramble hated it. That's how I know it's good." } ],
+      [ { item:'holly', n:3, min:2, text:"Holly for my door. Not for decoration. Holly keeps away unwanted visitors. The mayor, mostly." },
+        { item:'truffle', n:1, min:5, text:"A Snow Truffle, please. One. I'm old enough to deserve it, and rich enough to pay." } ] ],
+    odd:["I'd fetch these myself, but my knees and I have reached an agreement.", "For an experiment. Don't ask. You wouldn't understand. Yet."],
+    talk:[ ["Marigold, retired from the Guild. Your aunt and I were... colleagues. That's the polite word.", "This cottage was Bramble's grandmother's. Did you know? No. Nobody tells the young anything."],
+           ["Your aunt was the most infuriating witch I ever met. Also the best. Don't repeat the second part.", "Hettie and I have agreed to be civil. She's winning, which is very annoying."],
+           ["You remind me of her, you know. The good parts. And some of the infuriating ones, which I've decided I don't mind.", "I came back to this valley to make my peace. I didn't expect to make friends. Disgraceful."] ],
+    scenes:{ 2:"Marigold inspects your garden like a Guild examiner, tutting at every bed. At the end she says, \"Adequate.\" Then, quietly, \"Bramble's mint never grew that well.\" You think it might be the nicest thing she's ever said to anyone.",
+             4:"Marigold tells you she and your aunt joined the Guild the same spring, and fought over everything for forty years. \"She thought rules were for breaking. I thought rules were for keeping.\" A pause. \"We were both wrong, as it turned out.\"",
+             6:"You find Marigold at the end of Hettie's lane at dusk, looking up at your cottage chimney. \"I never visited,\" she says. \"Not once, in forty years. Too proud.\" She doesn't look away. \"Don't you ever be too proud. It costs more than you'd think.\"",
+             8:"Marigold gives you her Guild ring, silver, with a moonstone worn smooth. \"Forty years of keeping rules,\" she says. \"I'd like it to go to someone who knows when to break them. Bramble would want that, and I'd hate to agree with her.\"" },
+    gifts:{ 3:{ kind:'items', items:{ starlight:1 }, text:"Marigold sent a Starlight Tonic of her own brewing, with a label: \"Better than your aunt's. Check.\"" },
+            6:{ kind:'items', items:{ truffle:2, dream:1 }, text:"Marigold left two Snow Truffles and a Dreamwater on your step. \"For being tolerable,\" says the card." } } }
 };
 
 const PLACES = [['square', 'The square'], ['inn', 'The Kettle & Crow'], ['row', 'Smithy and apothecary'], ['mill', 'The mill and the school'], ['river', 'Down by the river'], ['lanes', 'Up the lanes']];
@@ -836,7 +899,10 @@ const WED_LINES = {
   hettie:"Granny Hettie pats your cheek. \"Bramble always said the cottage wanted filling. She'd be glad, dear.\"",
   zara:"Zara has shut her cart for the day, which she says has never happened before. \"Worth every coin, darling.\"",
   bertram:"Bertram and Fen both stand up to make the toast, and make it together, slightly out of time.",
-  tilly:"Tilly and Pip throw handfuls of petals into the air and dance in them. \"You look like a story,\" Tilly announces."
+  tilly:"Tilly and Pip throw handfuls of petals into the air and dance in them. \"You look like a story,\" Tilly announces.",
+  rosa:"Rosa has stamped every place card with her little green witch's hat. \"First class,\" she whispers. \"Every one of you.\"",
+  corin:"Corin got lost on the way and arrived from completely the wrong direction, out of breath and beaming. \"Wouldn't have missed it. Nearly did.\"",
+  marigold:"Marigold sits very straight in the front row. \"Bramble would have cried,\" she says. A pause. \"So shall I. Don't look.\""
 };
 const WED_PLACE = ['under the apple blossom in the square', 'on the riverbank at golden hour, under Fen\'s ferry lights', 'in the square, among the falling leaves', 'in the square under the star lanterns, with snow falling softly'];
 
@@ -1724,7 +1790,7 @@ function postRequests(lines) {
   let posts = S.day === 1 && S.year === 1 && S.season === 0 ? 1 : 2;
   const story = VIDS.filter(v => {
     const V = VILLAGERS[v];
-    if (S.year > 1 || V.arrive > S.season) return false;
+    if (S.year !== (V.arriveY || 1) || V.arrive > S.season) return false;
     const st = V.story[S.season] || [];
     return S.steps[v] < st.length && !S.reqs.some(q => q.v === v) && st[S.steps[v]].min <= S.day;
   }).sort((a, b) => VILLAGERS[a].story[S.season][S.steps[a]].min - VILLAGERS[b].story[S.season][S.steps[b]].min);
@@ -1739,7 +1805,7 @@ function postRequests(lines) {
   if (S.day < 2 && S.year === 1 && S.season === 0) return;
   const pool = oddPool();
   while (open > 0 && posts > 0 && pool.length && Math.random() < .55 && S.day <= DAYS - 2) {
-    const free = VIDS.filter(v => VILLAGERS[v].arrive <= S.season || S.year > 1).filter(v => !S.reqs.some(q => q.v === v));
+    const free = VIDS.filter(arrivedBy).filter(v => !S.reqs.some(q => q.v === v));
     if (!free.length) break;
     const v = free[(Math.random() * free.length) | 0];
     const choices = pool.filter(id => !S.reqs.some(q => q.item === id) && feasible(id, CROPS[id] ? 6 : 2));
@@ -1813,7 +1879,9 @@ const canRomance = v => VILLAGERS[v].romance !== false && !(S && S.hew && (S.hew
 const isPartner = v => !!v && (v === S.spouse || v === S.dating);
 const heartMax = v => isPartner(v) || isBff(v) ? 10 : 8;
 const heartsOf = v => Math.min(heartMax(v), Math.floor((S.fr[v] || 0) / 100));
-const arrived = v => S.year > 1 || VILLAGERS[v].arrive <= S.season || v === S.spouse;
+// arriveY: the year someone moves in (default 1; the year-2 newcomers say 2). arrivedBy ignores marriage.
+const arrivedBy = v => { const V = VILLAGERS[v], y = V.arriveY || 1; return S.year > y || (S.year === y && V.arrive <= S.season); };
+const arrived = v => arrivedBy(v) || v === S.spouse;
 // Zara's cart comes every seventh day (days 5, 12, 19, 26) and for festivals. Once married, she lives here.
 const marketDay = () => S.day % 7 === 5;
 const inValley = v => v === S.spouse || (arrived(v) && (!VILLAGERS[v].market || marketDay() || isFestDay()));
@@ -1957,7 +2025,16 @@ const BFF = {
     s10:"Bertram opens the lighthouse logbook to a fresh page. \"Every keeper names a second keeper,\" he says. \"In case.\" He's already written your name. \"You'll not need it for a while. But you'll know you're trusted.\"" },
   tilly: { yes:"Tilly stares at the bracelet, then shrieks. \"Pip! PIP! I got a real one!\" She shows it to everyone in the square, including a pigeon. \"It's from a WITCH,\" she tells the pigeon.",
     s9:"Tilly asks you to come to the school play. She's a tree. She has one line, which is \"Rustle.\" She says it with enormous feeling, looking straight at you the whole time.",
-    s10:"Tilly gives you a drawing she worked on for a whole week: you, the cat, Pip and her, holding hands under a very big moon. \"That's us,\" she says. \"Forever. It's a rule. I made it.\"" }
+    s10:"Tilly gives you a drawing she worked on for a whole week: you, the cat, Pip and her, holding hands under a very big moon. \"That's us,\" she says. \"Forever. It's a rule. I made it.\"" },
+  rosa: { yes:"Rosa turns the bracelet round her wrist and goes very quiet, which for Rosa is a first. \"I've delivered a thousand of these,\" she says. \"Packed in envelopes, from one friend to another. I never got one.\" She ties it on. \"I'm going to stamp it. First class.\"",
+    s9:"Rosa shuts the post office at noon, for the first time ever, and puts up a sign: GONE FOR A PICNIC. She drags you up the hill with a basket and Parcel, who takes an hour to reach the top. \"I've never had a day off with anyone,\" she says. \"It's nice. Parcel thinks so too.\"",
+    s10:"Rosa hands you a brass key on a green ribbon. It opens a pigeonhole she's had made, right beside her own, labelled in her neatest hand: FOR MY BEST FRIEND. \"Anything you leave in it, I'll find,\" she says. \"Anything I leave, you will. That's how best friends do post.\"" },
+  corin: { yes:"Corin holds the bracelet like it might be a map. \"Is this... for me?\" He ties it on, gets it in a knot, and lets you do it. \"I'll never get lost now,\" he says. \"I'll just follow this back to you.\"",
+    s9:"Corin takes you to the top of the hill at dawn and unrolls the whole map. \"Look. Everyone's on it.\" Little marks for every friend, everywhere they like to sit. There's one mark bigger than the rest, by your cottage. \"That's you,\" he says. \"You're where the map starts.\"",
+    s10:"Corin has drawn you a map of your own: not of the valley, but of every walk you've ever taken together, every wrong turn and every short cut that wasn't. At the bottom he's written: SURVEYED BY TWO, AND NEVER ONCE LOST, BECAUSE WE WERE TOGETHER." },
+  marigold: { yes:"Marigold looks at the bracelet for a long while. \"Bramble made one of these for me, the spring we joined the Guild. I threw it in the river. I was furious about something.\" She holds out her wrist. \"Tie it tight. I'm not making that mistake twice.\"",
+    s9:"Marigold teaches you a spell that isn't in any book: a little warmth for cold hands, the first she and Bramble ever learned together. \"We used to practise on each other in the dormitory,\" she says. \"Bramble set my sleeve alight. Twice.\" She laughs, properly, for the first time you've heard.",
+    s10:"Marigold gives you a page from her own spellbook, written sixty years ago in two hands: hers, very neat, and Bramble's, scrawled all over the margins. \"Our first spell,\" she says. \"We wrote it together. I'd like it to stay in this cottage, with someone who'd have liked us both.\"" }
 };
 const BFF_HELP = {
   mara:() => { S.energy += 15; return 'Mara left a warm loaf on your step before dawn: +15 energy today.'; },
@@ -1975,7 +2052,10 @@ const BFF_HELP = {
   aldous:() => { S.coins += 100; return 'Mayor Aldous sent a small grant from the town fund "for the upkeep of the valley\'s best view": 100 coins.'; },
   zara:() => { const sd = seedGift(2, false)(); S.seeds[sd.id] = (S.seeds[sd.id] || 0) + sd.n; return `Zara tucked two ${CROPS[sd.id].name} seeds into your mailbox, wrapped in a page from a foreign newspaper.`; },
   bertram:() => { S.energy += 10; return `Bertram left the weather by your door, as he does now: "${S.nextRain ? 'Rain tomorrow. Leave the can.' : 'Fair tomorrow. Fill the can.'}" +10 energy, somehow.`; },
-  tilly:() => { giveItems({ glimmer:1 }); return 'Tilly left a daisy chain on the gate, and a Glimmerberry she says she found "in a secret place".'; }
+  tilly:() => { giveItems({ glimmer:1 }); return 'Tilly left a daisy chain on the gate, and a Glimmerberry she says she found "in a secret place".'; },
+  rosa:() => { S.energy += 10; return 'Rosa brought your post up the lane early, with a warm bun and a cheerful word: +10 energy today.'; },
+  corin:() => { const pool = Object.keys(FORAGE).filter(id => FORAGE[id].seasons.includes(S.season) && !FORAGE[id].rare && !FORAGE[id].grove), id = pool[(Math.random() * pool.length) | 0] || 'wyrd'; giveItems({ [id]:2 }); return `Corin left two ${itemName(id)} on the gate, with a note: "Found while lost. Again."`; },
+  marigold:() => { S.mana += 10; return 'Marigold left a cup of her strong black tea on the step, still hot. You feel sharper all morning: +10 mana today.'; }
 };
 function bffMorning(lines) {
   if (Math.random() >= BFF_HELP_P) return;
@@ -2456,6 +2536,12 @@ const FEST = [
     ask:'You drew a name for the gift swap. Pick something from your basket for them.',
     lines:{ mara:"Cider's my recipe. Well, Bramble's. I've made it every winter since she showed me.", fen:'Long night is the best night. More stars.', pip:"I know who has me for the gift swap. I'm not supposed to know. I definitely know.", odile:'The children sang for an hour. My ears are still ringing, happily.', wren:'The bees are asleep, so tonight I get to be a person. It is nice.', rowan:"Made a little iron star for everyone's door. Don't make a fuss. ...You can make a small fuss.", silas:"I'm playing carols. Isolde says no sad ones. All my carols are sad ones.", theo:"I brewed the cider this year. It's very scientific. It's also very strong.", isolde:"Longest night, fullest inn. My favourite night of the year, love.", juno:"Ice fishing at dawn tomorrow. Bertram's challenged me again. He'll lose. Again.", hettie:"Seventy Star Feasts I've seen. This one's got you in it. That's new.", aldous:"A toast! To the village, to the Guild, to the witch. A short toast. Isolde's watching the clock.", zara:"I timed my route to be here tonight. Don't tell anyone I'm sentimental.", bertram:"Clear sky, every star out. Good night to be a lighthouse keeper with no lighthouse.", tilly:"I got Pip for the gift swap! I'm giving Pip a frog. A pretend one. Mostly pretend." } }
 ];
+// newcomers' festival lines (PLAN-hearts.md Part 4)
+Object.assign(FEST[0].lines, { rosa:"I've stamped a flower on every invitation. Two hundred flowers. My thumb is green.", corin:"I've mapped the whole square for the dance. Then they moved all the tables.", marigold:"I danced at this festival sixty years ago. Bramble trod on my foot. I trod back." });
+Object.assign(FEST[1].lines, { rosa:"Lanterns on the river! It's like a hundred little letters floating home.", corin:"I tried to map where the lanterns go. They go everywhere. It's beautiful.", marigold:"Bramble and I set our lanterns off the same jetty, the year we were twenty. Hers went further. It always did." });
+Object.assign(FEST[2].lines, { rosa:"I entered my marrow. It's very small. It's the thought that counts, I've told the judges.", corin:"I've eaten a pie from every stall. For the map. It's important to be thorough.", marigold:"I judged this fair for thirty years. They've asked me not to any more. I've no idea why." });
+Object.assign(FEST[3].lines, { rosa:"Star Feast post is the best post. Every card says I thought of you.", corin:"You can see every star from up here. I'm finally not lost. I'm just looking up.", marigold:"Hettie has made me wear a paper crown. It's undignified. I shan't take it off." });
+Object.assign(FEST[0].dance, { rosa:"Rosa dances like she sorts: quick, neat, and never once in the wrong place. \"Second-class post never moved like this,\" she laughs.", corin:"Corin turns left when the whole square turns right, every single time. By the end, half the dancers are following him.", marigold:"Marigold dances one precise, old-fashioned turn, then a second, then a third. \"Sixty years,\" she says, faintly pink. \"I'd forgotten.\"" });
 const festKey = () => `y${S.year}s${S.season}`;
 const isFestDay = () => S.day === FEST_DAY;
 function festState() { const k = festKey(); const f = S.fest[k] || (S.fest[k] = { m:{}, main:null, txt:'', home:false }); f.plays = f.plays || {}; f.best = f.best || {}; f.got = f.got || {}; return f; }
@@ -3366,7 +3452,10 @@ const BDAY_NOTES = {
   aldous:`Official notice: the mayor's birthday falls tomorrow.\n\nGifts are not expected. Amber Syrup is, however, appreciated.\n\nAldous, Mayor`,
   zara:`My birthday is tomorrow, and by luck it's a market day, so I'll be in the valley.\n\nI've always wanted a Starshard I didn't have to sell.\n\nZara`,
   bertram:`Birthday tomorrow. Eighty-one. Or eighty-two. Fen will know, he was there.\n\nA Moonfish, if you happen to have one.\n\nBertram`,
-  tilly:`It's my birthday tomorrow!!! I'm going to be a whole year older.\n\nI like jam and honey and glimmerberries. Pip told me to tell you.\n\nTilly`
+  tilly:`It's my birthday tomorrow!!! I'm going to be a whole year older.\n\nI like jam and honey and glimmerberries. Pip told me to tell you.\n\nTilly`,
+  rosa:`It's my birthday tomorrow! I've posted myself a card. I do every year.\n\nIf you'd like to send one too, I'm fond of Melon Cordial and Starfruit. Parcel is fond of nothing.\n\nRosa`,
+  corin:`My birthday's tomorrow, I think. I lose track. Isolde says it's tomorrow, and she's never wrong.\n\nI'd never say no to a Hearth Tonic or a chanterelle pie.\n\nCorin`,
+  marigold:`I am told it is my birthday tomorrow. I don't celebrate. Hettie insists.\n\nIf you must bring something, a Starlight Tonic would be tolerated.\n\nMarigold`
 };
 const THANKS = {
   mara:`Turnip and I wanted to say thank you properly. A little something for your trouble.\n\nMara`,
@@ -3383,7 +3472,10 @@ const THANKS = {
   aldous:`On behalf of the town hall, and myself, thank you. A small civic reward is enclosed.\n\nAldous, Mayor`,
   zara:`A pleasure doing business, darling. Your cut, as promised.\n\nZara`,
   bertram:`Obliged to you. Coin's enclosed. Spend it on something daft.\n\nBertram`,
-  tilly:`THANK YOU!!! Pip and I put our pocket money together. It's for you.\n\nTilly`
+  tilly:`THANK YOU!!! Pip and I put our pocket money together. It's for you.\n\nTilly`,
+  rosa:`Thank you ever so much! Delivered by hand, with a little something from the stamp tin.\n\nRosa`,
+  corin:`Thank you! I'd have been lost without you. Well. More lost. Enclosed, my survey allowance, which I never spend.\n\nCorin`,
+  marigold:`You were quick and you were thorough. Bramble was neither. Enclosed, for your trouble.\n\nMarigold`
 };
 const HEART_LETTERS = {
   mara:{ title:'A little warmth', text:`You've done so much for me and Turnip. Bramble taught me one spell, the only one I ever learned: a little warmth for tired bones. I've written it out for you. I never could make it work myself.\n\nMara`, gift:() => ({ kind:'spell', id:'hearth' }) },
@@ -3400,7 +3492,10 @@ const HEART_LETTERS = {
   aldous:{ title:"A matter of record", text:`It is my pleasure to inform you that the town hall has formally recorded your service to the valley.\n\nAlso enclosed: coins. The town hall had a surplus. The surplus was me.\n\nAldous, Mayor`, gift:() => ({ kind:'coins', n:300 }) },
   zara:{ title:"From the road", text:`Three valleys over and I'm still thinking about your garden. Sending seeds from somewhere you've never been.\n\nZara`, gift:seedGift(6, true) },
   bertram:{ title:"From the lighthouse", text:`Found a jar of my old sea salt in the lighthouse cupboard and sold it to Zara for a fortune. Half's yours. Fen says it's because I like you. Fen's right, for once.\n\nBertram`, gift:() => ({ kind:'coins', n:250 }) },
-  tilly:{ title:"A drawing", text:`I drew you and the cat and Pip and me. You're the one with the hat. Pip says the cat looks like a potato. It does not.\n\nAlso I found these in the Wood!\n\nTilly`, gift:() => ({ kind:'items', items:{ hazel:3, violet:2 } }) }
+  tilly:{ title:"A drawing", text:`I drew you and the cat and Pip and me. You're the one with the hat. Pip says the cat looks like a potato. It does not.\n\nAlso I found these in the Wood!\n\nTilly`, gift:() => ({ kind:'items', items:{ hazel:3, violet:2 } }) },
+  rosa:{ title:"Lost in the post", text:`I found a parcel at the back of the old toll house, addressed to "the witch at Brambleroot". It's been waiting longer than I've been alive. It's yours now. I didn't peek. I wanted to.\n\nRosa`, gift:() => ({ kind:'items', items:{ cordial:1, honey:2 } }) },
+  corin:{ title:"A short cut", text:`I found a short cut through the Wood! I've written it out for you, because I'll never find it again. Also, there was a truffle on it. Two, actually. One's yours.\n\nCorin`, gift:() => ({ kind:'items', items:{ truffle:1 } }) },
+  marigold:{ title:"From one witch to another", text:`I brewed two Mana Draughts this morning out of habit. I have no use for them. I'm told you go down the Hollow. Don't be silly down there.\n\nMarigold`, gift:() => ({ kind:'items', items:{ manadraught:2 } }) }
 };
 function sendLetter(id, from, title, text, gift) {
   if (S.sent[id]) return null; S.sent[id] = true;
@@ -3415,6 +3510,12 @@ const DEEP_LETTERS = {
   75:`Seventy-five floors! I went straight to the town archive, and it turns out those halls you found are the Guild's own, lost two hundred years ago.\n\nThe Guild has written back at last. They would like their halls back. I have told them they are welcome to go down and fetch them.\n\nEnclosed, from the town purse, a small reward for services to history.\n\nMayor Aldous`,
   100:`Fen came hobbling up the lane at dawn to tell me the hedges are flowering. Every bramble in the valley, all at once, out of season. I knew then what you'd done.\n\nShe used to go down every spring when we were young, and come back with petals in her hair, and say she'd been visiting a friend. I never asked who. I should have.\n\nThank you for visiting her friend.\n\nHettie`
 };
+// Newcomers (PLAN-hearts.md Part 4) send a hello the morning they arrive.
+const NEWCOMER_HI = {
+  rosa:['The valley has a post office!', `Hello, neighbour!\n\nI'm Rosa, your new postmistress. The valley's had no proper post office for thirty years, which is a scandal, so the Guild sent me. I've moved into the old toll house on the square, with my tortoise, Parcel.\n\nThis is the very first letter I've delivered here. I chose you on purpose. Do come and say hello.\n\nRosa`],
+  corin:['Hello from the surveyor', `Dear Brambleroot,\n\nI'm Corin, a surveyor from the Guild. I'm here to make a new map of the valley, because the old one has a cow drawn where a bridge should be.\n\nI'm staying at the Kettle & Crow. If you see someone looking at a map with great confusion, that's me. Please point me at the square.\n\nCorin`],
+  marigold:["An old acquaintance of your aunt's", `To Bramble's niece,\n\nMy name is Marigold. I was a Guild witch for fifty years, and your aunt's oldest rival for most of them. I have retired to my family's cottage in the lanes, three doors from Hettie, which was a mistake.\n\nYou may call on me. I shall be civil. Probably.\n\nMarigold`]
+};
 function mailMorning(lines) {
   const fresh = [], send = (...a) => { const m = sendLetter(...a); if (m) fresh.push(m); };
   const past = (s, d) => S.year > 1 || S.season > s || (S.season === s && S.day >= d);
@@ -3422,6 +3523,7 @@ function mailMorning(lines) {
   if (past(0, 4)) send('wood', 'fen', 'The Old Wood', LETTERS.wood);
   if (past(0, 3) && arrived('isolde')) send('kitchen', 'isolde', "Your aunt's stove", LETTERS.kitchen);
   for (const [v, L] of Object.entries(RECIPE_LETTERS)) if (S.sent.kitchen && arrived(v) && heartsOf(v) >= 3) send(`rc${v}`, v, L.title, L.text, { kind:'recipe', id:L.id });
+  for (const [v, W] of Object.entries(NEWCOMER_HI)) if (arrived(v)) send(`hi${v}`, v, W[0], W[1]);
   if (S.day >= FEST_DAY - 2 && S.day < FEST_DAY) send(`fest${festKey()}`, 'odile', `You're invited: ${FEST[S.season].name}`, FEST[S.season].invite);
   for (const v of VIDS) if (arrived(v)) { const b = VILLAGERS[v].bday; if (b[0] === S.season && b[1] === S.day + 1) send(`bd${v}y${S.year}`, v, 'Tomorrow is my birthday', BDAY_NOTES[v]); }
   for (const [v, L] of Object.entries(HEART_LETTERS)) if (arrived(v) && heartsOf(v) >= 4 && !S.sent[`h4${v}`]) send(`h4${v}`, v, L.title, L.text, L.gift());
@@ -3450,8 +3552,8 @@ const fromPic = (from, size) => from === 'guild' ? seal(size) : from === 'hew' ?
 const fromName = from => from === 'guild' ? "The Witches' Guild" : from === 'hew' ? 'Hew the Almighty' : VILLAGERS[from].name;
 
 /* ---------- garden visits ---------- */
-const VISIT_SPOT = { mara:[7,2], fen:[2,11], pip:[5,2], odile:[5,11], wren:[5,1], rowan:[8, 4], silas:[7, 1], theo:[8, 8], isolde:[4, 12], juno:[3, 12], hettie:[0, 4], aldous:[0, 9], zara:[6, 12], bertram:[8, 10], tilly:[2, 2] };
-const VISIT_STAND = { mara:[6,2], fen:[3,11], pip:[4,2], odile:[4,11], wren:[5,2], rowan:[8, 5], silas:[7, 2], theo:[8, 7], isolde:[4, 11], juno:[3, 11], hettie:[0, 5], aldous:[0, 8], zara:[6, 11], bertram:[8, 9], tilly:[1, 2] };
+const VISIT_SPOT = { mara:[7,2], fen:[2,11], pip:[5,2], odile:[5,11], wren:[5,1], rowan:[8, 4], silas:[7, 1], theo:[8, 8], isolde:[4, 12], juno:[3, 12], hettie:[0, 4], aldous:[0, 9], zara:[6, 12], bertram:[8, 10], tilly:[2, 2], rosa:[0, 6], corin:[8, 12], marigold:[1, 12] };
+const VISIT_STAND = { mara:[6,2], fen:[3,11], pip:[4,2], odile:[4,11], wren:[5,2], rowan:[8, 5], silas:[7, 2], theo:[8, 7], isolde:[4, 11], juno:[3, 11], hettie:[0, 5], aldous:[0, 8], zara:[6, 11], bertram:[8, 9], tilly:[1, 2], rosa:[0, 7], corin:[8, 11], marigold:[1, 11] };
 const VISIT_LINES = {
   mara:'Just out walking Turnip. She dragged me here. I think she likes your mint.',
   fen:"Came up from the river to stretch my legs. Your pond's got good fish in it, you know.",
@@ -3467,7 +3569,10 @@ const VISIT_LINES = {
   aldous:"Official mayoral inspection. Everything is in order. Wonderful. Is that mint? May I?",
   zara:"Market day rounds, darling. Anything to sell? Anything to buy? Anything to gossip about?",
   bertram:"Walking off breakfast. Fen says I need the exercise. Fen should talk.",
-  tilly:"Is Pip here? No? Then I came to see the cat. And you! Mostly the cat."
+  tilly:"Is Pip here? No? Then I came to see the cat. And you! Mostly the cat.",
+  rosa:"I'm on my rounds. Your gate's my favourite stop. Don't tell the mayor.",
+  corin:"Is this the... oh, it's your garden. Good. I meant to come here. Mostly.",
+  marigold:"I was passing. I never pass anywhere. Make of that what you will."
 };
 /* ---------- more dialog (Nov 9, 2026) ----------
    DIALOG[v]: t = extra chat per heart tier (added onto VILLAGERS[v].talk), s = per-season chat,
@@ -3923,6 +4028,150 @@ tilly:{
      ["I made a snow angel. Then Pip made one on top of mine. Now it's a snow monster.","My hands are frozen! Can you do a warming spell? Please?"]],
   rain:["Puddle jumping! Want to come? You can borrow Pip's boots. Pip doesn't know.","Rain makes the snails come out. I've got six in my pocket."],
   visit:["Pip's coming too. Pip's just slow. I ran.","Can I pick one flower? Just one? A small one?","I came to say hi to the cat. And to you. Hi!","Ma said I can stay for ten minutes. I'm counting. One... two..."]
+},
+rosa:{
+  t:[[
+    "Stamps are a penny, parcels are two, and gossip is free but I don't give it out.",
+    "Parcel the tortoise is asleep on the scales again. Please don't post anything heavy for a bit.",
+    "I've sorted every letter in the valley twice. Not because I needed to. Because it's lovely.",
+    "The old toll house had a family of mice. They've been rehoused. Very politely.",
+    "If you see the mayor, tell him his stamp album is ready. He'll know. He'll be thrilled.",
+    "I came for the job. I'm told people stay for the river. I'll let you know.",
+    "The valley's handwriting is the worst I've ever seen. I adore it.",
+    "Every letter is someone thinking of someone else. That's why I love the job.",
+    "I'm not nosy. I'm observant. There's a whole stamp's width of difference.",
+    "Pip posted a letter to the moon this morning. I've put it in a special pigeonhole.",
+    "Your aunt had a pigeonhole at the old office, Hettie says. Always full.",
+    "Do come in if you're passing. The kettle's always on. The tortoise isn't."
+  ],[
+    "Fen writes to his sister once a year. Same day. Two lines. I think it's the sweetest thing in the valley.",
+    "I've learned everyone's knock now. Yours is the cheerful one.",
+    "Someone's been sending Odile anonymous pressed flowers. I know who. I'll never tell.",
+    "I put your letters on the top of the pile now. Favouritism is allowed if nobody finds out.",
+    "Parcel has started following you round the office. He doesn't do that. He doesn't do anything.",
+    "I wrote to my mother that I'd made a friend. She asked if it was the tortoise.",
+    "The mayor's stamps are now sorted by colour, then by year, then by how much he likes them. His idea.",
+    "Zara's post comes from forty different towns. I've started a map on the wall.",
+    "I've never stayed anywhere long enough to have a regular. Now I have twelve. Thirteen with you.",
+    "Hettie gave me a herb for the ink pad. Everything smells of mint now. Nobody's complained.",
+    "When it rains I sort by candlelight and listen to the river. I wouldn't swap it for the city.",
+    "You know your neighbours by their parcels. Rowan orders the most nails of any man alive."
+  ],[
+    "You're the first person I'd write to, if I ever wrote letters. Which I don't. I deliver them.",
+    "I've started a letter to the city telling them I'm not coming back. I keep adding things I love about here.",
+    "The best thing about this valley is that nobody has to send a letter to say they're sorry. They just come round.",
+    "If you ever go away, write. I'll deliver it myself. Fastest post in the land.",
+    "I keep your letters in the sorting room for a day before I deliver them. I like having them near.",
+    "Parcel's taken to sleeping in the Brambleroot pigeonhole. I've decided that's a sign.",
+    "I used to think a post office was about getting things from one place to another. It's about keeping people close.",
+    "I've designed a stamp for every season. They've all got your chimney on. Don't tell anyone.",
+    "When I'm old I want to be like Hettie. Everyone's letters, everyone's secrets, never told a soul.",
+    "You turned a job into a home. I don't know how you did it. Witchcraft, probably.",
+    "I'd like you to have a key to the post office. For emergencies. And for tea.",
+    "My mother's coming to visit. I've told her all about you. She thinks you're made up."
+  ]],
+  s:[["The spring post is all seed catalogues and love letters. My favourite season.","Every spring someone posts a frog. Every spring I post it back to the pond.","Spring cleaning the pigeonholes. Found a letter from 1902. Delivered it. To the mayor's grandson's grandson.","Lambs on the hill and letters on the mat. Best time of year."],
+    ["Summer post smells of sun cream and Zara's spices.","Too hot to lick stamps. I've bought a little sponge. Very modern.","Half the valley's down at the river. The other half is writing postcards about it.","Long days mean long rounds. I don't mind. I like the walk."],
+    ["Autumn is parcel season. Jam, mostly. Everyone sends everyone jam.","Leaves keep blowing into the post box. I deliver those too. Someone should get them.","The Harvest Fair post is mostly entry forms and complaints about the judging.","Conkers in the post box again. That'll be Pip."],
+    ["Winter's the best post. Cards, cards, cards. Every one of them saying I thought of you.","I deliver in a scarf, two hats and a pair of mittens Isolde knitted. I'm toasty.","The Star Feast post is the heaviest of the year. Parcel refuses to help.","Snow on the step and a kettle on the stove. Sorting's a joy in winter."]],
+  rain:["Rain! I double-wrap everything. Nothing gets wet on my watch.","Wet days are slow days. I sort, Parcel sleeps, the river roars. Lovely.","Bring your letters in, not out. I'll keep them dry for you.","Puddle on the doormat. I've drawn a stamp on it. Don't step on it."],
+  visit:["Special delivery! For you! It's nothing. I just wanted to see the garden.","I came the long way round to see your beds. The post can wait ten minutes.","Your garden looks like a postcard. A good one. With a stamp on.","I brought Parcel. He wanted to see the cat. The cat is unimpressed.","Nothing in the bag for you today, sorry. I came anyway.","Your mailbox is my favourite in the valley. It leans. Charmingly.","I've a minute between rounds. May I sit on your fence? Thank you.","What's growing? Tell me everything. I'll tell nobody."]
+},
+corin:{
+  t:[[
+    "Hello! Is this the way to the mill? Oh. It's the other way. Thank you.",
+    "I've surveyed this lane four times. It keeps being a different length.",
+    "The Guild said this job would take a season. The Guild has never met this valley.",
+    "Isolde's given me the little room over the kitchen. It smells of bread. I may never leave.",
+    "Mapmakers are supposed to have a sense of direction. It was not a requirement on the form.",
+    "I measured the river this morning. Then the river measured me. I fell in.",
+    "Old maps show a bridge that isn't there and miss two that are. I'm fixing that.",
+    "Fen says the river changes its mind. I'm writing that down as a technical term.",
+    "I've got thirty-two pencils and I've lost thirty-one of them.",
+    "Every valley has a shape. This one's like a hand, cupped. Like it's holding something.",
+    "The Guild office smells of dust. Here everything smells of something growing.",
+    "I've never been anywhere for long. Surveyors move on. That's the job."
+  ],[
+    "I've started putting people on the map. Just little marks. Where they like to sit. Where they say hello.",
+    "Juno showed me the deep pools. I drew them. I also nearly drowned. Worth it.",
+    "Your aunt's notes on the old map are better than the map. I'm keeping both.",
+    "I got lost in the Wood again and ended up at your gate. That keeps happening. I'm not complaining.",
+    "Bertram lets me use the lighthouse for sightings. He also makes me tea and tells me I'm doing it wrong.",
+    "I had a letter from the Guild. They want to know why it's taking so long. I don't have a good answer.",
+    "Aldous wants his house drawn bigger on the map. I've drawn it exactly the size it is. He's sulking.",
+    "The children follow me round with sticks and pretend to measure things. I've made them junior surveyors.",
+    "I've put a little star on the map wherever someone's been kind to me. There are a lot of stars.",
+    "Rosa's started stamping my survey forms with a frog. I haven't asked her to stop.",
+    "I used to think a good map was one with no mistakes. Now I think it's one somebody loves.",
+    "I've walked every lane in the valley now. I like yours best. It goes somewhere."
+  ],[
+    "I've told the Guild I'll need another year. And then another. I'm hoping they forget about me.",
+    "The map's nearly done. I keep not finishing it. If I finish it I have to leave.",
+    "You're the only person here who's never laughed at me for getting lost. You just point.",
+    "My mother said I'd never settle anywhere. I wrote to tell her she was wrong. First time.",
+    "If I had a home, I'd want it to be a place where people waved. Everyone here waves.",
+    "I could find your cottage in the dark now. I've never been able to say that about anywhere.",
+    "I'm going to ask to be the valley's surveyor. Permanently. Is that a job? I'll make it one.",
+    "I've stopped carrying my compass. I don't need it here. Isn't that strange?",
+    "Every map has a little picture in the corner, for luck. I've drawn your cat.",
+    "You showed me the valley. I just drew it. That's the truth.",
+    "I keep finding excuses to walk past your gate. I've stopped pretending it's surveying.",
+    "When the map's done, the first copy's yours. I decided that a long time ago."
+  ]],
+  s:[["Spring melt's moved the river a foot to the left. Again. Back to the drawing board.","The meadows are full of flowers I don't know the names of. Hettie's teaching me. Slowly.","Every path is mud in spring. My boots weigh more than I do.","I love spring surveying. Everything's starting, even the paths."],
+    ["Long light in summer. I can map till nine and still get lost by ten.","Too hot for the Wood. I've been surveying the river instead. From in it.","Zara says the roads outside are dust in summer. Here they're flowers. I've noted it.","I've been sunburned on exactly one side. The side facing the map."],
+    ["Autumn leaves hide all the boundary stones. I've been finding them with my toes.","The Wood's a different colour every day in autumn. Very hard to map. Lovely to look at.","I've mapped all the orchards. I've also eaten from all the orchards. For accuracy.","Mist on the river every morning. I can't see the far bank. Very romantic. Very inconvenient."],
+    ["Snow makes everything look like a blank map. It's the most peaceful thing.","I can't see the paths in winter, so I've been mapping by memory. It's going surprisingly well.","My ink froze this morning. I've been drawing in pencil and wearing two coats.","Winter's when maps get finished. Everyone's indoors, nothing moves. Except me. I'm always lost."]],
+  rain:["Rain on the ink. My map now has a lake that isn't there. Possibly an improvement.","I'm mapping indoors today. The inn. It's very well mapped now.","Wet day. I'm drawing the rooftops from the inn window. Every one's a different shape.","Rain's good for maps. Shows you where the water really wants to go."],
+  visit:["I'm here! On purpose, this time. Not lost at all.","I was surveying the far field and thought I'd say hello. It's not on the way. I came anyway.","Your garden's the most interesting square on the map. I've drawn it in green.","Can I sit on your fence for a minute? My feet have walked the whole valley.","I brought you a bit of the map. Just your lane. I thought you'd like it.","Your cottage is my landmark. Whenever I'm lost, I look for your chimney.","Is that new? The bed by the fence. I'll have to update the map.","I came to measure your gate. I didn't need to. I wanted to visit."]
+},
+marigold:{
+  t:[[
+    "Marigold. Guild witch, retired. Before you ask: yes, I knew your aunt. Yes, it was complicated.",
+    "This lane is too steep for a lady of my years. I've told it so. It hasn't listened.",
+    "You have Bramble's chin. Unfortunate. She used it to win arguments.",
+    "I've seen a hundred young witches. Most of them are dreadful. The jury's out on you.",
+    "Hettie lives three doors down. We've agreed not to speak until the spring. It's going well.",
+    "The Guild gave me a gold clock when I retired. I gave it to the river. It seemed more useful there.",
+    "In my day, a witch's garden was kept in rows. Straight rows. Yours is... characterful.",
+    "Theo came to ask me about old recipes. He wrote everything down. I liked him at once. Don't tell him.",
+    "I came back to the valley to be left alone. Everyone keeps visiting. It's intolerable. Do come in.",
+    "Your aunt once hexed my hat to sing every time I lied. I wore it for a year to prove a point.",
+    "The mayor bowed to me. Nobody's bowed to me since 1970. I've decided I like him.",
+    "I take my tea black and my opinions strong. I'm too old for anything else."
+  ],[
+    "Bramble and I joined the Guild the same spring. She was top of the class. I was second. I've never forgiven her.",
+    "Hettie and I had tea. We argued for an hour. It was the most fun I've had in years.",
+    "Your Calming Draught is better than mine. I tested it. Twice. I'm almost calm about it.",
+    "The Guild never understood this valley. Bramble did. It took me forty years to see why.",
+    "I've been reading Bramble's notes in Theo's book. Her spelling is atrocious. Her magic was perfect.",
+    "Pip asked if I was a real witch. I turned their hat into a pigeon. Just for a minute. They were delighted.",
+    "You've kept her mint going. Do you know how hard that mint is? I tried for thirty years.",
+    "Rosa delivers my post with a little bow. I've told her not to. She keeps doing it. I'd miss it now.",
+    "I don't do favours. I've done three for you this month. Make of that what you will.",
+    "When Bramble and I were young we promised to grow old in the same valley. I'm late. She's early.",
+    "The Guild sent a letter asking me to come back as an examiner. I used it to light the fire.",
+    "I've started leaving my door open. Hettie walks in without knocking. I pretend to mind."
+  ],[
+    "You're a better witch than I was at your age. You're a kinder one than I've ever been.",
+    "If Bramble could see you, she'd be unbearable about it. I'd let her be, just this once.",
+    "I came back to make my peace with a ghost. I found a friend instead. You did that.",
+    "Every rule I kept, she broke. Every rule she broke, the valley's better for. I keep score now. She's winning.",
+    "Hettie says I've gone soft. I've told her that's slander. It's also true.",
+    "When I go, my spellbook's yours. Don't argue. I've written it down, and I'm very good at being obeyed.",
+    "I sit on Bramble's old stone on the hill some evenings. I tell her what you've been up to. She'd laugh.",
+    "I used to think a witch's job was to be right. It's to be useful. You taught me that.",
+    "You make me want to garden. At my age! Disgraceful. Bring me some seeds.",
+    "Forty years too proud to visit her. I'm not making that mistake twice. I'll see you tomorrow.",
+    "I made a Starlight Tonic as good as hers today. I wanted to tell her. I told you instead.",
+    "Don't tell anyone, but this is the happiest I've been since the spring we joined the Guild."
+  ]],
+  s:[["Spring. Bramble's favourite season. She'd be in the Wood at dawn, every day. Disgusting habit.","The lane's full of blossom. It gets in my tea. I've stopped minding.","Hettie's planting again. She plants things on my side of the wall. On purpose.","New leaves, new spells. Even at my age there's something to learn in spring."],
+    ["Summer is far too hot for a witch in black. I've switched to purple. Nobody's noticed.","The bees from the hill garden come to my window every afternoon. I've named them all. Badly.","Long evenings. I sit outside and judge the sunset. It usually passes.","Too hot to brew. I'm reading instead. Bramble's letters. Hettie lent them. Grudgingly."],
+    ["Autumn is the best brewing weather. Cool, still, and everything's ripe.","I won the Harvest Fair judging once, sixty years ago. Bramble came second. I've mentioned it.","The Wood smells of mushrooms and woodsmoke. It smells like being twenty.","Hettie brought me chanterelles. I brought her a hex for her slugs. We're friends now. Apparently."],
+    ["Winter. A good fire, a strong tea and a long book. I'm perfectly content. Mostly.","Bramble used to skate on the mill pond in winter. Badly. Very badly. I miss watching.","The Star Feast is coming. I've been told I have to go. I've been told by everyone.","Snow on the lane. I'm not going out. Bring me news. And biscuits."]],
+  rain:["Rain. Bramble used to dance in it. I used to watch from under an umbrella. I'd dance now, if my knees allowed.","Wet day. Perfect for brewing. Come and watch. Don't touch anything.","The roof leaks over my good chair. I've moved the chair. The roof wins.","Rain means everyone stays in. I've had four visitors. I'm told that's the point."],
+  visit:["Don't get up. I'm only passing. Inspecting. Your mint is acceptable.","I walked all the way down the lane. You should be honoured. You are, I can tell.","Bramble's garden, kept properly at last. Don't let it go to your head.","I brought you a cutting from my window box. It's sulky. It'll suit you.","Hettie said you'd be in. Hettie is usually right. Don't tell her I said so.","I came to see if the cat remembers me. It doesn't. It never did. Bramble's cat either.","Your gate squeaks less than it used to. Rowan's doing? Good.","I wanted some air. And some company. In that order. Mostly."]
 }
 };
 const ROMANCE_MORE = {
@@ -4750,7 +4999,10 @@ const SCHED = {
   aldous: { day:[[360, 'home'], [480, 'square'], [720, 'inn'], [810, 'square'], [1020, 'inn'], [1170, 'home']], wet:{ square:'school' } },
   zara:   { day:[[360, 'home'], [480, 'cart'], [1140, 'inn'], [1290, 'home']], wet:{ cart:'cart' } },
   bertram:{ day:[[360, 'home'], [720, 'docks'], [900, 'inn'], [1080, 'lighthouse']], wet:{ docks:'lighthouse' } },
-  tilly:  { day:[[360, 'home'], [480, 'school'], [900, 'docks'], [1020, 'square'], [1110, 'home']], rest:[[360, 'home'], [540, 'lanes'], [720, 'square'], [960, 'docks'], [1110, 'home']] }
+  tilly:  { day:[[360, 'home'], [480, 'school'], [900, 'docks'], [1020, 'square'], [1110, 'home']], rest:[[360, 'home'], [540, 'lanes'], [720, 'square'], [960, 'docks'], [1110, 'home']] },
+  rosa:   { day:[[360, 'home'], [480, 'square'], [780, 'inn'], [840, 'square'], [1080, 'inn'], [1260, 'home']], rest:[[360, 'home'], [600, 'docks'], [780, 'inn'], [900, 'lanes'], [1080, 'inn'], [1260, 'home']] },
+  corin:  { day:[[360, 'inn'], [540, 'docks'], [720, 'lighthouse'], [900, 'mill'], [1080, 'inn'], [1320, 'home']], wet:{ docks:'inn' } },
+  marigold:{ day:[[360, 'home'], [600, 'apothecary'], [780, 'square'], [960, 'lanes'], [1200, 'home']], wet:{ square:'inn', lanes:'apothecary' } }
 };
 const restDay = d => d % 7 === 0;
 function where(v, t, d, wet) {
@@ -6226,7 +6478,10 @@ const MEMENTOS = {
   aldous: { name:'The unused speech',     col:'#c8a24a', desc:'Forty pages of notes for the Founders\' Day speech. He used none of them.' },
   zara:   { name:"Zara's first key",      col:'#e89a3a', desc:'The key to her little corner at the inn. She had two cut. This is the other one.' },
   bertram:{ name:"The bell's old rope",   col:'#5a7ab8', desc:'The frayed rope from the fog bell, swapped for a new one. He wanted you to have the first.' },
-  tilly:  { name:"Tilly's star chart",    col:'#7ac0e8', desc:'A map of the sky, in crayon. The cat has its own star now. It is official.' }
+  tilly:  { name:"Tilly's star chart",    col:'#7ac0e8', desc:'A map of the sky, in crayon. The cat has its own star now. It is official.' },
+  rosa:   { name:'The dead-letter key',   col:'#e0607a', desc:"The little brass key to the toll house's dead-letter drawer. It's empty now. Every letter found its way home." },
+  corin:  { name:"Corin's valley map",    col:'#c87a3a', desc:'The finished map, with your cottage in the corner: HERE BE WITCHES (FRIENDLY).' },
+  marigold:{ name:"Bramble's Guild badge", col:'#e0a030', desc:"Your aunt's old Guild badge, bent and polished. Marigold kept it forty years and never said why." }
 };
 const HEART_QUESTS = {
   h_mara: { title:'The mill song', host:'mara', cast:['mara', 'silas', 'hettie'], unlock:'Mara, at 8 hearts', hook:'Mara keeps humming a song she can\'t finish.',
@@ -6393,7 +6648,40 @@ const HEART_QUESTS = {
         text:`It takes a while, with the spyglass and the cold and the wind. But there it is, low in the east, right where Bertram said, near the bright one. You draw it all on a scrap of paper, every star around it, so she'll never lose it again.` },
       { v:'tilly', btn:'Show Tilly the star', hint:'Show Tilly where her star went.',
         text:`Tilly looks at your drawing, then at the sky, then at your drawing. "It went round the back of the hill," she says, in wonder. "Like it was hiding." She copies your map in crayon, much bigger, with the cat's star in gold, and gives you the copy. "That's the official one," she says. "The cat's star is official now. It's on the map."` }
-    ], reward:{ coins:150, items:{ glimmer:1 }, fr:{ tilly:150, bertram:30 }, memento:'tilly' }, rtext:"150 coins, a Glimmerberry and a keepsake: Tilly's star chart." }
+    ], reward:{ coins:150, items:{ glimmer:1 }, fr:{ tilly:150, bertram:30 }, memento:'tilly' }, rtext:"150 coins, a Glimmerberry and a keepsake: Tilly's star chart." },
+  h_rosa: { title:'The dead-letter drawer', host:'rosa', cast:['rosa', 'aldous', 'odile'], unlock:'Rosa, at 8 hearts', hook:'Rosa has found a letter nobody could deliver.',
+    steps:[
+      { v:'rosa', btn:'Ask about the drawer', hint:'Rosa found something in the old toll house. Ask her about it.',
+        text:`Rosa holds up a yellowed envelope by one corner, as if it might bite. "The dead-letter drawer. Thirty years of post nobody could deliver. I've sent them all home but this one." It just says "To my teacher, with thanks", in a child's careful hand. "There've been four teachers since. The mayor keeps the old registers. Would you ask him?"` },
+      { v:'aldous', btn:'Ask about the old registers', hint:'Ask Mayor Aldous about the old school registers.',
+        text:`Aldous is thrilled to be asked anything. He brings out three dusty ledgers and runs a finger down the years. "Thirty years ago there was only one teacher, and she's still here." He beams. "Odile. Her first year. Oh, I do love a mystery that ends in the square."` },
+      { v:'odile', give:{ pick:['moon', 'violet', 'calming', 'minttea', 'honey'], n:1 }, btn:'Bring the letter and a gift', hint:'Take the letter to Odile, with something gentle to go with it: a Moonpetal, a violet, a Calming Draught, mint tea or honey.',
+        text:`Odile reads it standing up, then sits down. "Little Tam," she says. "The quiet one. He moved away the spring after." She reads it again. "He says I was the first person who told him he was clever." Her glasses have misted over. "I never knew if I'd done any good, that first year. Thirty years, and it was in a drawer."` },
+      { v:'rosa', btn:'Tell Rosa', hint:'Tell Rosa the letter reached its teacher.',
+        text:`Rosa listens to the whole thing with both hands over her mouth. Then she takes the empty drawer out of the old desk, turns it upside down, and knocks on it twice, like a door. "Delivered," she says. "Every single one." She presses the little brass key into your hand. "No more dead letters. Not in this valley. Not while I'm here."` }
+    ], reward:{ coins:250, items:{ cordial:1 }, fr:{ rosa:120, odile:60, aldous:30 }, memento:'rosa' }, rtext:'250 coins, a Melon Cordial and a keepsake: the dead-letter key.' },
+  h_corin: { title:'The blank bit', host:'corin', cast:['corin', 'bertram'], unlock:'Corin, at 8 hearts', hook:'Corin\'s map has one blank bit left.',
+    steps:[
+      { v:'corin', btn:'Ask about the map', hint:'Corin\'s map is nearly finished. Ask him what\'s left.',
+        text:`Corin spreads the map across a table at the inn. Every lane, every pool, every bench. One corner is empty. "The far side of the river, past the reeds. Nobody goes there. I tried three times and came out at the mill." He rubs his neck. "Bertram says you can see it from the lighthouse. If I could just see it once..."` },
+      { v:'bertram', btn:'Ask to borrow the spyglass', hint:'Ask Bertram if Corin can use the lighthouse spyglass.',
+        text:`Bertram snorts. "Lost his way to the far bank? Everyone does. It's not on the way to anything." He hands you the old brass spyglass. "Tell him there's an old orchard over there, gone wild, and a stone with a witch's mark on it. Your aunt's, I'd bet. She went everywhere."` },
+      { v:'corin', give:{ pick:'forage', n:3 }, btn:'Give 3 finds for the stakes', hint:'Take Corin the spyglass and 3 finds from the Old Wood to mark his last survey stakes.',
+        text:`Corin looks through the spyglass for a full ten minutes without speaking. Then he takes your finds and runs, actually runs, down to the river with an armful of stakes. He comes back at dusk, soaked to the knees, with the far bank drawn in perfectly. "There's a stone with a little witch's hat on it," he says. "She got there first. Of course she did."` },
+      { v:'corin', btn:'See the finished map', hint:'Corin wants to show you something at the inn.',
+        text:`The map is finished. In the corner, where old maps draw sea serpents, Corin has drawn your cottage, chimney and all, and written: HERE BE WITCHES (FRIENDLY). "I sent the Guild a copy," he says. "And a letter. I asked to stay on as the valley's surveyor." He grins. "Rivers move. Lanes change. Somebody has to keep up." He gives you the original.` }
+    ], reward:{ coins:300, items:{ truffle:1 }, fr:{ corin:120, bertram:40 }, memento:'corin' }, rtext:"300 coins, a Snow Truffle and a keepsake: Corin's valley map." },
+  h_marigold: { title:'Half the fines', host:'marigold', cast:['marigold', 'hettie', 'aldous'], unlock:'Marigold, at 8 hearts', hook:'Marigold has a confession about your aunt.',
+    steps:[
+      { v:'marigold', btn:'Ask what\'s troubling her', hint:'Marigold has been unusually quiet. Ask her what\'s wrong.',
+        text:`Marigold sets her teacup down very precisely. "Your aunt broke more Guild rules than anyone in history. She was fined for every one." A pause. "Somebody paid half. Every time. For forty years. She never knew who." Another pause. "Hettie suspects. I'd like her not to. Go and see what she's been saying."` },
+      { v:'hettie', give:{ pick:'potion', n:1 }, btn:'Bring Hettie a potion for her tea', hint:'Visit Granny Hettie with a potion for her tea. She talks more freely over a good brew.',
+        text:`Hettie stirs your potion into the pot and hums. "Marigold paid them. Course she did. Bramble's fines came back marked half-settled, every time, in that tidy little hand. Bramble thought it was a Guild mistake." She chuckles. "Aldous kept the receipts. He keeps everything. Tell him I sent you."` },
+      { v:'aldous', btn:'Ask about the receipts', hint:'Ask Mayor Aldous about the old Guild receipts.',
+        text:`Aldous produces a whole box, tied with ribbon. "Forty years of Guild fines! A remarkable civic record." Under the receipts is a little silver badge, bent at one corner. "Bramble's Guild badge. She threw it at an examiner once. Marigold picked it up, and handed it to me to keep, and asked me never to say." He looks guilty. "I suppose I've said."` },
+      { v:'marigold', btn:'Take her the badge', hint:'Take Bramble\'s badge back to Marigold.',
+        text:`Marigold turns the badge over in her hands for a long time. "I was so angry at her," she says. "For breaking every rule. For being right. For being kinder than me, and braver." She closes your fingers round the badge. "She should have known. You know. That's nearly as good." She clears her throat. "Nearly. Don't tell Hettie I cried."` }
+    ], reward:{ coins:400, items:{ starlight:1 }, fr:{ marigold:150, hettie:40, aldous:30 }, memento:'marigold' }, rtext:"400 coins, a Starlight Tonic and a keepsake: Bramble's Guild badge." }
 };
 for (const [id, Q] of Object.entries(HEART_QUESTS)) { Q.heart = true; Q.when = () => heartsOf(Q.host) >= 8; QUESTS[id] = Q; }
 
@@ -6670,6 +6958,9 @@ const EVENTS = {
     lines:{ mara:'Isolde used my flour for the dumplings. They are perfect. I may weep.', fen:"Warm room, good stew, old friends. Can't ask for more. I'll ask for more stew.", pip:"I sat next to you on purpose. It's the best seat. It's next to the bread.", odile:'The children made the lanterns at school. Every one has a cat on it.', wren:'The bees are asleep, so tonight I eat for all of them.', rowan:"Isolde made me carve the joint. I carved it very carefully. It's fine. Eat it.", silas:"No sad songs tonight, Isolde says. I've written a happy one. It's very short.", theo:"I've calculated the stew's age. It's older than Pip. Don't tell Pip.", isolde:"Look at you all. Full table, full bellies. Best night of my year, love.", juno:'Ice fishing at dawn tomorrow. Who\'s in? Bertram, you don\'t count.', hettie:"Your aunt never missed a lantern supper. She'd be pleased you're in her chair.", aldous:'A toast! To the valley! A short toast. Isolde is watching the clock again.', zara:'I came back early for this. Somebody had to tell the stew stories.', bertram:'Long night, warm inn. A keeper could get used to this.', tilly:'I helped make the dumplings! The lumpy ones are mine. They taste the same.' },
     reward:() => { S.energy += 40; giveItems({ hearth:1 }); return ['Isolde\'s stew: +40 energy today, and a Hearth Tonic for the walk home.']; } }
 };
+Object.assign(EVENTS.picnic.lines, { rosa:"I brought sandwiches cut into envelopes. Nobody's noticed. I'm very proud.", corin:"I found the square on my first try today. I'm celebrating.", marigold:"Sitting on the grass at my age. Pass me a cushion. And a scone." });
+Object.assign(EVENTS.bonfire.lines, { rosa:"I've written a wish on a scrap of paper to throw in the fire. Don't ask. Post office secret.", corin:"I've mapped where every spark goes. Up. They all go up.", marigold:"Bramble jumped over this fire every year. I watched every year. I never told her she was magnificent." });
+Object.assign(EVENTS.supper.lines, { rosa:"A whole table of everyone I deliver to. It's like a letter to the whole valley.", corin:"I've never sat down to supper with this many people who know my name.", marigold:"Isolde's stew is nearly as good as my mother's. I'll deny saying that." });
 const EIDS = Object.keys(EVENTS);
 const evKey = id => `${id}y${S.year}`;
 const evPlace = (E, wet) => wet && !VPLACES[E.place].indoor ? 'inn' : E.place;
@@ -7010,7 +7301,7 @@ function renderSheet(kind, data) {
       for (const [pl, plName] of PLACES) for (const v of VIDS.filter(x => VILLAGERS[x].place === pl)) {
         const V = VILLAGERS[v];
         if (v === VIDS.find(x => VILLAGERS[x].place === pl)) h += `<h4 class="sec">${plName}</h4>`;
-        if (!arrived(v)) { h += `<div class="vrow dim"><span class="por q">?</span><div class="info"><span class="name">Someone new</span><span class="meta">Arrives in ${SEASONS[V.arrive].toLowerCase()}</span></div></div>`; continue; }
+        if (!arrived(v)) { h += `<div class="vrow dim"><span class="por q">?</span><div class="info"><span class="name">Someone new</span><span class="meta">Arrives in ${SEASONS[V.arrive].toLowerCase()}${(V.arriveY || 1) > S.year ? ` of year ${V.arriveY}` : ''}</span></div></div>`; continue; }
         const chips = [];
         if (S.talked[v] === dayKey()) chips.push('Chatted'); if (S.gifted[v] === dayKey()) chips.push('Gift given');
         if (isBday(v)) chips.unshift('Birthday today!');
@@ -7023,7 +7314,7 @@ function renderSheet(kind, data) {
       h += `<p class="sub">Year ${S.year}. Each season lasts ${DAYS} days. Crops still in the ground when their season ends will wither, unless they grow in the next season too or sit under the greenhouse glass.</p><div class="cal">`;
       SEASONS.forEach((sn, si) => {
         const list = Object.keys(CROPS).filter(id => CROPS[id].seasons.includes(si)).map(id => (S.year > 1 || si <= S.season) ? CROPS[id].name : '???');
-        const bd = VIDS.filter(v => S.year > 1 || VILLAGERS[v].arrive <= S.season).filter(v => VILLAGERS[v].bday[0] === si).map(v => `${VILLAGERS[v].name}'s birthday · day ${VILLAGERS[v].bday[1]}`);
+        const bd = VIDS.filter(arrivedBy).filter(v => VILLAGERS[v].bday[0] === si).map(v => `${VILLAGERS[v].name}'s birthday · day ${VILLAGERS[v].bday[1]}`);
         h += `<div class="${si === S.season ? 'now' : ''}"><b>${sn}</b>${list.join(', ')}<br>${FEST[si].name} · day ${FEST_DAY}${bd.length ? '<br>' + bd.join('<br>') : ''}</div>`;
       });
       h += `</div><button class="vrow" data-act="festbook" type="button"><div class="info"><span class="name">Festivals</span><span class="meta">Games, hosts' best scores, your ribbons and prizes · ${S.tickets || 0} ticket${S.tickets === 1 ? '' : 's'}</span></div><span class="chev" aria-hidden="true">›</span></button><ul class="lines"><li>Requests filled: ${S.helped} · missed: ${S.missed}</li><li>Fish caught: ${S.fishCaught}</li>${S.hollowMax ? `<li>Deepest floor of the Hollow: ${S.hollowMax}${endless(S.hollowMax) ? ' (the Endless Below)' : ''}${HS().wardens[HOLLOW_BOTTOM] ? ' · the Heart is calm' : ''}</li>` : ''}${S.almanac ? `<li class="gold">Tomorrow: ${S.nextRain ? 'rain, no watering needed' : (S.season === 3 ? 'cold and dry' : 'dry, bring the can')}</li>` : ''}</ul>`;
@@ -7192,7 +7483,7 @@ function renderSheet(kind, data) {
     if (p === 'square') h += `<button class="btn alt" data-act="calopen" type="button">Read the noticeboard calendar</button>`;
     h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
   } else if (kind === 'calendar') {
-    const si = calSeason, known = v => S.year > 1 || VILLAGERS[v].arrive <= S.season;
+    const si = calSeason, known = arrivedBy;
     title = `${SEASONS[si]} calendar`;
     h += `<div class="tabs" role="tablist">${SEASONS.map((sn, i) => `<button class="tab" role="tab" aria-selected="${i === si}" data-act="calseason" data-id="${i}" type="button">${sn}</button>`).join('')}</div>`;
     if (si === S.season && isFestDay()) h += festCard();
@@ -7216,7 +7507,7 @@ function renderSheet(kind, data) {
     if (known('zara')) h += `<li>Market days, when Zara's cart comes: 5, 12, 19 and 26 (the dots)</li>`;
     h += `<li>Days 7, 21 and 28 are rest days. No school, and people keep different hours.</li></ul>`;
     const unknown = VIDS.filter(v => !known(v)).length;
-    if (unknown) h += `<p class="sub">${unknown === 1 ? 'Someone new arrives' : 'Some new faces arrive'} later this year. Their birthdays will show once you meet them.</p>`;
+    if (unknown) h += `<p class="sub">${unknown === 1 ? 'Someone new arrives' : 'Some new faces arrive'} ${VIDS.some(v => !known(v) && (VILLAGERS[v].arriveY || 1) === S.year) ? 'later this year' : 'next year'}. Their birthdays will show once you meet them.</p>`;
     h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
   } else if (kind === 'spells') {
     title = 'Spellbook';
@@ -7595,7 +7886,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 26, BUILD_DATE = 'Nov 10'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 27, BUILD_DATE = 'Nov 10'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();

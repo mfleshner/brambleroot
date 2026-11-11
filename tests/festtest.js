@@ -14,10 +14,10 @@ close();
 const setDay = (y, s, d, time) => { S.year = y; S.season = s; S.day = d; S.time = time; S.rain = false; S.visits = []; S.evToday = null; };
 
 // --- the day: where everyone is, by the hour ---
-setDay(2, 0, 14, 540); ok(!t.festOn(), 'on at 9am');
+setDay(3, 0, 14, 540); ok(!t.festOn(), 'on at 9am');
 ok(t.VIDS.every(v => t.where(v) !== 'fest'), 'fest before 10');
 S.time = 600; ok(t.festOn(), 'off at 10am');
-ok(t.VIDS.every(v => t.where(v) === 'fest'), 'not everyone at the festival at 10am y2');
+ok(t.VIDS.every(v => t.where(v) === 'fest'), 'not everyone at the festival at 10am y3');
 S.time = 1319; ok(t.festOn(), 'off at 9:59pm');
 S.time = 1320; ok(!t.festOn(), 'on at 10pm'); ok(t.VIDS.every(v => t.where(v) !== 'fest'), 'fest after 10pm');
 setDay(2, 0, 13, 700); ok(!t.festOn() && t.VIDS.every(v => t.where(v) !== 'fest'), 'fest on day 13');
@@ -26,7 +26,7 @@ setDay(1, 0, 14, 700); ok(t.where('zara') === 'away' && t.where('wren') === 'awa
 ok(t.where('mara') === 'fest', 'mara not at spring y1 festival');
 
 // --- spots and booths, every season and year ---
-for (const y of [1, 2]) for (let s = 0; s < 4; s++) {
+for (const y of [1, 2, 3]) for (let s = 0; s < 4; s++) {
   setDay(y, s, 14, 700);
   const booths = t.festBooths(), spots = t.festSpots(), tiles = new Map(), key = (c, r) => c + ',' + r;
   ok(booths.some(b => b.id === 'prizes') && booths.some(b => b.main), `booths y${y}s${s}`);

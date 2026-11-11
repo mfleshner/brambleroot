@@ -19,7 +19,7 @@ Matt, Nov 10, 2026: his wife is close to full hearts with everyone in autumn of 
 - A pair opens once both are at 6+ hearts with her and neither is her partner (or engaged to her). One of them confides in her, she carries notes and sets up a meeting, and it ends in a village wedding she's invited to.
 - Once paired, they can't be dated, and the game asks her to confirm before that happens. Each married pair gets new chat lines about each other, and they stand together at festivals.
 
-## Part 4: newcomers
+## Part 4: newcomers — DONE Nov 10, 2026 (Build 27). Rosa (spring), Corin (summer), Marigold (autumn); friend only.
 - Three new villagers move in during year 2 (spring, summer and autumn), each starting at zero hearts. They come with everything the others have: portraits, loves, a birthday, a schedule, chat lines, scenes at 2/4/6/8, heart gifts, festival lines, best-friend scenes and a heart quest.
 - They're friend-only to start with (romance for a newcomer is a possible follow-up).
 - `arrive` gains a year.

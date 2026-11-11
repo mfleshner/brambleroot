@@ -13,7 +13,7 @@ const sleep = () => { if (t.sheet) t.closeSheet(); t.endDay(false); };
 
 // 1. who can be romanced
 ok(ROM.join() === 'mara,odile,wren,rowan,silas,theo,isolde,juno,zara', 'nine romanceable: ' + ROM.join());
-ok(FRIENDS.join() === 'fen,pip,hettie,aldous,bertram,tilly', 'six friend-only: ' + FRIENDS.join());
+ok(FRIENDS.join() === 'fen,pip,hettie,aldous,bertram,tilly,rosa,corin,marigold', 'nine friend-only: ' + FRIENDS.join());
 for (const v of ROM) { const R = t.ROMANCE[v]; ok(R && ['yes', 's9', 's10', 'bye', 'propose', 'vow', 'bday'].every(k => typeof R[k] === 'string' && R[k].length > 20) && R.date.length >= 2 && R.wed.length >= 3 && R.morn.length >= 2 && t.SPOUSE_HELP[v], 'romance text for ' + v); }
 for (const v of t.VIDS) if (v !== 'aldous') ok(t.WED_LINES[v], 'wedding guest line for ' + v);
 
