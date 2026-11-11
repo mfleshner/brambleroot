@@ -87,7 +87,7 @@ Claude's choices (Matt said "you decide"):
 - **Gift baskets**: bundle three things in a basket on the counter for a bonus.
 - **Out-of-town buyers** on certain days (a Guild buyer for potions, a cook from the coast for fish), with a list of what they're after.
 
-### Part 5: The aunt's ledger
+### Part 5: The aunt's ledger (shipped Nov 11, 2026)
 - A story told through Bramble's old shop ledger: each page unlocks as the shop reaches a milestone.
 - A friendly rivalry with Theo's apothecary, ending in a joint venture.
 - A Guild inspector visits.

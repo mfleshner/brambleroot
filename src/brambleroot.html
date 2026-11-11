@@ -2433,7 +2433,7 @@ function buildCharters(n, legacy) {
 
 /* ================= village life, spells, the Old Wood, wardrobe ================= */
 let rainFx = 0, bgKey = '';
-const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.hew && S.hew.met ? 'h' : ''}|${S.scene === 'village' && lampLit() ? 'lit' : ''}${S.scene === 'village' && rowOpen() ? 'row' : ''}${S.scene === 'row' && shopReady() ? 'shop' + (shopUp('window') ? 'w' : '') + (shopUp('sign') ? 's' : '') : ''}${S.scene === 'shop' ? shopBgKey() : ''}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
+const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.hew && S.hew.met ? 'h' : ''}|${S.scene === 'village' && lampLit() ? 'lit' : ''}${S.scene === 'village' && rowOpen() ? 'row' : ''}${S.scene === 'row' && shopReady() ? 'shop' + (shopUp('window') ? 'w' : '') + (shopUp('sign') ? 's' : '') + (shopFlag('seal') ? 'g' : '') + (rowAlive() ? 'r' : '') : ''}${S.scene === 'shop' ? shopBgKey() : ''}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
 Object.assign(BUILD, { gate:{ c:0, r:6, w:1, h:1, stand:[0,6] }, mailbox:{ c:3, r:1, w:1, h:1, stand:[3,2] } });
 VILLAGERS.mara.likes.push('hazel', 'morelbroth'); VILLAGERS.fen.likes.push('chanter', 'chantonic');
 VILLAGERS.pip.likes.push('sunberry', 'glimjam'); VILLAGERS.odile.loves.push('violet'); VILLAGERS.wren.likes.push('glimmer', 'firemoss');
@@ -5447,7 +5447,7 @@ function shopState() {
 }
 function shopDay() { const st = shopState(); if (!st.day || st.day.k !== dayKey()) st.day = { k:dayKey(), coins:0, sold:0, people:0, folk:[], opened:false }; return st.day; }
 const shelfOk = id => !!ITEMS[id] && !NOGIFT[id] && itemValue(id) > 0;
-const shopPrice = (id, p) => Math.max(1, Math.round(sellValue(id) * PRICE_TIERS[p || 'fair'].mult));
+const shopPrice = (id, p) => Math.max(1, Math.round(sellValue(id) * PRICE_TIERS[p || 'fair'].mult * (POTIONS[id] && shopFlag('theo') ? 1.1 : 1)));
 const shopHours = () => S.time >= SHOP_OPEN && S.time < SHOP_CLOSE;
 const shelvesStocked = () => shopState().shelf.some(s => s.id && s.n > 0);
 
@@ -5863,9 +5863,53 @@ function buyerSell(id, n) {
 function shopMorning(lines) {
   if (!shopReady()) return;
   const st = shopState(); st.orders = st.orders || [];
+  ledgerMorning(lines);
   for (const o of st.orders.slice()) if (absDay() > o.due) { st.orders = st.orders.filter(x => x !== o); lines.push({ t:`${VILLAGERS[o.v].name} ${ORDER_LAPSE[(Math.random() * ORDER_LAPSE.length) | 0]}, about the ${o.n} ${itemName(o.item)}.`, v:o.v }); }
   if (st.orders.length < ORDER_MAX && !isFestDay() && Math.random() < ORDER_P) { const o = newOrder(); if (o) lines.push({ t:`A special order for the shop: ${VILLAGERS[o.v].name} would like ${o.n} ${itemName(o.item)} by ${dateLabel(o.due)}, and will pay ${fmt(o.pay)} coins. (See the ledger.)`, c:'gold', v:o.v, mood:'happy' }); }
   const b = buyerToday(); if (b) lines.push({ t:`${BUYERS[b].name} is passing through today, looking for ${BUYERS[b].label}. Open the shop to meet them.`, c:'gold' });
+}
+
+// ---- Part 5: the aunt's ledger, and the row comes back ----
+// Bramble's old shop ledger: a page turns up for each milestone (ledgerPages); the morning says when.
+const LEDGER_PAGES = [
+  { id:'open', when:st => st.days >= 1, title:'The first day', text:'First day open! Sold one jar of honey to Fen, who paid in fish. The fish was very good. Note to self: do not accept fish as payment. Note to self: you will accept fish as payment.' },
+  { id:'fifty', when:st => st.sold >= 50, title:'Fifty things sold', text:'Fifty sales. Hettie says I should keep proper accounts. I have drawn a picture of a coin next to each one. That is proper accounts.' },
+  { id:'regular', when:() => VIDS.some(isRegular), title:'A regular', text:'Mara\'s mother comes in every morning now, for herbs, and leaves bread on the counter. I have never once asked for the bread. I have never once refused it.' },
+  { id:'week', when:st => st.days >= 7, title:'A week of it', text:'A whole week. My feet hurt. The cat has claimed the window. Sold a love potion to a boy from the mill. It was mint tea. It worked anyway.' },
+  { id:'order', when:st => (st.ordersDone || 0) >= 3, title:'Special orders', text:'People have started asking for things specially. Odile wanted dried violets for her pressing book. Rowan wanted something for burns, and would not say whose. (His.)' },
+  { id:'tenk', when:st => st.total >= 10000, title:'A good year', text:'Counted the till and nearly fell over. The Guild says a witch should not keep a shop. The Guild has not tasted my honey cake. Paid the fine in honey cake.' },
+  { id:'beloved', when:() => repLevel() >= 3, title:'Word gets round', text:'A traveller came from three valleys away because her sister told her about the shop. I gave her a cutting of thornberry. She cried. So did I, a bit. Do not tell Hettie.' },
+  { id:'last', when:() => !!(S.quests.rowlife && S.quests.rowlife.done), title:'The last page', text:'If you are reading this, someone has opened the shop again, and I hope it is you, whoever you are. Keep the bell. Keep the cat. Give away more than you sell, and it will come back to you. It always did for me. Love, B.' }
+];
+const ledgerPages = () => LEDGER_PAGES.filter(p => S.shop && S.shop.pages && S.shop.pages[p.id]);
+function ledgerMorning(lines) {
+  const st = shopState(); st.pages = st.pages || {};
+  for (const p of LEDGER_PAGES) if (!st.pages[p.id] && p.when(st)) { st.pages[p.id] = absDay(); lines.push({ t:`A page has come loose from Bramble's old ledger: "${p.title}". It's in the ledger on your counter.`, c:'gold' }); break; }
+}
+// The Guild inspection: every shelf stocked with at least 5, and the shop open for business today.
+function inspectorWhy() {
+  const st = shopState(), d = shopDay();
+  if (!d.opened && !helperToday()) return 'Open the shop today first (or have someone minding it).';
+  const thin = st.shelf.filter(s => !s.id || s.n < 5).length;
+  return thin ? `${thin} shel${thin === 1 ? 'f has' : 'ves have'} fewer than 5 things on ${thin === 1 ? 'it' : 'them'}.` : '';
+}
+const shopFlag = k => !!(S && S.shop && S.shop.flags && S.shop.flags[k]);
+// The two new shops on the row once the finale is done: Zara's Curios (her cart's stock, any day) and
+// the Little Bakery (three of Mara's bakes a day, two of each).
+const rowAlive = () => shopFlag('row');
+const BAKES = ['berrytoast', 'moreltoast', 'honeycake', 'startart', 'moonsponge', 'chanpie', 'springsalad'];
+const bakePrice = id => Math.max(40, Math.round(itemValue(id) * 2.5 / 5) * 5);
+function bakeState() { const st = shopState(); if (!st.bake || st.bake.k !== dayKey()) st.bake = { k:dayKey(), got:{} }; return st.bake; }
+const bakesToday = () => { const seed = S.year * 1000 + S.season * 100 + S.day; return BAKES.map((k, i) => [hash(seed, i, 51), k]).sort((a, b) => a[0] - b[0]).slice(0, 3).map(x => x[1]); };
+function bakeBuy(id) {
+  const b = bakeState(), p = bakePrice(id);
+  if (!rowAlive() || !bakesToday().includes(id) || (b.got[id] || 0) >= 2 || S.coins < p) return false;
+  S.coins -= p; S.inv[id] = (S.inv[id] || 0) + 1; b.got[id] = (b.got[id] || 0) + 1; addFr('mara', 2); return true;
+}
+function curioBuy(id) {
+  const w = cartStock().find(x => x.id === id);
+  if (!rowAlive() || !w || !w.left || S.coins < w.price) return false;
+  S.coins -= w.price; S.inv[id] = (S.inv[id] || 0) + 1; S.cart.got[id] = (S.cart.got[id] || 0) + 1; return true;
 }
 
 // ---- scenes ----
@@ -5934,6 +5978,7 @@ function rowVisit(k, q) {
   if (k === 'torow') { enterRow(q.place); return true; }
   if (k === 'rowexit') { leaveRow(q.seek); return true; }
   if (k === 'rowplace' || (k === 'rowb' && q.id === 'shop')) { if (shopReady()) enterShop(); else openSheet('place', { p:'shopfront' }); return true; }
+  if (k === 'rowb' && rowAlive() && (q.id === 'frontB' || q.id === 'frontC')) { openSheet(q.id === 'frontB' ? 'bakery' : 'curios', { p:q.id }); return true; }
   if (k === 'rowb') { toast(q.id === 'fountain' ? (S.season === 3 ? 'The fountain has frozen into a little ice sculpture of a fish. Someone has given it a scarf.' : 'An old stone fountain. Someone has thrown a button in for luck.') : ROW_FRONTS[q.id], 4800); return true; }
   if (k === 'shopout') { leaveShop(); return true; }
   if (k === 'ledger') { openSheet('shop'); return true; }
@@ -5985,6 +6030,7 @@ function buildRow(g, pal, season) {
   // the four shut shopfronts
   const fronts = { frontA:['#c9b28a', '#6a4a3a'], frontB:['#d8c0a0', '#8a5a3a'], frontC:['#b8a8c8', '#5a4a6a'], frontD:['#c0b8a0', '#4a5a6a'] };
   for (const k in fronts) {
+    if (rowAlive() && (k === 'frontB' || k === 'frontC')) { drawRowFront(g, k, season); continue; }
     const wins = vHouse(g, bx(k), by(k), bw(k), bh(k), fronts[k][0], fronts[k][1], season, { wins:[.28, .72], roofH:.42 });
     for (const [wx, wy, ww, wh] of wins) { R(g, wx, wy, ww, wh, '#4a4048'); for (const f of [.25, .7]) R(g, wx - u, wy + wh * f - .7 * u, ww + 2 * u, 1.4 * u, '#8a6a48'); }
     const dx = bx(k) + bw(k) / 2; R(g, dx - 3 * u, by(k) + bh(k) - 9 * u, 6 * u, 1.3 * u, '#8a6a48'); R(g, dx - 3 * u, by(k) + bh(k) - 5 * u, 6 * u, 1.3 * u, '#8a6a48');
@@ -6007,6 +6053,19 @@ function buildRow(g, pal, season) {
   R(g, ex + 13 * u, ey + 4 * u, 1.5 * u, 10 * u, '#5a3d26'); R(g, ex + 9 * u, ey + 3 * u, 8 * u, 4 * u, '#c9a675');
   g.fillStyle = '#5a3d26'; g.beginPath(); g.moveTo(ex + 11 * u, ey + 5 * u); g.lineTo(ex + 14.5 * u, ey + 3.8 * u); g.lineTo(ex + 14.5 * u, ey + 6.2 * u); g.closePath(); g.fill();
 }
+// The two shopfronts that reopen in the finale: an awning, lit windows and a hanging sign.
+function drawRowFront(g, k, season) {
+  const u = T / 16, b = RB[k], x = ox + b.c * T, y = oy + b.r * T, w = b.w * T, h = b.h * T, bake = k === 'frontB';
+  const wins = vHouse(g, x, y, w, h, bake ? '#e8d0a8' : '#c8b8e0', bake ? '#a85a3a' : '#5a3a7a', season, { wins:[.28, .72], roofH:.42, door:bake ? '#7a4a2a' : '#4a3a6a', chimney:bake });
+  for (const wn of wins) RWINS.push(wn);
+  const ay = y + h * .42 + 2 * u;
+  for (let i = 0; i < 6; i++) R(g, x + 2 * u + i * (w - 4 * u) / 6, ay, (w - 4 * u) / 6, 3 * u, i % 2 ? '#f4ead9' : (bake ? '#d86a4a' : '#7a5aa8'));
+  const sx = x + (bake ? w - 2 * u : 2 * u), sy = y + h * .62;
+  R(g, sx - .4 * u, sy - 3 * u, .8 * u, 3 * u, '#5a3d26'); R(g, sx - 4 * u, sy, 8 * u, 5 * u, '#c9a675');
+  if (bake) { g.fillStyle = '#a85a3a'; g.beginPath(); g.ellipse(sx, sy + 2.5 * u, 2.6 * u, 1.6 * u, 0, 0, 7); g.fill(); }
+  else { circ(g, sx, sy + 2.5 * u, 1.6 * u, '#7a5aa8'); circ(g, sx, sy + 2.5 * u, .7 * u, '#f2d36b'); }
+  if (!bake) for (let i = 0; i < 3; i++) { R(g, x + w * .3 + i * 3 * u, y + h * .5, .3 * u, 3 * u, '#c8a24a'); circ(g, x + w * .3 + i * 3 * u, y + h * .5 + 3.4 * u, .8 * u, '#e8d080'); }
+}
 // Bramble's shop: boarded and grey until the story's done, then bright, with its gold sign and window boxes.
 function drawRowShop(g, season) {
   const u = T / 16, b = RB.shop, x = ox + b.c * T, y = oy + b.r * T, w = b.w * T, h = b.h * T, ok = shopReady();
@@ -6023,7 +6082,8 @@ function drawRowShop(g, season) {
       for (let i = 0; i < 4; i++) circ(g, wx - .5 * u + i * (ww + u) / 3, wy + wh, 1.3 * u, ['#ef9aac', '#f2d36b', '#cdbbff', '#8fcf6a'][(i + season) % 4]);
       if (shopUp('window')) for (let i = 0; i < 3; i++) { R(g, wx + (1 + i * 1.8) * u, wy + wh - 3.4 * u, 1.4 * u, 2.8 * u, ['#ff4d3a', '#cdbbff', '#f2b84b'][i]); }
     }
-    if (shopUp('sign')) { for (const dx of [-.36, .36]) { const sx2 = x + w / 2 + dx * w * .62; circ(g, sx2, sy + 3 * u, 1.2 * u, '#f2c860'); } }
+    if (shopFlag('seal')) { const cx = x + w - 5 * u, cy = y + h * .62; circ(g, cx, cy, 2.6 * u, '#c94a3a'); circ(g, cx, cy, 1.6 * u, '#e86a5a'); R(g, cx - 1.6 * u, cy + 2 * u, 1.2 * u, 2.4 * u, '#c94a3a'); R(g, cx + .4 * u, cy + 2 * u, 1.2 * u, 2.4 * u, '#c94a3a'); }
+    if (shopUp('sign')) for (const sg of [-1, 1]) { const sx2 = x + w / 2 + sg * (w * .31 + 2.2 * u); circ(g, sx2, sy + 3 * u, 1.4 * u, '#f2c860'); circ(g, sx2, sy + 3 * u, .6 * u, '#fff4c8'); }
   } else {
     for (const [wx, wy, ww, wh] of wins) { R(g, wx, wy, ww, wh, '#5a5458'); for (const f of [.3, .72]) R(g, wx - u, wy + wh * f - .7 * u, ww + 2 * u, 1.4 * u, '#7a6450'); }
     const dx = x + w / 2; g.save(); g.translate(dx, y + h - 6 * u); g.rotate(-.18); R(g, -5 * u, -.7 * u, 10 * u, 1.4 * u, '#7a6450'); g.restore();
@@ -6219,7 +6279,7 @@ function shopSheet(kind, data) {
       const T0 = PRICE_TIERS[s.p || 'fair'];
       h += row(itemCol(s.id), `${itemName(s.id)} ×${s.n}`, `${SHELVES[i].glass ? 'Glass case · ' : ''}${T0.name} · ${slotPrice(i, s.id, s.p)} each${s.n ? '' : ' · sold out'} · have ${S.inv[s.id] || 0} more`, `<button class="btn alt" data-act="shelfopen" data-id="${i}" type="button">Change</button>`, s.n ? '' : 'dim');
     });
-    h += ordersBox() + basketBox() + repBox() + helperBox() + upBox();
+    h += ordersBox() + basketBox() + repBox() + helperBox() + upBox() + pagesBox();
     const more = st.shelf.some(s => s.id && s.n < SLOT_MAX && (S.inv[s.id] || 0) > 0);
     h += `<div class="cta-row"><button class="btn alt" data-act="shoprestock" type="button" ${more ? '' : 'disabled'}>Top up every shelf from your basket</button></div>`;
     h += `<p class="sub">At a fair price, customers pay a fifth more than the market stall. Villagers head for things they love, tip for them, and grow fonder of you. ${st.days ? `Since you reopened: ${st.days} day${st.days === 1 ? '' : 's'} open, ${fmt(st.total)} coins, best day ${fmt(st.best)}.` : ''}</p>`;
@@ -6245,6 +6305,22 @@ function shopSheet(kind, data) {
       }
     }
     h += `<div class="cta-row"><button class="btn alt" data-act="shopledger" type="button">The ledger</button><button class="btn alt" data-act="close" type="button">Done</button></div>`;
+  } else if (kind === 'lpage') {
+    const pg = LEDGER_PAGES.find(x => x.id === data.id); title = pg.title;
+    h += `<p class="scene">${pg.text}</p><div class="cta-row"><button class="btn alt" data-act="shopledger" type="button">Back to the ledger</button></div>`;
+  } else if (kind === 'bakery') {
+    title = 'The Little Bakery';
+    const b = bakeState();
+    h += `<div class="vhead">${portrait('mara', 'happy', 64)}<div class="info"><span class="role">Mara's bakery, with Pip and Tilly after school</span></div></div><div class="bubble">Fresh this morning! Two of each, and then that's it till tomorrow.</div><p class="sub">Something to eat for energy, without the cooking.</p>`;
+    for (const id of bakesToday()) { const left = 2 - (b.got[id] || 0), pr = bakePrice(id), D = DISHES[id];
+      h += row(itemCol(id), itemName(id), `${pr} coins · +${D.energy} energy${D.hearty ? ' · hearty' : ''} · have ${S.inv[id] || 0}${left ? ` · ${left} left` : ''}`, left ? `<button class="btn" data-act="bakebuy" data-id="${id}" type="button" ${S.coins < pr ? 'disabled' : ''}>Buy · ${pr}</button>` : '<span class="meta">Sold out</span>', left ? '' : 'dim'); }
+    h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
+  } else if (kind === 'curios') {
+    title = "Zara's Curios";
+    h += `<div class="vhead">${portrait('zara', 'happy', 64)}<div class="info"><span class="role">Zara's shop, open every day</span></div></div><div class="bubble">${marketDay() ? "I'm out at the cart today, darling, but the shop's the same stock. Leave the coins in the honesty box." : 'Roots, darling. Little portable ones. Have a browse.'}</div><p class="sub">The same things as her cart, every day. What you buy here or at the cart comes out of the same stock.</p>`;
+    for (const w of cartStock()) { const it = ITEMS[w.id];
+      h += row(it.col, it.name, `${fmt(w.price)} coins · have ${S.inv[w.id] || 0}${w.left ? ` · ${w.left} left` : ''}`, w.left ? `<button class="btn" data-act="curiobuy" data-id="${w.id}" type="button" ${S.coins < w.price ? 'disabled' : ''}>Buy · ${fmt(w.price)}</button>` : '<span class="meta">Sold out</span>', w.left ? '' : 'dim'); }
+    h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
   } else if (kind === 'buyer') {
     const bid = buyerToday(), B = BUYERS[bid] || { name:'A traveller', line:'Ah, I\'ve missed my chance. Another day!', label:'things' }, d = shopDay(), left = bid ? BUYER_MAX - (d.buyerGot || 0) : 0;
     title = B.name;
@@ -6265,6 +6341,15 @@ function shopSheet(kind, data) {
     h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Good night, shop</button></div>`;
   }
   return { h, title };
+}
+// Bramble's old ledger: the pages found so far.
+function pagesBox() {
+  const got = ledgerPages();
+  let h = `<h4 class="sec">Bramble's old ledger</h4>`;
+  if (!got.length) return h + `<p class="sub">Your aunt's old ledger is mostly stuck together. Pages will come loose as the shop finds its feet.</p>`;
+  h += `<p class="sub">${got.length} of ${LEDGER_PAGES.length} pages.</p>`;
+  for (const pg of got) h += `<button class="vrow" data-act="lpage" data-id="${pg.id}" type="button"><div class="info"><span class="name">${pg.title}</span><span class="meta">In Bramble's handwriting</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+  return h;
 }
 // The ledger's special orders, with Hand over buttons.
 function ordersBox() {
@@ -6330,6 +6415,9 @@ function genVisitsFix() { const hp = helperToday(); if (hp && S.visits) S.visits
 // Sheet buttons (from the click handler). Returns true if it handled the act.
 function shopAct(act, b) {
   const id = b.dataset.id, item = b.dataset.item;
+  if (act === 'lpage') { sheetOpen = 'lpage'; renderSheet('lpage', { id, p:'lp' + id }); return true; }
+  if (act === 'bakebuy') { if (bakeBuy(id)) { SND.coin(); updateHUD(); } renderSheet('bakery', { p:'bake' }); return true; }
+  if (act === 'curiobuy') { if (curioBuy(id)) { SND.coin(); updateHUD(); } renderSheet('curios', { p:'curio' }); return true; }
   if (act === 'shoporder') { const r = orderDone(id); if (r) { SND.gift(); toast(`${VILLAGERS[r.o.v].name}: "${ORDER_THANKS[(Math.random() * ORDER_THANKS.length) | 0]}" +${fmt(r.o.pay)} coins.`, 4200); for (const g of r.g) toast(g, 5000); updateHUD(); } renderSheet('shop'); return true; }
   if (act === 'basketput') { if (basketAdd(id)) SND.place(); renderSheet('shop'); return true; }
   if (act === 'basketback') { if (!SV || !SV.basketOut) basketBack(); else toast('Someone is about to buy it!'); renderSheet('shop'); return true; }
@@ -7470,6 +7558,49 @@ QUESTS.shop = { title:'The shop on Old Market Row', host:'odile', cast:['odile',
   ],
   reward:{ shop:true, fr:{ odile:80, rowan:60, mara:60 } }, rtext:'Brambleroot, your aunt\'s old shop, open again.' };
 
+/* ---- the shop, Part 5 (PLAN-shop.md): three more stories on the row ----
+   theoshop: Theo's friendly rivalry with the shop, ending in a joint venture (potions sell for more in the shop).
+   inspector: a Guild inspection; its last step uses the new `check` step kind (a function that returns why it can't be done yet).
+   rowlife: the finale; Zara and Mara open the two empty shopfronts. All three are `shopq`, like the shop story. */
+QUESTS.shop.shopq = true;
+QUESTS.theoshop = { title:'Rival remedies', host:'theo', cast:['theo', 'isolde'], shopq:true, when:() => shopReady() && heartsOf('theo') >= 4 && (S.shop && S.shop.days || 0) >= 3, unlock:'Theo at 4 hearts, once your shop has been open three days',
+  hook:'Theo has noticed his customers buying potions at your shop.',
+  steps:[
+    { v:'theo', btn:'Ask what\'s wrong', hint:'Theo wants a word. He\'s usually at his apothecary.',
+      text:`Theo is rearranging jars that don't need rearranging. "Three customers this week," he says, without turning round. "Three. They came in, looked at my shelves, and said, 'Oh, but the witch's shop has it cheaper.'" He finally turns. "It isn't a complaint. It's data. I'd simply like to understand what you're doing differently. Scientifically. Bring me two of your potions, would you? For comparison."` },
+    { v:'theo', give:{ pick:'potion', n:2 }, btn:'Give Theo 2 potions', hint:'Bring Theo two of your potions to compare with his.',
+      text:`Theo holds your potions up to the window, sniffs them, writes a page of notes, and sits down rather heavily. "They're better," he says. "Not by much. By enough." He taps his notebook. "Your aunt's methods, with your hands. I've been doing it all from books." He looks up. "Isolde says I should stop sulking and come to the inn tonight. She says you'd want to talk. Would you?"` },
+    { at:'inn', need:['theo', 'isolde'], after:1140, give:{ pick:'crop', n:6 }, btn:'Talk it over at the inn', hint:'Meet Theo at the Kettle & Crow one evening after 7 pm, with 6 crops for Isolde\'s kitchen.',
+      text:`Isolde cooks your crops into something wonderful while you and Theo argue happily across the table. By the second pot of tea it isn't an argument any more. By the third, there's a plan on a napkin: his careful notes, your aunt's methods, and both your names. "A joint label," Theo says. "Your shop sells them. My workshop helps brew them." Isolde reads the napkin upside down. "Brambleroot and Theo's Remedies," she says. "Rolls off the tongue. I'll stock them at the bar."` },
+    { v:'theo', btn:'Shake on it', hint:'Tell Theo yes, at his apothecary.',
+      text:`Theo has already had labels printed. Two hundred of them. "In case you said yes," he says, and goes pink. You shake on it over the counter, and he insists on writing it in his ledger too, in very small, very neat handwriting. "Partners," he says. "In business. Strictly business." He pauses. "And, um. Friends. Also." From now on, potions in your shop carry the joint label, and customers pay a little more for them.` }
+  ],
+  reward:{ coins:300, fr:{ theo:120, isolde:40 }, shopflag:'theo' }, rtext:'Brambleroot & Theo\'s Remedies: potions sell for 10% more in your shop.' };
+QUESTS.inspector = { title:'The Guild inspection', host:'aldous', cast:['aldous', 'hettie'], shopq:true, when:() => shopReady() && repLevel() >= 2, unlock:'once your shop is Popular',
+  hook:'A letter with a Guild seal has arrived at the town hall.',
+  steps:[
+    { v:'aldous', btn:'Read the Guild\'s letter', hint:'Mayor Aldous has a letter from the Guild. He\'s usually in the square.',
+      text:`Aldous holds the letter at arm's length, as if it might bite. "The Guild," he says. "An inspector. For your shop. Apparently a 'witch's establishment selling preparations to the public' must be inspected once in its life." He lowers his voice. "Your aunt's shop was inspected four times. She failed four times. One inspector left by the window." He brightens. "But you'll be fine! Probably. Talk to Hettie. She was there for two of them."` },
+    { v:'hettie', btn:'Ask Hettie about the inspections', hint:'Ask Granny Hettie how Bramble\'s inspections went.',
+      text:`Hettie laughs until she has to wipe her eyes. "The first one, Bramble's shelves were half empty, because she'd given everything away. The second, she'd hung herbs from the ceiling and the inspector got lost. The third, the cat bit him." She pats your hand. "They want full shelves, dear. Every one stocked, everything priced, and the place open for business. And keep the cat behind the counter."` },
+    { at:'shopfront', check:() => inspectorWhy(), btn:'Show the inspector round', hint:'On any day the shop is open, stock every shelf with at least 5 of something, then come out to the row and show the inspector round.',
+      text:`The inspector is a tall, thin man in a grey coat, with a clipboard he holds like a shield. He counts every jar. He checks every price. He peers at the cat, who peers back. Then, very slowly, he signs the bottom of his form. "In forty years," he says, "this is the first time this shop has passed." He hesitates, then adds, more quietly, "Your aunt once threw a pie at me. It was a very good pie." He leaves by the door. Hettie, watching from the fountain, applauds.` }
+  ],
+  reward:{ coins:1000, fr:{ aldous:100, hettie:100 }, shopflag:'seal', rep:50 }, rtext:'The Guild seal over your door, 1,000 coins, and word of it all over the valley.' };
+QUESTS.rowlife = { title:'Old Market Row', host:'zara', cast:['zara', 'mara', 'pip', 'tilly'], shopq:true, when:() => !!(S.quests.theoshop && S.quests.theoshop.done && S.quests.inspector && S.quests.inspector.done) && ledgerPages().length >= 5, unlock:'once Theo\'s story and the inspection are done, and five pages of the old ledger are read',
+  hook:'Zara has been looking at the empty shopfronts on Old Market Row.',
+  steps:[
+    { v:'zara', btn:'Ask Zara what she\'s thinking', hint:'Zara wants to talk about Old Market Row. Find her at her cart on a market day.',
+      text:`Zara has her chin in her hands. "Nine valleys, darling, and I've slept in eight of them this year. My cart is falling apart and so, frankly, am I." She points up the lane. "That shop next to yours, with the wind chimes. I could put down roots. Little ones. Portable roots." She looks almost shy. "And Mara has her eye on her grandmother's old bakery, across the way. We'd need help with the repairs. Ask her?"` },
+    { v:'mara', give:{ pick:'crop', n:10 }, btn:'Give Mara 10 crops for the first bake', hint:'Talk to Mara about the old bakery on the row, and bring 10 crops for her first bake.',
+      text:`Mara goes very quiet, then very fast. "My grandmother's oven. I've walked past it every week for thirty years." She takes the crops and starts counting on her floury fingers. "Pip and Tilly can help after school. They'll eat half the stock. That's fine, I'll bake double." She grins. "Rowan says the chimney needs work and the doors need hanging, both shops. A thousand coins for the lot, he reckons. Can we manage that between us?"` },
+    { at:'shopfront', pay:1000, btn:'Pay for the repairs · 1,000 coins', hint:'Pay Rowan\'s 1,000 coins for the repairs, out on Old Market Row.',
+      text:`For a week the row is all hammering and singing. Rowan hangs doors. Silas paints signs and won't let anyone see them. Pip and Tilly carry things to the wrong places with enormous enthusiasm. Zara's wind chimes go up first, then the smell of bread comes drifting across the cobbles, and suddenly people are stopping in the street just to look.` },
+    { at:'shopfront', btn:'Open the row', hint:'Go to Old Market Row to open the two new shops.',
+      text:`The whole valley comes. Zara's Curios opens its doors with a bow and a little bell. The Little Bakery opens its doors with Pip and Tilly shouting "BREAD!" at passers-by. Fen sits on the bench by the fountain with a bun in each hand. Odile has brought the school. Hettie stands outside your shop for a long time, looking up at the sign. "She always said this street would come back," she says. "She just thought she'd be the one to do it." She squeezes your arm. "She'd be so proud, dear. Of all of it."` }
+  ],
+  reward:{ coins:500, fr:{ zara:120, mara:120, pip:60, tilly:60 }, shopflag:'row' }, rtext:'Zara\'s Curios and the Little Bakery, open every day on Old Market Row.' };
+
 /* ---- heart quests (PLAN-hearts.md Part 2): one personal story per villager, opening at 8 hearts ----
    They're ordinary QUESTS (id 'h_' + villager, heart:true). questMorning opens at most one a morning, so a save that's
    already full of 8-heart friends gets a new story each day rather than fifteen at once. Each ends with a keepsake
@@ -7863,6 +7994,7 @@ function qBlock(id, v) {
   }
   if (step.give && qHave(step.give) < step.give.n) return `You need ${step.give.n} (you have ${qHave(step.give)}).`;
   if (step.pay && S.coins < step.pay) return `You need ${fmt(step.pay)} coins (you have ${fmt(S.coins)}).`;
+  if (step.check) { const why = step.check(); if (why) return why; }
   return '';
 }
 function qHint(id) {
@@ -7884,6 +8016,7 @@ function questReward(Q) {
   if (r.coins) { earn(r.coins); out.push(`${fmt(r.coins)} coins.`); }
   if (r.items) { giveItems(r.items); out.push(Object.entries(r.items).map(([k, n]) => `${n} ${itemName(k)}`).join(' and ') + '.'); }
   if (r.lit) out.push('The lighthouse shines over the river every night now.');
+  if (r.shopflag) { const st = shopState(); (st.flags = st.flags || {})[r.shopflag] = absDay(); if (r.rep) addRep(r.rep / (shopUp('sign') ? SIGN_REP : 1)); bgKey = ''; }
   if (r.shop) { shopState(); out.push('The shop is yours. Walk in, tap a shelf to stock it, and open up from the ledger on the counter. You can also go straight there from the garden gate.'); }
   if (r.match) { const at = matchWedAt(r.match), M = MATCHES[r.match]; (S.matched = S.matched || {})[r.match] = { wed:at, went:false }; out.push(`${VILLAGERS[M.a].name} and ${VILLAGERS[M.b].name} will be married on ${dateLabel(at)}, at ${VPLACES[M.place].name}. You're invited.`); }
   if (r.memento) { (S.mementos = S.mementos || {})[r.memento] = true; out.push(`A keepsake for your shelf: ${MEMENTOS[r.memento].name}.`); }
@@ -8635,7 +8768,7 @@ function renderSheet(kind, data) {
   } else if (kind === 'gift') {
     title = 'A gift!';
     h += `<ul class="lines">${data.map(t => `<li class="gift">${t}</li>`).join('')}</ul><div class="cta-row"><button class="btn" data-act="close" type="button">Lovely</button></div>`;
-  } else if (kind === 'shop' || kind === 'shelf' || kind === 'shopday' || kind === 'buyer') { const o = shopSheet(kind, data); h += o.h; title = o.title; }
+  } else if (kind === 'shop' || kind === 'shelf' || kind === 'shopday' || kind === 'buyer' || kind === 'lpage' || kind === 'bakery' || kind === 'curios') { const o = shopSheet(kind, data); h += o.h; title = o.title; }
   const key = kind + '|' + (kind === 'market' ? marketTab : kind === 'journal' ? journalTab : kind === 'cauldron' ? brewTab : '') + '|' + ((data && (data.v || data.p)) || '');
   const keep = key === lastSheetKey ? body.scrollTop : 0;
   $('shTitle').textContent = title; body.innerHTML = h; body.scrollTop = keep; lastSheetKey = key;

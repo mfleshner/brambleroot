@@ -19,7 +19,7 @@ for (const [season, year] of [[1, 1], [2, 1], [3, 1], [0, 2]]) {
   let tot = { coins:0, stall:0, people:0, sold:0, fr:0 };
   for (let day = 0; day < N; day++) {
     S.year = year; S.season = season; S.day = 1 + (day % 27); if (S.day === 14) S.day = 15; S.rain = Math.random() < [.22, .12, .25, 0][season];
-    S.time = 540; S.shop = null; S.known = {}; if (t.SV) t.leaveShop && t.leaveShop(); for (const v of t.VIDS) S.fr[v] = 300;
+    S.time = 540; S.shop = null; S.known = {}; if (t.SV) { t.leaveShop(); close(); } for (const v of t.VIDS) S.fr[v] = 300;
     t.enterShop(); const st = t.shopState();
     if (UPS) { S.coins += 10000; ['tables', 'glass', 'window', 'sign'].forEach(t.shopBuyUp); st.rep = 250; }
     // her shelves: up to 4 kinds of this season's crops, 10 each, and two shelves of potions (6 a day: two nights of brewing)
@@ -31,7 +31,7 @@ for (const [season, year] of [[1, 1], [2, 1], [3, 1], [0, 2]]) {
     t.shopOpenUp();
     for (let i = 0; i < 6000 && t.SV && t.SV.open; i++) {
       t.update(.1);
-      const w = t.SV && t.SV.custs.filter(c => c.st === 'wait');
+      const w = t.SV && t.SV.custs.filter(c => c.st === 'wait' && !c.buyer); // the buyer is part 4's (counted separately)
       if (w && w.length && i % 20 === 0) t.shopServe(w[0]);
       if (t.sheet === 'shopday') break;
     }

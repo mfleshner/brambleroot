@@ -10,4 +10,4 @@ The whole game is a single file, `index.html`. Saves live in the browser on the 
 - `src/brambleroot.html` is the source (no cloud keys). `index.html` is the built site:
   `cd src && python3 build_site.py brambleroot.html ../index.html <firebase apiKey> <projectId>` (keys are in the current index.html, `const CLOUD`).
 - `tests/` holds the save, balance and gameplay checks used so far (Node + Playwright). They expect to run from a folder holding the built page as `local.html`, plus the files in tests/.
-- `PLAN-shop.md` is the plan for the current big update (the shop on Old Market Row). The other `PLAN-*.md` files are finished plans.
+- Every `PLAN-*.md` file is a finished plan (the latest is `PLAN-shop.md`, the shop on Old Market Row).

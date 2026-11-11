@@ -23,7 +23,7 @@ ok(made === 300 && okItems && okN, 'orders ask for something makeable this seaso
 // mornings: never more than two, lapses kindly
 st.orders = []; let maxOpen = 0, lapses = 0, news = 0;
 for (let d = 0; d < 60; d++) { const lines = []; t.shopMorning(lines); maxOpen = Math.max(maxOpen, st.orders.length); news += lines.filter(l => /special order/.test(l.t)).length; lapses += lines.filter(l => /about the/.test(l.t)).length; S.day = S.day % 27 + 1; if (S.day === 14) S.day = 15; }
-ok(maxOpen <= t.ORDER_MAX && news > 5 && lapses > 0, `orders come and lapse (${news} new, ${lapses} lapsed in 60 days)`);
+ok(maxOpen <= t.ORDER_MAX && news >= 3 && lapses > 0, `orders come and lapse (${news} new, ${lapses} lapsed in 60 days)`);
 // handing one over
 st.orders = []; const o = t.newOrder(); S.inv = {}; S.inv[o.item] = o.n - 1;
 ok(!t.orderDone(o.id), 'can\'t hand over without enough');

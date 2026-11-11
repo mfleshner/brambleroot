@@ -8,7 +8,7 @@ const store = {}; globalThis.localStorage = { getItem: k => store[k] ?? null, se
 eval(src); const t = __t; t.startGame(true);
 // node questsim.js heart → the heart quests (PLAN-hearts.md Part 2), else the original six stories.
 // node questsim.js match → the five matchmaking stories (Part 3).
-const MODE = process.argv[2] || '', HEART = MODE === 'heart' || MODE === 'match', QL = t.QIDS.filter(id => MODE === 'match' ? !!t.QUESTS[id].match : MODE === 'heart' ? !!t.QUESTS[id].heart : !t.QUESTS[id].heart && !t.QUESTS[id].match && id !== 'shop'); // the shop story has its own test (shoptest.js)
+const MODE = process.argv[2] || '', HEART = MODE === 'heart' || MODE === 'match', QL = t.QIDS.filter(id => MODE === 'match' ? !!t.QUESTS[id].match : MODE === 'heart' ? !!t.QUESTS[id].heart : !t.QUESTS[id].heart && !t.QUESTS[id].match && !t.QUESTS[id].shopq); // the shop stories have their own tests (shoptest.js, shop5test.js)
 let bad = 0, n = 0; const ok = (c, m) => { n++; if (!c) { bad++; if (bad < 30) console.log('BAD', m); } };
 const body = () => document.getElementById('shBody').innerHTML, clean = h => !/undefined|NaN|\[object/.test(h);
 const close = () => { if (t.sheet) t.closeSheet(); };
