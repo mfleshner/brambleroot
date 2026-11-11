@@ -344,8 +344,8 @@ Object.assign(POTIONS, {
 });
 const ITEMS = Object.assign({}, CROPS, POTIONS, FISH, MISC, FORAGE);
 // Romance items. They're for one purpose each, so they never show up as ordinary gifts, fair entries or swap gifts.
-Object.assign(ITEMS, { bouquet:{ name:'Moonpetal Bouquet', sell:100, col:'#cdbbff' }, ring:{ name:"Witch's Ring", sell:300, col:'#f2b84b' } });
-const NOGIFT = { bouquet:1, ring:1 }, BOUQUET_COST = 200, RING_NEED = { crystal:1, starshard:1 };
+Object.assign(ITEMS, { bouquet:{ name:'Moonpetal Bouquet', sell:100, col:'#cdbbff' }, ring:{ name:"Witch's Ring", sell:300, col:'#f2b84b' }, bracelet:{ name:'Friendship Bracelet', sell:75, col:'#ef9aac' } });
+const NOGIFT = { bouquet:1, ring:1, bracelet:1 }, BOUQUET_COST = 200, RING_NEED = { crystal:1, starshard:1 };
 const itemName = id => ITEMS[id] ? ITEMS[id].name : id;
 const itemValue = id => ITEMS[id] ? ITEMS[id].sell : 0;
 const itemCol = id => ITEMS[id] ? ITEMS[id].col : '#888';
@@ -875,7 +875,7 @@ function newState() {
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     hollow:hollowState(), helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
-    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{}, fbest:{} };
+    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{}, fbest:{}, bff:{} };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -1089,15 +1089,63 @@ function drawSprinkler(x, y) {
     for (let k = 0; k < n; k++) { const ang = a + k * 2 * Math.PI / n; circ(ctx, cx + Math.cos(ang) * rad * u, cy - 5 * u + Math.sin(ang) * rad * .5 * u, u * .9, 'rgba(160,210,250,.8)'); }
   }
 }
+// Growing plants look like their crop from the first sprout (Nov 10, 2026 feedback: "they all look the same"):
+// each crop has its own leaves and shape, and from about two thirds grown a bud or young fruit in the crop's colour.
+// Stage 0 sprout, 1 young plant, 2 budding.
+function drawGrowing(cx, base, u, id, cr, prog) {
+  const st = prog < .34 ? 0 : prog < .67 ? 1 : 2, k = [.45, .75, 1][st], col = cr.col;
+  const leaf = (x, y, rx, ry, rot, c) => { ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(x, y, rx * u, ry * u, rot, 0, 7); ctx.fill(); };
+  const stem = (h, c, dx) => R(ctx, cx + (dx || 0) * u - .45 * u, base - h * u, .9 * u, h * u, c || '#5b9a3e');
+  switch (id) {
+    case 'mint': // a low cluster of round, pale leaves
+      for (const [dx, dy, r] of [[-2.2, -1.6, 1.9], [2.2, -1.6, 1.9], [0, -3.2, 2], [-1.4, -5, 1.6], [1.6, -5, 1.6]].slice(0, [3, 4, 5][st])) circ(ctx, cx + dx * u * k, base + dy * u * k, r * u * (.7 + .3 * k), st ? '#5fae74' : '#7fd39a');
+      if (st === 2) circ(ctx, cx, base - 6.2 * u, 1.1 * u, '#b8f0c8');
+      break;
+    case 'ember': // feathery carrot tops; the orange shoulder shows at the end
+      for (const dx of [-1.6, 0, 1.6]) { stem(8 * k, '#4f8f3a', dx); circ(ctx, cx + dx * u, base - 8 * k * u, 1.3 * u, '#6aae48'); }
+      if (st === 2) { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(cx, base, 2.6 * u, 1.4 * u, 0, Math.PI, 0); ctx.fill(); }
+      break;
+    case 'moon': // one slender stem with a closed lilac bud
+      stem(9 * k); leaf(cx - 1.8 * u, base - 2.5 * u, 1.8, .8, -.5, '#5b9a3e'); if (st) leaf(cx + 1.8 * u, base - 4.5 * u, 1.8, .8, .5, '#79bd52');
+      if (st === 2) { leaf(cx, base - 9.6 * u, 1.3, 2, 0, col); circ(ctx, cx, base - 8.4 * u, .7 * u, '#5b9a3e'); }
+      break;
+    case 'thorn': case 'star': { // a round dark bush; small buds in the fruit colour
+      const big = id === 'star' ? 1.15 : 1, g1 = id === 'star' ? '#3a7a34' : '#2f5a2e', g2 = id === 'star' ? '#4a8e3e' : '#3c7038';
+      circ(ctx, cx, base - 3 * u * k, 4 * u * k * big, g1); circ(ctx, cx - 1.6 * u * k, base - 4.4 * u * k, 2.6 * u * k * big, g2);
+      if (id === 'thorn' && st) for (const [dx, dy] of [[-2.5, -3], [2.6, -2.2]]) R(ctx, cx + dx * u, base + dy * u, .6 * u, .6 * u, '#9ad07a');
+      if (st === 2) for (const [dx, dy] of [[-2, -4], [2, -3], [0, -6]]) circ(ctx, cx + dx * u, base + dy * u, .9 * u, col);
+      break; }
+    case 'glow': // no leaves: little teal pins push up and widen
+      for (const [dx, h, r] of [[-2.5, 3, 1.4], [2, 4.5, 1.8], [0, 2, 1.1]].slice(0, st + 1)) { R(ctx, cx + dx * u - .4 * u, base - h * k * u, .8 * u, h * k * u, '#e9e2d0'); ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(cx + dx * u, base - h * k * u, r * k * 1.4 * u, r * k * u, 0, Math.PI, 0); ctx.fill(); }
+      break;
+    case 'pepper': // an upright stem with paired leaves; a small green pepper, blushing red at the end
+      stem(8 * k, '#4f8f3a'); for (let i = 0; i <= st; i++) { const y = base - (2.5 + i * 2.4) * u; leaf(cx - 2 * u, y, 1.9, .9, -.4, '#5b9a3e'); leaf(cx + 2 * u, y - .6 * u, 1.9, .9, .4, '#6aae48'); }
+      if (st === 2) { leaf(cx + 1.6 * u, base - 3 * u, .9, 1.7, .1, '#e0702a'); }
+      break;
+    case 'melon': case 'gourd': // low spreading vines with broad leaves; a small young fruit
+      { const g = id === 'melon' ? '#5fae48' : '#4f8f3a'; for (const [dx, dy, r] of [[-3, -1.4, 2.3], [3, -1.6, 2.3], [0, -3, 2.6], [-5, -.6, 1.8], [5, -.8, 1.8]].slice(0, [2, 3, 5][st])) circ(ctx, cx + dx * u * (.6 + .4 * k), base + dy * u, r * u * (.7 + .3 * k), g);
+        R(ctx, cx - 5 * u * k, base - .5 * u, 10 * u * k, .8 * u, '#4a7a32');
+        if (st === 2) circ(ctx, cx + 2.2 * u, base - 1.4 * u, 1.9 * u, id === 'melon' ? '#bfe88a' : '#f0a050'); }
+      break;
+    case 'wolf': // tall narrow blades; a violet spike of buds
+      for (const [dx, h, rot] of [[-1.6, 7, -.25], [0, 9, 0], [1.6, 7, .25]]) leaf(cx + dx * u, base - h * k * u / 2, .8, h * k / 2, rot, '#3f7a4a');
+      if (st === 2) for (let i = 0; i < 3; i++) circ(ctx, cx, base - (8 + i * 1.3) * u, (1 - i * .2) * u, col);
+      break;
+    case 'frost': // a low pale cushion of moss that spreads
+      for (const [dx, r] of [[0, 3], [-2.6, 2.2], [2.6, 2.2]].slice(0, st + 1)) circ(ctx, cx + dx * u * k, base - 1.2 * u, r * u * (.6 + .4 * k), st === 2 ? col : '#8fc6c8');
+      if (st === 2) for (const dx of [-2, 1, 2.8]) circ(ctx, cx + dx * u, base - 2.6 * u, .5 * u, '#ffffff');
+      break;
+    default:
+      stem(7 * k); circ(ctx, cx - 2 * u, base - 6 * k * u, 1.8 * u, '#79bd52'); circ(ctx, cx + 2 * u, base - 5.5 * k * u, 1.8 * u, '#6aae48');
+      if (st === 2) circ(ctx, cx, base - 7.4 * k * u, 1.2 * u, col);
+  }
+}
 function drawCrop(x, y, p) {
   const u = T / 16, cr = CROPS[p.c], cx = x + T / 2, base = y + T - 3 * u;
   if (!p.ready) {
     const prog = p.d / cr.grow;
     if (p.d === 0) { R(ctx, cx - 3 * u, base - u, 1.5 * u, 1.5 * u, '#c9a675'); R(ctx, cx + 2 * u, base - 2 * u, 1.5 * u, 1.5 * u, '#c9a675'); return; }
-    const h = (prog < .5 ? 4 : 7) * u;
-    R(ctx, cx - .5 * u, base - h, u, h, '#5b9a3e');
-    circ(ctx, cx - 2 * u, base - h + u, 1.8 * u, '#79bd52'); circ(ctx, cx + 2 * u, base - h + 1.5 * u, 1.8 * u, '#6aae48');
-    if (prog >= .5) { circ(ctx, cx - 2.5 * u, base - h * .45, 1.6 * u, '#5b9a3e'); circ(ctx, cx + 2.5 * u, base - h * .5, 1.6 * u, '#79bd52'); }
+    drawGrowing(cx, base, u, p.c, cr, prog);
     return;
   }
   const sway = reduceMotion ? 0 : Math.sin(clock * 2 + x * .05) * u * .6;
@@ -1595,6 +1643,7 @@ function endDay(passedOut) {
   });
   if (sprinkled && !S.rain) lines.push({ t:`Your sprinklers watered ${sprinkled} bed${sprinkled === 1 ? '' : 's'}.` });
   romanceMorning(lines);
+  bffMorning(lines);
   // honey
   if (S.hives > 0 && S.season !== 3 && S.day % 3 === 0) { S.inv.honey = (S.inv.honey || 0) + S.hives; lines.push({ t:`The hive${S.hives > 1 ? 's' : ''} made ${S.hives} jar${S.hives > 1 ? 's' : ''} of honey.`, c:'gold' }); }
   // cat
@@ -1748,7 +1797,7 @@ const dayKey = () => `${S.year}.${S.season}.${S.day}`;
 // Romance: nine adults can go to 10 hearts, but hearts 9 and 10 only open for the one she's dating (or married to).
 const canRomance = v => VILLAGERS[v].romance !== false && !(S && S.hew && (S.hew.dating || S.hew.wed));
 const isPartner = v => !!v && (v === S.spouse || v === S.dating);
-const heartMax = v => isPartner(v) ? 10 : 8;
+const heartMax = v => isPartner(v) || isBff(v) ? 10 : 8;
 const heartsOf = v => Math.min(heartMax(v), Math.floor((S.fr[v] || 0) / 100));
 const arrived = v => S.year > 1 || VILLAGERS[v].arrive <= S.season || v === S.spouse;
 // Zara's cart comes every seventh day (days 5, 12, 19, 26) and for festivals. Once married, she lives here.
@@ -1759,13 +1808,14 @@ const isBday = v => VILLAGERS[v].bday[0] === S.season && VILLAGERS[v].bday[1] ==
 // Friendship never drops because of romance: points above a cap are kept (they come back if she dates them again),
 // and her spouse's friendship can't go down at all.
 function addFr(v, pts) {
-  const cur = S.fr[v] || 0, cap = isPartner(v) ? 1050 : 850;
+  const cur = S.fr[v] || 0, cap = isPartner(v) || isBff(v) ? 1050 : 850;
   if (v === S.spouse && pts < 0) pts = 0;
   S.fr[v] = Math.max(0, Math.min(Math.max(cap, cur), cur + pts));
 }
 function nextScene(v) {
   for (const lvl of [2, 4, 6, 8]) if (heartsOf(v) >= lvl && !S.scenes[v + lvl]) { S.scenes[v + lvl] = true; return { lvl, text:VILLAGERS[v].scenes[lvl] }; }
   if (isPartner(v) && ROMANCE[v]) for (const lvl of [9, 10]) if (heartsOf(v) >= lvl && !S.scenes[v + lvl]) { S.scenes[v + lvl] = true; return { lvl, text:ROMANCE[v]['s' + lvl] }; }
+  if (isBff(v) && BFF[v]) for (const lvl of [9, 10]) if (heartsOf(v) >= lvl && !S.scenes[v + 'b' + lvl]) { S.scenes[v + 'b' + lvl] = true; return { lvl, text:BFF[v]['s' + lvl], mood:'happy' }; }
   return null;
 }
 // Days counted from the very first morning, so a wedding date survives season and year changes.
@@ -1839,6 +1889,102 @@ function giveBouquet(v) {
   S.inv.bouquet--; S.dating = v;
   romanceScene(v, `${VILLAGERS[v].name} · dating`, ROMANCE[v].yes, [`You're dating ${VILLAGERS[v].name}. Hearts 9 and 10 are open now.`]);
 }
+
+/* ================= best friends (PLAN-hearts.md Part 1) =================
+   A Friendship Bracelet (Market, BRACELET_COST, on sale once anyone she isn't with is at 8 hearts) given at 8 hearts makes
+   a villager a best friend: S.bff[v] = absDay(). Best friends open hearts 9 and 10 like a partner (heartMax, addFr cap),
+   with their own scenes (BFF[v].s9/s10, scene keys v+'b9'/'b10' so a later romance still gets its own 9 and 10).
+   At 10 hearts they sometimes leave a small something in the morning (BFF_HELP, one friend a morning at BFF_HELP_P). */
+const BRACELET_COST = 150, BFF_HELP_P = .35;
+const isBff = v => !!(S && S.bff && S.bff[v]) && !isPartner(v);
+const braceletOnSale = () => (S.inv.bracelet || 0) > 0 || VIDS.some(v => arrived(v) && !isPartner(v) && !isBff(v) && heartsOf(v) >= 8);
+const BFF = {
+  mara: { yes:"Mara holds the bracelet up to the light. Red thread, like the string on her mill key. \"Matching,\" she says, and ties it on with her teeth. \"Turnip isn't getting one. She'd eat it.\"",
+    s9:"Mara asks you to help her sort her husband's things in the mill loft, the job she's put off for three years. You find his old flour-dusted hat. She laughs and cries at once, then puts it on Turnip, who looks very distinguished.",
+    s10:"Mara hangs a second sign on the mill door, under her own: a little painted witch's hat. \"So everyone knows,\" she says. \"This is your mill too. Flour's free. Gossip's free. Turnip is not for sale.\"" },
+  fen: { yes:"Fen turns the bracelet over in his rough hands. \"Your aunt made me one of these, sixty years back. Fell in the river the same day.\" He ties it on with a sailor's knot. \"This one stays.\"",
+    s9:"Fen hands you the ferry pole. \"Take her across. I'll sit.\" You pole badly, and the ferry turns two full circles in the current. Fen laughs until he wheezes. \"That's exactly how she did it, first time.\"",
+    s10:"Fen paints a second name on the ferry's bow, under his own. It's yours. \"When I'm too old to pole her,\" he says, \"she'll want someone who knows the river's moods. You've learned them. Slowly. But you have.\"" },
+  pip: { yes:"Pip gasps so loudly that Tilly comes running. \"BEST friends? Like, an official one?\" They put the bracelet on, take it off to look at it, and put it on again. \"I'm never taking it off. Except for baths. Ma says.\"",
+    s9:"Pip announces they've started a club. It has three members: Pip, Tilly and you. It has a password, which Pip tells you very loudly in the middle of the square. Nobody is sure what the club is for, but there are biscuits.",
+    s10:"Pip gives you a jar of buttons, pebbles and one very old sweet. \"My treasures,\" they say. \"All of them. You keep them safe. You're the best at keeping things safe.\" A pause. \"Not the sweet. I'll have the sweet back.\"" },
+  odile: { yes:"Odile laughs, delighted. \"A friendship bracelet! The children make these every spring. Nobody's made me one in thirty years.\" She wears it to class the next day, and twenty children ask who it's from.",
+    s9:"Odile asks you to teach her class a lesson on herbs. You do your best, and the children love it. Odile watches from the back with her chin in her hand. Afterwards she says quietly, \"You'd have made a fine teacher. Your aunt would have hated that.\"",
+    s10:"Odile writes your name in the school register, on the very last page, under Friends of the School. The only other name there is Bramble's. \"She mended the roof every autumn for forty years,\" Odile says. \"You mended something else.\"" },
+  wren: { yes:"Wren holds the bracelet to her ear, as if it might hum. Then she ties it round her wrist. \"I'll tell the bees,\" she says. \"They'll want to know. They worry about me, you know.\"",
+    s9:"Wren takes you to a wild hive in the Old Wood, high in a hollow oak. You sit beneath it for an hour without saying a word. \"This is how I make friends,\" she says at last. \"Sitting. Most people can't.\" You could.",
+    s10:"Wren gives you the first comb from a new queen, still warm and sweet. \"In the city I had nobody I'd give this to,\" she says. \"Now there's you. And the bees. Mostly you.\"" },
+  rowan: { yes:"Rowan looks at the bracelet, then at you. \"I don't wear jewellery. It catches on the anvil.\" He puts it on at once anyway, and that afternoon he makes a little iron guard for it.",
+    s9:"Rowan lets you strike the iron for a horseshoe. You miss twice. On the third try it rings like a bell. \"That's it,\" he says, and you've never seen him grin so wide. \"That sound. That's why I do it.\"",
+    s10:"Rowan makes a second hammer, small and well balanced, with a bramble leaf worked into the handle. \"For you. A smith gives one to the person they'd trust at their forge.\" He clears his throat. \"There's only ever been you.\"" },
+  silas: { yes:"Silas turns the bracelet slowly in his fingers. \"In the city, a hundred people called me their friend. It meant 'buy me a drink'.\" He ties it on. \"Here I think it means something. I'll write you a verse.\"",
+    s9:"Silas teaches you three chords on his old lute. You're terrible. He's patient. At the end of the night you play the opening of Brambleroot, badly, and the whole inn sings along anyway.",
+    s10:"Silas writes back to his brother at last, and reads you the letter before he posts it. \"I'm staying. I have a home, a best friend, and an inn that sings.\" He seals it. \"That's the proper job.\"" },
+  theo: { yes:"Theo pushes his glasses up his nose. \"A friendship bracelet. Fascinating. Woven, not brewed.\" He holds very still while you tie it. \"I've never had a lab partner before. Is that what this is? I think it's better.\"",
+    s9:"Theo invites you to brew through the night: a potion neither of you could make alone. It goes wrong twice and right once, at dawn, glowing like a sunrise in the jar. You both fall asleep at the bench.",
+    s10:"Theo screws a small brass plate onto his shop door, under his own. It has your name on it. \"Partner in Potions,\" he reads aloud, very red. \"It's honorary. It's also completely sincere.\"" },
+  isolde: { yes:"Isolde holds the bracelet against her apron and goes misty. \"A thousand regulars and not one best friend,\" she says. \"Don't tell anyone I cried. I'll know if you do.\"",
+    s9:"Isolde closes the inn for one evening, the first time in eleven years, and the two of you have supper at the corner table with nobody to serve. She keeps getting up to fetch things. You keep sitting her back down.",
+    s10:"Isolde gives you a key to the inn, iron and heavy. \"Back door. For when you can't sleep, or you need soup at midnight, or you just want company.\" She smiles. \"I always want company. I just never said.\"" },
+  juno: { yes:"Juno grins. \"Diving partners AND best friends? That's double.\" She ties the bracelet on, then jumps straight into the river to check it's waterproof. It is. Mostly.",
+    s9:"Juno takes you to the old mooring post where her mum's boat used to tie up. She's never brought anyone. You sit on the post together, and she tells you every story she remembers, and laughs at most of them.",
+    s10:"Juno carves your name into the diving board on the docks, under her mum's and her own. \"Three of the bravest people I know,\" she says. \"Well. Two, and you. You count.\"" },
+  hettie: { yes:"Hettie holds your hand with the bracelet in it, and doesn't let go for a while. \"Bramble made me one of these when we were six. Daisies. It lasted an afternoon.\" She squeezes. \"This one'll outlast me, I'd wager.\"",
+    s9:"Hettie walks you up the hill where she and your aunt used to sit. It takes an hour, because she stops to name every herb. At the top she pats the grass beside her. \"We planned the whole world up here. Plan something with me.\"",
+    s10:"Hettie gives you her herb journal: seventy years of it, every page in her small neat hand, and half of it in your aunt's terrible spelling. \"It was ours,\" she says. \"Now it's yours. Add to it. Spell properly.\"" },
+  aldous: { yes:"Mayor Aldous accepts the bracelet with great ceremony, as if it were a medal. \"I shall wear it to every council meeting.\" He does. Nobody dares to mention it.",
+    s9:"Aldous asks your advice on a weighty matter of town business: where to put the new bench. You spend the afternoon walking every lane with him, testing every view. In the end he puts it outside your gate. \"Best view in the valley.\"",
+    s10:"Aldous hangs a new painting in the town hall: you and your aunt side by side, his own work, rather wobbly. \"The mayors' gallery,\" he says. \"I decided it needed some people I actually like.\"" },
+  zara: { yes:"Zara turns the bracelet over and over. \"I've sold a thousand of these. Never once been given one.\" She ties it on with a merchant's knot. \"Not for sale. Not ever.\"",
+    s9:"Zara takes you on the road for a day, one village over, to a market by a mill pond. She haggles like a duellist and buys you a ribbon. On the way home she says, \"It's different, coming back to somewhere. I didn't know.\"",
+    s10:"Zara paints a new word on the side of her cart, under her name: Brambleroot. \"Every merchant has a home address,\" she says. \"I never did. Now if anyone asks where I'm from...\" She shrugs, pleased. \"That's where.\"" },
+  bertram: { yes:"Bertram looks at the bracelet for a long time. \"The last thing anyone gave me was a ship's bell,\" he says. \"This is better. Bells are heavy.\" He ties it on with great care.",
+    s9:"Bertram teaches you to read the weather from the lighthouse gallery: the colour of the clouds, the way the gulls fly. \"Rain by teatime,\" he says. You go home. It rains at teatime. You both feel very clever.",
+    s10:"Bertram opens the lighthouse logbook to a fresh page. \"Every keeper names a second keeper,\" he says. \"In case.\" He's already written your name. \"You'll not need it for a while. But you'll know you're trusted.\"" },
+  tilly: { yes:"Tilly stares at the bracelet, then shrieks. \"Pip! PIP! I got a real one!\" She shows it to everyone in the square, including a pigeon. \"It's from a WITCH,\" she tells the pigeon.",
+    s9:"Tilly asks you to come to the school play. She's a tree. She has one line, which is \"Rustle.\" She says it with enormous feeling, looking straight at you the whole time.",
+    s10:"Tilly gives you a drawing she worked on for a whole week: you, the cat, Pip and her, holding hands under a very big moon. \"That's us,\" she says. \"Forever. It's a rule. I made it.\"" }
+};
+const BFF_HELP = {
+  mara:() => { S.energy += 15; return 'Mara left a warm loaf on your step before dawn: +15 energy today.'; },
+  fen:() => { const f = pickFish(); giveItems({ [f]:1 }); return `Fen left a bucket by your gate with ${aN(FISH[f].name)} in it, and a note: "Too small for me." It isn't.`; },
+  pip:() => { S.energy += 10; return 'Pip pinned a drawing of you to the door. You smile at it all through breakfast: +10 energy today.'; },
+  odile:() => { const pool = VIDS.filter(x => x !== 'odile' && arrived(x)), got = []; while (got.length < 2 && pool.length) got.push(pool.splice((Math.random() * pool.length) | 0, 1)[0]); for (const x of got) addFr(x, 15);
+    return `Odile told her class how kind you are. ${got.map(x => VILLAGERS[x].name).join(' and ')} heard all about it from the children, and they're a little fonder of you.`; },
+  wren:() => { giveItems({ honey:1 }); return 'Wren left a jar of Wildflower Honey on the step, with a bee drawn on the lid.'; },
+  rowan:() => { let n = 0; for (const p of S.plots) if (n < 4 && p.t && p.c && !p.ready && !p.w && !CROPS[p.c].noWater) { p.w = true; n++; } if (n) return `Rowan passed the garden early on his way to the forge, and watered ${n} bed${n === 1 ? '' : 's'} for you.`; S.energy += 10; return 'Rowan oiled your gate on his way to the forge. It feels like a good start to the day: +10 energy.'; },
+  silas:() => { if (S.spells.length) { S.mana += 10; return 'Silas whistled his song past your window at dawn. It fizzes in your fingers: +10 mana today.'; } S.energy += 15; return 'Silas whistled his song past your window at dawn: +15 energy today.'; },
+  theo:() => { const ids = Object.keys(POTIONS).filter(id => !POTIONS[id].wild && potionKnown(id) && POTIONS[id].sell <= 120), id = ids[(Math.random() * ids.length) | 0] || 'calming'; giveItems({ [id]:1 }); return `Theo left ${aN(POTIONS[id].name)} by the door with a label: "Spare. Probably."`; },
+  isolde:() => { S.energy += 20; return 'Isolde sent a pot of soup up with the milk cart: +20 energy today.'; },
+  juno:() => { const f = pickFish(); giveItems({ [f]:1 }); return `Juno dropped off ${aN(FISH[f].name)} on her way back from the river. "Caught two. You have one."`; },
+  hettie:() => { const ids = Object.keys(FORAGE).filter(k => FORAGE[k].sell <= 40 && (FORAGE[k].seasons || []).includes(S.season)), k = ids[(Math.random() * ids.length) | 0] || 'fern'; giveItems({ [k]:1 }); return `Hettie left a bundle of herbs tied with string on your step: ${aN(FORAGE[k].name)}.`; },
+  aldous:() => { S.coins += 100; return 'Mayor Aldous sent a small grant from the town fund "for the upkeep of the valley\'s best view": 100 coins.'; },
+  zara:() => { const sd = seedGift(2, false)(); S.seeds[sd.id] = (S.seeds[sd.id] || 0) + sd.n; return `Zara tucked two ${CROPS[sd.id].name} seeds into your mailbox, wrapped in a page from a foreign newspaper.`; },
+  bertram:() => { S.energy += 10; return `Bertram left the weather by your door, as he does now: "${S.nextRain ? 'Rain tomorrow. Leave the can.' : 'Fair tomorrow. Fill the can.'}" +10 energy, somehow.`; },
+  tilly:() => { giveItems({ glimmer:1 }); return 'Tilly left a daisy chain on the gate, and a Glimmerberry she says she found "in a secret place".'; }
+};
+function bffMorning(lines) {
+  if (Math.random() >= BFF_HELP_P) return;
+  const pool = VIDS.filter(v => isBff(v) && heartsOf(v) >= 10 && inValley(v) && BFF_HELP[v]);
+  if (!pool.length) return;
+  const v = pool[(Math.random() * pool.length) | 0];
+  lines.push({ t:BFF_HELP[v](), c:'gift', v, mood:'happy' });
+}
+function giveBracelet(v) {
+  if (!VILLAGERS[v] || isPartner(v) || isBff(v) || heartsOf(v) < 8 || !(S.inv.bracelet > 0) || !inValley(v)) return;
+  S.inv.bracelet--; (S.bff = S.bff || {})[v] = absDay();
+  updateHUD(); save(); SND.gift();
+  sheetOpen = 'scene'; renderSheet('scene', { v, title:`${VILLAGERS[v].name} · best friends`, text:BFF[v].yes, mood:'happy', gifts:[`${VILLAGERS[v].name} is your best friend now. Hearts 9 and 10 are open.`] });
+}
+// The best-friend part of a villager's page: { note, acts }.
+function bffBox(v) {
+  const V = VILLAGERS[v], h = heartsOf(v), has = (S.inv.bracelet || 0) > 0;
+  if (isPartner(v) || (S.wedding && S.wedding.v === v)) return { note:'', acts:'' };
+  if (isBff(v)) return { note:h < 10 ? `${V.name} is your best friend. Hearts 9 and 10 are open now.` : `${V.name} is your best friend, at 10 hearts.`, acts:'' };
+  if (h < 8) return { note:'', acts:'' };
+  if (!has) return { note:`At 8 hearts, a Friendship Bracelet from the Market (${BRACELET_COST} coins) makes ${V.name} your best friend.`, acts:'' };
+  return { note:`${V.name} is at 8 hearts, and you have a Friendship Bracelet.`, acts:`<button class="btn alt" data-act="bracelet" data-id="${v}" type="button" ${canMeet(v) ? '' : 'disabled'}>Give the friendship bracelet</button>` };
+}
 function kindGoodbye(v) {
   if (S.dating !== v || S.wedding) return;
   S.dating = null; // friendship points are kept; hearts 9 and 10 simply lock again
@@ -1871,7 +2017,7 @@ function celebrate(v, mood, line) {
   checkStars();
   const sc = nextScene(v);
   updateHUD(); save();
-  if (sc) { sheetOpen = 'scene'; renderSheet('scene', { v, lvl:sc.lvl, text:sc.text, gifts }); }
+  if (sc) { sheetOpen = 'scene'; renderSheet('scene', { v, lvl:sc.lvl, text:sc.text, gifts, mood:sc.mood }); }
   else { sheetOpen = 'villager'; renderSheet('villager', { v, mood, line, gifts }); }
 }
 // What a few villagers say once she's gone past the Crystal Caves.
@@ -6312,7 +6458,7 @@ function row(dot, name, meta, acts, cls) {
 const LOCK = '<svg class="lock" viewBox="0 0 10 12" width="10" height="12" aria-hidden="true"><path d="M2.6 5.2V3.6a2.4 2.4 0 0 1 4.8 0v1.6" fill="none" stroke="#9a88b0" stroke-width="1.4"/><rect x="1" y="5" width="8" height="6.5" rx="1.6" fill="#9a88b0"/></svg>';
 // Romanceable people show 10 hearts; 9 and 10 wear a padlock until she's dating them.
 function hearts(n, v) {
-  const max = v && canRomance(v) ? 10 : 8, open = v && isPartner(v);
+  const max = v && VILLAGERS[v] ? 10 : 8, open = v && (isPartner(v) || isBff(v));
   let h = `<span class="hearts" aria-label="${n} of ${max} hearts${max > 8 && !open ? ', 9 and 10 locked' : ''}">`;
   for (let i = 0; i < max; i++) h += i >= 8 && !open ? LOCK : `<i class="${i < n ? 'on' : ''}"></i>`;
   return h + '</span>';
@@ -6365,6 +6511,7 @@ function renderSheet(kind, data) {
     h += `<div class="tabs" role="tablist">${['buy', 'sell', 'upgrades'].map(t => `<button class="tab" role="tab" aria-selected="${marketTab === t}" data-act="tab" data-id="${t}" type="button">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>`;
     if (marketTab === 'buy') {
       if (bouquetOnSale()) h += row(ITEMS.bouquet.col, 'Moonpetal Bouquet', `${BOUQUET_COST} coins · have ${S.inv.bouquet || 0} · give it to someone at 8 hearts to ask them out`, `<button class="btn" data-act="bouq" type="button" ${S.coins < BOUQUET_COST ? 'disabled' : ''}>Buy · ${BOUQUET_COST}</button>`);
+      if (braceletOnSale()) h += row(ITEMS.bracelet.col, 'Friendship Bracelet', `${BRACELET_COST} coins · have ${S.inv.bracelet || 0} · give it to a friend at 8 hearts to become best friends`, `<button class="btn" data-act="brace" type="button" ${S.coins < BRACELET_COST ? 'disabled' : ''}>Buy</button>`);
       const cards = Object.entries(DISHES).filter(([id, d]) => typeof d.from === 'number' && !dishKnown(id) && (!d.hollow || S.hollowMax));
       if (cards.length) { h += `<h4 class="sec">Recipe cards</h4>`; for (const [id, d] of cards) h += row(d.col, `Recipe: ${d.name}`, `${d.from} coins · ${Object.entries(d.need).map(([k, n]) => `${n} ${itemName(k)}`).join(' + ')} · +${d.energy} energy${d.hearty ? ' · hearty' : ''}`, `<button class="btn alt" data-act="recipe" data-id="${id}" type="button" ${S.coins < d.from ? 'disabled' : ''}>Buy</button>`); h += `<h4 class="sec">Seeds</h4>`; }
       for (const [id, cr] of Object.entries(CROPS)) {
@@ -6504,7 +6651,7 @@ function renderSheet(kind, data) {
         const chips = [];
         if (S.talked[v] === dayKey()) chips.push('Chatted'); if (S.gifted[v] === dayKey()) chips.push('Gift given');
         if (isBday(v)) chips.unshift('Birthday today!');
-        if (v === S.spouse) chips.unshift('Married'); else if (S.wedding && S.wedding.v === v) chips.unshift('Engaged'); else if (v === S.dating) chips.unshift('Dating');
+        if (v === S.spouse) chips.unshift('Married'); else if (S.wedding && S.wedding.v === v) chips.unshift('Engaged'); else if (v === S.dating) chips.unshift('Dating'); else if (isBff(v)) chips.unshift('Best friend');
         const at = where(v); chips.unshift(V.market && at === 'away' ? `On the road. Back ${nextMarket()}` : cap(placeLabel(at)));
         h += `<button class="vrow" type="button" data-act="vopen" data-from="journal" data-id="${v}">${portrait(v, isBday(v) ? 'happy' : 'neutral', 52)}<div class="info"><span class="name">${V.name} <span class="role">· ${V.role}</span></span>${hearts(heartsOf(v), v)}<span class="meta">${chips.length ? chips.join(' · ') : 'Hasn\'t seen you today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
       }
@@ -6623,7 +6770,10 @@ function renderSheet(kind, data) {
     const rb = romanceBox(v);
     if (rb.note) h += `<p class="sub rom">${rb.note}</p>`;
     if (rb.acts) h += `<div class="cta-row">${rb.acts}</div>`;
-    const nextGift = hs < 3 ? 3 : (hs < 6 ? 6 : 0), nextScene = [2, 4, 6, 8].concat(isPartner(v) && ROMANCE[v] ? [9, 10] : []).find(l => !S.scenes[v + l]);
+    const fb = bffBox(v);
+    if (fb.note) h += `<p class="sub rom">${fb.note}</p>`;
+    if (fb.acts) h += `<div class="cta-row">${fb.acts}</div>`;
+    const nextGift = hs < 3 ? 3 : (hs < 6 ? 6 : 0), nextScene = [2, 4, 6, 8].find(l => !S.scenes[v + l]) || (isPartner(v) && ROMANCE[v] ? [9, 10].find(l => !S.scenes[v + l]) : isBff(v) ? [9, 10].find(l => !S.scenes[v + 'b' + l]) : undefined);
     h += `<p class="sub">${nextScene ? `Something happens at ${nextScene} hearts.` : 'You\'ve shared every story with them.'}${nextGift ? ` A favour waits at ${nextGift} hearts.` : ''}</p>`;
     h += vFrom === 'garden' || vFrom === 'village' ? `<button class="btn alt" data-act="close" type="button">Close</button>`
       : vFrom === 'place' && VPLACES[vPlace] ? `<button class="btn alt" data-act="placeopen" data-id="${vPlace}" type="button">Back to ${VPLACES[vPlace].name}</button>`
@@ -6639,7 +6789,7 @@ function renderSheet(kind, data) {
   } else if (kind === 'scene') {
     const V = VILLAGERS[data.v];
     title = data.title || `${V.name} · ${data.lvl} hearts`;
-    h += `<div class="vhead">${portrait(data.v, 'love', 96)}<div class="info">${hearts(heartsOf(data.v), data.v)}</div></div><p class="scene">${data.text}</p>`;
+    h += `<div class="vhead">${portrait(data.v, data.mood || 'love', 96)}<div class="info">${hearts(heartsOf(data.v), data.v)}</div></div><p class="scene">${data.text}</p>`;
     if (data.gifts && data.gifts.length) h += `<ul class="lines">${data.gifts.map(t => `<li class="gift">${t}</li>`).join('')}</ul>`;
     h += data.back === 'board' ? `<div class="cta-row"><button class="btn" data-act="boardback" type="button">Back to requests</button></div>` : `<div class="cta-row"><button class="btn" data-act="close" type="button">Close</button></div>`;
   } else if (kind === 'qscene') {
@@ -6928,7 +7078,7 @@ $('shBody').addEventListener('click', e => {
   }
   else if (act === 'boardscene') {
     const d = boardDone[+b.dataset.i]; if (!d || !d.scene) return; d.seen = true; boardScroll = $('shBody').scrollTop;
-    sheetOpen = 'scene'; renderSheet('scene', { v:d.v, lvl:d.scene.lvl, text:d.scene.text, back:'board' });
+    sheetOpen = 'scene'; renderSheet('scene', { v:d.v, lvl:d.scene.lvl, text:d.scene.text, mood:d.scene.mood, back:'board' });
     return;
   }
   else if (act === 'boardback') { sheetOpen = 'board'; renderSheet('board'); $('shBody').scrollTop = boardScroll; lastSheetKey = 'board||'; return;
@@ -6936,6 +7086,8 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'bouq') { if (S.coins >= BOUQUET_COST) { S.coins -= BOUQUET_COST; S.inv.bouquet = (S.inv.bouquet || 0) + 1; SND.coin(); } renderSheet('market'); }
   else if (act === 'brewring') { if (potSlots() - S.brewing.length > 0 && Object.entries(RING_NEED).every(([k, n]) => (S.inv[k] || 0) >= n)) { for (const [k, n] of Object.entries(RING_NEED)) S.inv[k] -= n; S.brewing.push('ring'); blip(300, 900, .35, 'sine', .05); } renderSheet('cauldron'); }
   else if (act === 'bouquet') { giveBouquet(id); return; }
+  else if (act === 'bracelet') { giveBracelet(id); return; }
+  else if (act === 'brace') { if (S.coins >= BRACELET_COST) { S.coins -= BRACELET_COST; S.inv.bracelet = (S.inv.bracelet || 0) + 1; SND.coin(); } renderSheet('market'); }
   else if (act === 'propose') { propose(id); return; }
   else if (act === 'goodbye') { sheetOpen = 'goodbye'; renderSheet('goodbye', { v:id }); return; }
   else if (act === 'byeyes') { kindGoodbye(id); return; }

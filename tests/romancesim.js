@@ -23,7 +23,7 @@ for (const v of t.VIDS) S.fr[v] = 850;
 ok(t.VIDS.every(v => t.heartsOf(v) === 8), 'everyone tops out at 8 hearts');
 t.addFr('mara', 300); ok(S.fr.mara === 850 && t.heartsOf('mara') === 8, 'romanceable stays at 8 before dating');
 ok((t.hearts(8, 'mara').match(/class="lock"/g) || []).length === 2, 'two padlocks for a romanceable villager');
-ok(!/lock/.test(t.hearts(8, 'fen')) && (t.hearts(8, 'fen').match(/<i /g) || []).length === 8, 'eight hearts, no padlocks, for a friend');
+ok(/lock/.test(t.hearts(8, 'fen')) && (t.hearts(8, 'fen').match(/<i /g) || []).length === 8, 'a friend shows 8 hearts and two padlocks (best friends, Nov 10, 2026)');
 ok(t.bouquetOnSale(), 'bouquet on sale once someone is at 6+ hearts');
 
 // 3. bouquet: friends and kids can't take one; 8 hearts needed

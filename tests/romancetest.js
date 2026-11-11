@@ -28,7 +28,7 @@ async function sleepNight(p) { await closeSheets(p); await p.tap('#bSleep'); awa
     ok(`${dev}: "Give the bouquet" offered at 8 hearts`, await p.isVisible('[data-act="bouquet"]'));
     await p.screenshot({ path:`${OUT}/${tag}-1-rowan-8hearts.png` });
     await p.tap('[data-act="jback"]'); await wait(p); await p.tap('[data-act="vopen"][data-id="fen"]'); await wait(p);
-    ok(`${dev}: Old Fen shows 8 hearts and no bouquet button`, (await p.locator('#shBody .vhead .lock').count()) === 0 && !(await p.isVisible('[data-act="bouquet"]')));
+    ok(`${dev}: Old Fen shows padlocks for best-friend hearts and no bouquet button`, (await p.locator('#shBody .vhead .lock').count()) === 2 && !(await p.isVisible('[data-act="bouquet"]')));
     await p.tap('[data-act="jback"]'); await wait(p); await p.tap('[data-act="vopen"][data-id="rowan"]'); await wait(p);
     await p.tap('[data-act="bouquet"]'); await wait(p, 300);
     ok(`${dev}: dating scene`, (await p.textContent('#shTitle')).includes('dating'));
