@@ -888,7 +888,7 @@ function newState() {
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     hollow:hollowState(), helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
-    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{}, fbest:{}, bff:{}, mementos:{} };
+    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{}, fbest:{}, bff:{}, mementos:{}, matched:{} };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -1657,6 +1657,7 @@ function endDay(passedOut) {
   if (sprinkled && !S.rain) lines.push({ t:`Your sprinklers watered ${sprinkled} bed${sprinkled === 1 ? '' : 's'}.` });
   romanceMorning(lines);
   bffMorning(lines);
+  matchMorning(lines);
   // honey
   if (S.hives > 0 && S.season !== 3 && S.day % 3 === 0) { S.inv.honey = (S.inv.honey || 0) + S.hives; lines.push({ t:`The hive${S.hives > 1 ? 's' : ''} made ${S.hives} jar${S.hives > 1 ? 's' : ''} of honey.`, c:'gold' }); }
   // cat
@@ -1808,7 +1809,7 @@ function applyGifts(v, lines) {
 /* ================= friendship ================= */
 const dayKey = () => `${S.year}.${S.season}.${S.day}`;
 // Romance: nine adults can go to 10 hearts, but hearts 9 and 10 only open for the one she's dating (or married to).
-const canRomance = v => VILLAGERS[v].romance !== false && !(S && S.hew && (S.hew.dating || S.hew.wed));
+const canRomance = v => VILLAGERS[v].romance !== false && !(S && S.hew && (S.hew.dating || S.hew.wed)) && !(S && S.matched && coupled(v));
 const isPartner = v => !!v && (v === S.spouse || v === S.dating);
 const heartMax = v => isPartner(v) || isBff(v) ? 10 : 8;
 const heartsOf = v => Math.min(heartMax(v), Math.floor((S.fr[v] || 0) / 100));
@@ -2053,6 +2054,7 @@ function talkTo(v) {
     line = st >= 3 ? 'Three stars! Three! I have told the whole Guild. Twice. They asked me to stop writing.' : st > 0 ? `${st} star${st === 1 ? '' : 's'} on this season's charter already. The Guild will be pleased. I'm pleased. I've told everyone.` : "No stars on the charter yet this season, but there's time. There's always time. Within reason."; }
   if (key === v && DEEP_TALK[v] && (S.hollowMax || 0) >= 31 && Math.random() < .35) line = DEEP_TALK[v](S.hollowMax);
   if (key === v && S.hew && S.hew.met && !S.hew.wed && V.look.age !== 'kid' && Math.random() < .15) line = sayLine('gossip', HEW_GOSSIP);
+  { const mk = matchOf(v); if (key === v && mk && Math.random() < .25) line = sayLine(v + ':p', MATCH_TEXT[mk].talk[v]); }
   if (isBday(v)) line = "It's my birthday today! " + line;
   blip(500, 650, .08, 'sine', .04);
   celebrate(v, isPartner(v) ? 'love' : (h >= 3 || isBday(v) ? 'happy' : 'neutral'), line);
@@ -2512,9 +2514,10 @@ function festSpots() {
   const take = (v, s) => { m[v] = s; used.add(key(s[0], s[1])); };
   for (const b of booths) boothHosts(b.id).filter(v => arrived(v) && !m[v]).forEach((v, i) => { const h = i === 0 ? b.host : b.host2; if (h) take(v, [h[0], h[1], b.stand[0], b.stand[1]]); });
   const pool = (S.season === 1 ? ['docks', 'square'] : ['square', 'docks']).concat(['lanes', 'school', 'inn', 'apothecary', 'smithy', 'mill']).flatMap(p => VSPOTS[p]);
-  for (const v of VIDS) {
+  for (const v of VIDS.slice().sort((a, b) => !!(coupled(b) && m[mateOf(b)]) - !!(coupled(a) && m[mateOf(a)]))) { // a host's partner picks a spot first
     if (m[v] || !arrived(v)) continue;
-    const s = pool.find(q => !used.has(key(q[0], q[1])) && !used.has(key(q[2], q[3])) && !festBoothAt(q[2], q[3], true));
+    const free = pool.filter(q => !used.has(key(q[0], q[1])) && !used.has(key(q[2], q[3])) && !festBoothAt(q[2], q[3], true)), mate = coupled(v) && m[mateOf(v)];
+    const s = mate ? free.slice().sort((x, y) => Math.abs(x[0] - mate[0]) + Math.abs(x[1] - mate[1]) - Math.abs(y[0] - mate[0]) - Math.abs(y[1] - mate[1]))[0] : free[0]; // couples stand together
     if (s) take(v, s);
   }
   return m;
@@ -4756,6 +4759,7 @@ function where(v, t, d, wet) {
   if (!arrived(v)) return 'away';
   if (V.market && !sp && !(d % 7 === 5 || d === FEST_DAY)) return 'away';
   if (d === S.day && S.evToday) { const e = evNow(); if (e && e.who.includes(v)) { const E = EVENTS[e.id]; if (t >= E.from && t < E.to) return evPlace(E, wet); } }
+  { const mw = matchWhere(v, t, d); if (mw) return mw; }
   if (d === S.day) for (const x of S.visits || []) if (x.v === v && t >= x.from && t < x.to) return 'garden';
   if (d === FEST_DAY && t >= FEST_OPEN && t < FEST_CLOSE) return 'fest';
   const sc = SCHED[v], list = (restDay(d) && sc.rest) || sc.day;
@@ -6393,6 +6397,150 @@ const HEART_QUESTS = {
 };
 for (const [id, Q] of Object.entries(HEART_QUESTS)) { Q.heart = true; Q.when = () => heartsOf(Q.host) >= 8; QUESTS[id] = Q; }
 
+
+/* ---- matchmaking (PLAN-hearts.md Part 3) ----
+   Five pairs who are sweet on each other. A pair's story (a QUEST with id 'm_' + key, match:key) opens once both are at
+   6+ hearts with her and neither is her partner or fiancé (matchOpen). If she starts seeing one of them partway, the
+   story waits (qBlock). Finishing it sets S.matched[key] = { wed:absDay, went }: from then they're a couple (coupled(v),
+   which canRomance respects), and on the wedding day (matchWedAt: a week on, never a festival, a market day if Zara)
+   both stand at the venue in its hours (where), her place sheet has "Join the wedding" (act mwed → joinMatchWedding).
+   Couples get a few chat lines about each other (MATCH_TALK, 25% of ordinary chats) and stand together at festivals. */
+const MATCHES = {
+  silas_isolde: { a:'silas', b:'isolde', place:'inn', from:1080, to:1260, title:'The last slice' },
+  rowan_juno:   { a:'rowan', b:'juno', place:'docks', from:960, to:1140, title:'A blade for a diver' },
+  fen_bertram:  { a:'fen', b:'bertram', place:'docks', from:900, to:1080, title:'Forty years of arguing' },
+  wren_zara:    { a:'wren', b:'zara', place:'square', from:780, to:960, title:'Forty jars of honey' },
+  mara_aldous:  { a:'mara', b:'aldous', place:'mill', from:840, to:1020, title:'A matter of civic importance' }
+};
+const MKEYS = Object.keys(MATCHES);
+const mNames = vs => vs.map(v => VILLAGERS[v].name).join(', ').replace(/, ([^,]*)$/, ' and $1');
+const matchOf = v => MKEYS.find(k => (S.matched || {})[k] && (MATCHES[k].a === v || MATCHES[k].b === v)) || null;
+const coupled = v => !!matchOf(v);
+const mateOf = v => { const k = matchOf(v); return k ? (MATCHES[k].a === v ? MATCHES[k].b : MATCHES[k].a) : null; };
+const mTaken = v => isPartner(v) || !!(S.wedding && S.wedding.v === v);
+const matchOpen = k => { const M = MATCHES[k]; return heartsOf(M.a) >= 6 && heartsOf(M.b) >= 6 && !mTaken(M.a) && !mTaken(M.b); };
+const matchMarried = k => { const m = (S.matched || {})[k]; return !!m && absDay() >= m.wed; };
+function matchWedAt(k) {
+  const M = MATCHES[k]; let d = absDay() + 7;
+  for (let i = 0; i < 28; i++, d++) { const t = dateOf(d); if (t.d === FEST_DAY) continue; if ((M.a === 'zara' || M.b === 'zara') && t.d % 7 !== 5) continue; return d; }
+  return absDay() + 7;
+}
+const matchWedToday = () => MKEYS.find(k => (S.matched || {})[k] && S.matched[k].wed === absDay()) || null;
+// Where a couple is on their wedding day, in its hours; null otherwise.
+function matchWhere(v, t, d) {
+  if (d !== S.day) return null;
+  const k = matchWedToday(); if (!k) return null; const M = MATCHES[k];
+  return (v === M.a || v === M.b) && t >= M.from && t < M.to ? M.place : null;
+}
+const MATCH_TEXT = {
+  silas_isolde: {
+    steps:[
+      { v:'isolde', btn:'Ask about the pie', hint:'Isolde wants a quiet word. She\'s usually at the Kettle & Crow.',
+        text:`Isolde wipes the same bit of bar three times. "Can I tell you something daft? I save Silas the last slice of pie. Every night. Have done since autumn." She scowls at the cloth. "I'm too old for this. Don't you dare find out if he's noticed. Don't you dare."` },
+      { v:'silas', btn:'Ask about Isolde', hint:'Find Silas and (very casually) ask him about Isolde.',
+        text:`Silas goes very still. "She saves me the last slice," he says. "I thought nobody had noticed I noticed." He turns his lute over. "Every song I've written here is about the inn. That's not quite true. They're about the person who runs it. I'm just the entertainment. She'd laugh."` },
+      { v:'silas', give:{ pick:['moon', 'violet', 'thorn', 'glimmer'], n:2 }, btn:'Give 2 flowers for the table', hint:'Bring Silas 2 flowers for the corner table: Moonpetal, Wood Violet, Thornberry or a Glimmerberry.',
+        text:`Silas arranges the flowers in a cider jug, rearranges them, and gives up. "I've written her a song," he says. "If I play it in front of everyone, I can't take it back. That's the idea." He breathes out. "Come tonight. Stand near the door, in case I need to run."` },
+      { at:'inn', need:['silas', 'isolde'], after:1140, btn:'Hear the song', hint:'Go to the inn one evening, after 7 pm, when Silas and Isolde are both there.',
+        text:`Silas plays a new song called The Last Slice. It's about pie for the first verse and not at all about pie after that. The inn goes quiet. Isolde stands behind the bar with the tea towel in her hands. When it ends, she walks round the bar, hits him once with the towel, and kisses him. The whole inn cheers. Mara cries into her cider. Silas forgets to stand up for a full minute.` }
+    ],
+    morning:'Silas and Isolde are getting married at the Kettle & Crow this evening, from 6 to 9. The whole valley is invited.',
+    wed:"Silas plays at his own wedding, because nobody could stop him. Isolde does the food herself, because nobody could stop her either. They say their vows by the corner table, under the beam with your initials on it, and Silas gets the last slice of the wedding cake. She's been saving it all evening.",
+    talk:{ silas:["Isolde says I'm not allowed to write any more songs about her. I've written four since. They're very good.", "She still saves me the last slice. I've stopped pretending I don't know. She hasn't stopped pretending she doesn't do it.", "I used to think home was a place. It's a person who hits you with a tea towel when you're being daft."],
+      isolde:["Silas sings in the kitchen. All the time. The bread rises better. Don't tell Theo, he'll want to measure it.", "Twenty years running this inn and I never once sat down. Now someone makes me. Infuriating. Lovely.", "If you hear a song about pie tonight, that's about me. Apparently they all are."] } },
+  rowan_juno: {
+    steps:[
+      { v:'juno', btn:'Ask what\'s up', hint:'Juno has something on her mind. Find her by the river.',
+        text:`Juno is skimming stones very badly, which isn't like her. "Rowan keeps fixing my things. My rowlocks. My lantern. My boots. I didn't even ask about the boots." Plop. "Does that mean something? With Rowan it could mean anything. He fixed the mayor's chair too. Twice."` },
+      { v:'rowan', btn:'Ask about the boots', hint:'Find Rowan and ask about Juno\'s boots.',
+        text:`Rowan goes red from the collar up. "Her boots let water in. A diver needs dry feet." He pulls a cloth bundle from under the bench. Inside is a diver's knife, beautifully made, with a fish worked into the hilt. "I've been making it for a year. I keep finding things wrong with it. There's nothing wrong with it."` },
+      { v:'rowan', give:{ pick:['ember', 'firemoss', 'emberglass', 'pepper'], n:1 }, btn:'Give something hot to temper it', hint:'Bring Rowan something with heat in it, to temper the blade one last time: Emberroot, Fire Moss, Ember Glass or Sunpepper.',
+        text:`Rowan tempers the blade one last time, and this time he doesn't find anything wrong with it. He wraps it back up and holds it out to you, then pulls it back. "No. I should give it. Myself. Tomorrow. Down at the docks." He looks terrified. "Come with me?"` },
+      { at:'docks', need:['juno'], btn:'Go with Rowan to the docks', hint:'Go to the docks when Juno is there. Rowan will follow you.',
+        text:`Rowan gives Juno the knife and says a great many things very quickly about tempering and edge angles. Juno turns it over, sees the little fish on the hilt, and stops listening. Then she pushes him off the dock into the river, laughs, and jumps in after him. They come up spluttering and very much kissing. Fen, on the ferry, pretends to be looking at a cloud.` }
+    ],
+    morning:'Rowan and Juno are getting married down at the docks this afternoon, from 4 to 7. Bring a towel, just in case.',
+    wed:"Juno arrives by river, in the Kingfisher or something very like it, rowing herself. Rowan forged the rings, and they're perfect, and he says so three times. They say their vows on the end of the dock, and the moment they're done Juno grabs his hand and they jump in together. Half the valley jumps in after them.",
+    talk:{ rowan:["Juno says I talk to the anvil more than I talk to her. That was true. It's less true now.", "I made her new boots. Dry feet. She wore them into the river the same afternoon. To test them.", "She dives, I forge. Fire and water. Odile says that's poetic. I think it's just a good arrangement."],
+      juno:["Rowan's fixed everything in my house. Twice. He's started on the river. I've told him he can't fix a river.", "I've never once lost that knife. It's on me now, see? Never once.", "He blushes when I call him my blacksmith. I do it all the time. It's my favourite thing."] } },
+  fen_bertram: {
+    steps:[
+      { v:'bertram', btn:'Ask what\'s on his mind', hint:'Bertram seems thoughtful. Find him by the river.',
+        text:`Bertram polishes his spyglass for a long time. "Fen and I have argued for forty years," he says. "About fish, and knots, and the weather, and the flood. Every week." He sets the glass down. "I've started to wonder if it was ever really arguing. Daft, at my age."` },
+      { v:'fen', btn:'Ask about Bertram', hint:'Ask Old Fen about Bertram.',
+        text:`"Bertram?" Fen snorts. "Daft old lamp-polisher." He ties off the ferry rope. He ties it off again. "He kept my knot, you know. From the flood year. The one I tied on the Merrow. Still has it on a nail by his bed." A very long pause. "Never could tell if that meant anything."` },
+      { v:'hettie', btn:'Ask Granny Hettie\'s advice', hint:'Ask Granny Hettie, who has known them both forever.',
+        text:`Hettie laughs so hard she has to put her teacup down. "Those two? Everyone's known for forty years. Your aunt had a bet on it with the old mayor." She wipes her eyes. "Tell them both to come to tea on the ferry. Separately. Don't tell either of them the other one's coming."` },
+      { at:'docks', need:['fen', 'bertram'], btn:'Bring them to tea', hint:'Go to the docks when Fen and Bertram are both there.',
+        text:`They both turn up for tea on the ferry, and both look at you, and both look at each other. Then they argue about the teapot for ten minutes. In the middle of it, Bertram stops and says, very quietly, "Forty years, Fen." Fen looks at the river for a while. "About time," he says. Then: "Yes. Obviously yes, you old fool." He doesn't let go of Bertram's hand when the tea goes cold.` }
+    ],
+    morning:'Old Fen and Bertram are getting married on the ferry this afternoon, from 3 to 6. Fen says it\'s "no fuss". Everyone is making a fuss.',
+    wed:"They're married on the ferry, in the middle of the river, which Fen insists is the only place that counts. They argue about who says their vows first, and both say them at once. Afterwards Bertram ties a knot in a length of rope, and Fen inspects it, and says it'll do. From Fen, that's a love poem.",
+    talk:{ fen:["Bertram says I snore. I say it's the river. We've agreed to disagree. That's what marriage is, I'm told.", "Forty years arguing with that man. Now I get to do it at breakfast too. Best deal I ever made.", "Don't tell Bertram, but his knots have got better. It's my influence."],
+      bertram:["Fen's moved his things into the lighthouse. Mostly rope. An astonishing amount of rope.", "We still argue about the flood year. It's different now. He holds my hand while he's wrong.", "Your aunt won her bet, you know. Hettie paid out to the mayor's family in jam. Sixty years late."] } },
+  wren_zara: {
+    steps:[
+      { v:'zara', btn:'Ask about the honey', hint:'Zara has a problem with her stock. Find her on a market day.',
+        text:`Zara's cart is full of honey. Forty jars, at least. "Wren's," she says, not quite meeting your eye. "I keep buying it. I'm a merchant. I never buy what I can't sell, and I can't sell forty jars of honey in a valley full of bees." She drums her fingers. "Something's wrong with me. Find out what. Discreetly."` },
+      { v:'wren', btn:'Ask about Zara', hint:'Ask Wren about Zara.',
+        text:`Wren doesn't look up from the hive. "She asks the bees about the road. Every week. Tells them where she's been." A pause. "The bees like her. They don't like most people." Another pause, longer. "I don't like most people either. I like her. That's the whole problem, really."` },
+      { v:'wren', give:{ pick:['glimmer', 'sunberry', 'moon', 'violet'], n:2 }, btn:'Give 2 flowers or berries for a jar', hint:'Bring Wren 2 flowers or berries to put in a honey jar: a Glimmerberry, Sunberry, Moonpetal or Wood Violet.',
+        text:`Wren puts your flowers in an empty honey jar and, after a long time, writes a note to go with it. She writes it four times. The last one is three words long. She seals it with wax and gives you the jar. "On a market day," she says. "When she's packing up. Before she leaves."` },
+      { v:'zara', btn:"Give Zara Wren's jar", hint:"Take Wren's jar to Zara on a market day.",
+        text:`Zara reads the note and goes very quiet, which Zara never does. Then she packs up the cart an hour early, which Zara never does either, and drives it up the lane to Wren's hives instead of out of the valley. By the next market day, there's a little painted bee on the side of the cart, next to the word Brambleroot.` }
+    ],
+    morning:'Wren and Zara are getting married in the square this afternoon, from 1 to 4. Zara has promised there will be no haggling.',
+    wed:"Zara's cart is wreathed in flowers, and Wren's bees come too, a whole hive, humming over the square in a slow golden cloud. Zara haggles over the vows anyway, out of habit, and Wren laughs out loud in front of the whole village for the first time anyone can remember.",
+    talk:{ wren:["Zara tells the bees about the road every week. They've started following the cart to the edge of the valley.", "She came back early last week. She never comes back early. She said the road was boring without a reason to come home.", "I used to think I came here to be alone. I came here so the right person could find me."],
+      zara:["I still travel. Every week. But I come back now. I always come back.", "I've stopped buying Wren's honey. I just take it. Apparently that's allowed when you're married. Best deal on the road.", "The bees know my cart now. They meet me at the bottom of the lane. It's a very small parade."] } },
+  mara_aldous: {
+    steps:[
+      { v:'aldous', btn:'Ask what the matter is', hint:'Mayor Aldous wants some advice. He\'s usually around the square.',
+        text:`Aldous draws you aside very seriously. "A hypothetical question. If a mayor were to ask a miller to, let us say, dinner, would that be an abuse of office? A conflict of interest? The mill does pay taxes." He's gone pink to the top of his head. "Hypothetically."` },
+      { v:'mara', btn:'Ask about the mayor', hint:'Ask Mara, casually, what she thinks of the mayor.',
+        text:`Mara laughs, then stops. "He brings the mill's tax notice in person. Every month. Nobody else does that. Nobody else even reads it." She dusts her hands. "Then he stays for tea. Three hours. Turnip sits on his feet." She's gone a bit pink too. "My husband would have liked him. That's the strange thing. He'd have liked him a lot."` },
+      { v:'mara', give:{ pick:'crop', n:2 }, btn:'Give 2 crops for a pie', hint:'Bring Mara 2 crops for a pie to take to the town hall.',
+        text:`Mara bakes the pie with great care and pretends it's nothing. "It's a thank-you pie. For the bridge fund. Purely civic." She wraps it in a cloth. "You take it. If I take it I'll say something daft. Tell him it's from the mill. Tell him to come for tea on Sunday. Tell him to bring his own cup, Turnip ate the spare."` },
+      { v:'aldous', btn:"Give Aldous Mara's pie", hint:"Take Mara's pie to Mayor Aldous.",
+        text:`Aldous eats a slice, then another, then signs a decree on the spot declaring the mill a Site of Special Civic Importance. Then he puts down his pen, goes straight to the mill without his hat, and asks Mara to dinner on her own doorstep. She says yes. Turnip eats the decree. Nobody minds.` }
+    ],
+    morning:"Mara and Mayor Aldous are getting married at the mill this afternoon, from 2 to 5. Turnip is the ring-bearer, against everyone's advice.",
+    wed:"The mill is hung with flour-white ribbons. Turnip carries the rings on a little cushion, and eats the cushion, but not the rings, which everyone agrees is progress. Aldous makes a speech three sentences long. Mara says her vows with flour on her nose, and nobody tells her, because it's perfect.",
+    talk:{ mara:["Aldous signs his letters to me 'Your Mayor'. I sign mine 'Your Miller'. We're very silly. I don't care one bit.", "He still brings the tax notice in person. Now he stays for supper too.", "Turnip has decided she's the mayor now. She sits in his chair. He lets her."],
+      aldous:["Mara says I'm allowed one speech a year at home. I've used it already. It was about the bridge.", "The mill is a Site of Special Civic Importance. I made it one. Entirely above board. Mostly.", "I used to sign things all day. Now I knead bread on Sundays. Badly. She says I'm improving."] } }
+};
+for (const k of MKEYS) {
+  const M = MATCHES[k], T = MATCH_TEXT[k], date = [M.a, M.b].filter(v => VILLAGERS[v].romance !== false);
+  const steps = T.steps.map(x => Object.assign({}, x));
+  if (date.length) steps[steps.length - 1].hint += ` (Once they're together, ${mNames(date)} won't be someone you can date.)`;
+  QUESTS['m_' + k] = { title:M.title, host:M.a, cast:[M.a, M.b].concat(steps.flatMap(x => x.v ? [].concat(x.v) : []).filter(v => v !== M.a && v !== M.b).filter((v, i, a) => a.indexOf(v) === i)),
+    unlock:`${mNames([M.a, M.b])}, both at 6 hearts`, hook:`${VILLAGERS[M.a].name} and ${VILLAGERS[M.b].name} might be sweet on each other.`, match:k,
+    when:() => matchOpen(k), steps, reward:{ match:k, fr:{ [M.a]:120, [M.b]:120 } }, rtext:`${VILLAGERS[M.a].name} and ${VILLAGERS[M.b].name} are together, thanks to you.` };
+}
+function matchMorning(lines) {
+  const k = matchWedToday(); if (!k) return;
+  const M = MATCHES[k]; lines.push({ t:MATCH_TEXT[k].morning, c:'gold', v:M.a, mood:'happy' });
+}
+// The card on the venue's place sheet on the wedding day.
+function matchCard(p) {
+  const k = matchWedToday(); if (!k) return ''; const M = MATCHES[k], m = S.matched[k]; if (M.place !== p) return '';
+  const names = `${VILLAGERS[M.a].name} and ${VILLAGERS[M.b].name}`;
+  if (m.went) return `<article class="card done"><h4>${names}'s wedding</h4><p class="sub">What a day. You were there.</p></article>`;
+  if (S.time < M.from) return `<article class="card fest"><h4>${names}'s wedding</h4><p class="sub">Today, from ${fmtTime(M.from)} to ${fmtTime(M.to)}.</p></article>`;
+  if (S.time >= M.to) return `<article class="card done"><h4>${names}'s wedding</h4><p class="sub">You missed it, but they've saved you a slice of cake anyway.</p></article>`;
+  return `<article class="card fest"><h4>${names}'s wedding</h4><p class="sub">The whole valley is here.</p><div class="foot"><button class="btn" data-act="mwed" data-id="${k}" type="button" style="margin-left:auto">Join the wedding</button></div></article>`;
+}
+function joinMatchWedding(k) {
+  const M = MATCHES[k], m = (S.matched || {})[k];
+  if (!m || m.went || m.wed !== absDay() || S.time < M.from || S.time >= M.to) return false;
+  m.went = true; addFr(M.a, 100); addFr(M.b, 100); S.energy = Math.min(S.maxEnergy + HEARTY, S.energy + 30);
+  S.time = Math.min(M.to, S.time + 90);
+  const gifts = []; applyGifts(M.a, gifts); applyGifts(M.b, gifts); checkStars();
+  updateHUD(); save(); SND.gift();
+  sheetOpen = 'scene'; renderSheet('scene', { v:M.a, title:`${VILLAGERS[M.a].name} and ${VILLAGERS[M.b].name}`, text:MATCH_TEXT[k].wed, mood:'happy', gifts:[`You dance, and eat far too much cake: +30 energy. ${VILLAGERS[M.a].name} and ${VILLAGERS[M.b].name} are much fonder of you.`, ...gifts] });
+  return true;
+}
+
 const QIDS = Object.keys(QUESTS);
 const qState = id => (S.quests || {})[id];
 const qStep = id => { const st = qState(id); return st && !st.done ? QUESTS[id].steps[st.s] : null; };
@@ -6405,6 +6553,7 @@ const nameList = vs => vs.map(v => VILLAGERS[v].name).join(', ').replace(/, ([^,
 // Why the current step can't be done right now ('' if it can).
 function qBlock(id, v) {
   const step = qStep(id); if (!step) return 'Nothing to do.';
+  { const k = QUESTS[id].match; if (k) { const tk = [MATCHES[k].a, MATCHES[k].b].find(mTaken); if (tk) return `You're with ${VILLAGERS[tk].name} now. This story will wait.`; } }
   if (step.floor) return 'This happens in the Hollow.';
   if (step.v) { const vs = v && [].concat(step.v).includes(v) ? [v] : [].concat(step.v); if (!vs.some(canMeet)) return `Find ${vs.length > 1 ? `${nameList(vs).replace(' and ', ' or ')}` : VILLAGERS[vs[0]].name} first.`; }
   if (step.at) {
@@ -6434,6 +6583,7 @@ function questReward(Q) {
   if (r.coins) { earn(r.coins); out.push(`${fmt(r.coins)} coins.`); }
   if (r.items) { giveItems(r.items); out.push(Object.entries(r.items).map(([k, n]) => `${n} ${itemName(k)}`).join(' and ') + '.'); }
   if (r.lit) out.push('The lighthouse shines over the river every night now.');
+  if (r.match) { const at = matchWedAt(r.match), M = MATCHES[r.match]; (S.matched = S.matched || {})[r.match] = { wed:at, went:false }; out.push(`${VILLAGERS[M.a].name} and ${VILLAGERS[M.b].name} will be married on ${dateLabel(at)}, at ${VPLACES[M.place].name}. You're invited.`); }
   if (r.memento) { (S.mementos = S.mementos || {})[r.memento] = true; out.push(`A keepsake for your shelf: ${MEMENTOS[r.memento].name}.`); }
   if (r.fr) { const g = []; for (const [v, n] of Object.entries(r.fr)) { addFr(v, n); applyGifts(v, g); } out.push(`${nameList(Object.keys(r.fr))} ${Object.keys(r.fr).length > 1 ? 'are' : 'is'} much fonder of you.`, ...g); }
   checkStars();
@@ -6865,6 +7015,7 @@ function renderSheet(kind, data) {
         if (S.talked[v] === dayKey()) chips.push('Chatted'); if (S.gifted[v] === dayKey()) chips.push('Gift given');
         if (isBday(v)) chips.unshift('Birthday today!');
         if (v === S.spouse) chips.unshift('Married'); else if (S.wedding && S.wedding.v === v) chips.unshift('Engaged'); else if (v === S.dating) chips.unshift('Dating'); else if (isBff(v)) chips.unshift('Best friend');
+        { const mk = matchOf(v); if (mk) chips.push(`${matchMarried(mk) ? 'Married to' : 'With'} ${VILLAGERS[mateOf(v)].name}`); }
         const at = where(v); chips.unshift(V.market && at === 'away' ? `On the road. Back ${nextMarket()}` : cap(placeLabel(at)));
         h += `<button class="vrow" type="button" data-act="vopen" data-from="journal" data-id="${v}">${portrait(v, isBday(v) ? 'happy' : 'neutral', 52)}<div class="info"><span class="name">${V.name} <span class="role">· ${V.role}</span></span>${hearts(heartsOf(v), v)}<span class="meta">${chips.length ? chips.join(' · ') : 'Hasn\'t seen you today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
       }
@@ -7028,6 +7179,7 @@ function renderSheet(kind, data) {
     h += `<p class="sub">${P.sub}</p>`;
     { const e = evNow(); if (e && evPlace(EVENTS[e.id], S.rain) === p && !S.events[evKey(e.id)]) { const E = EVENTS[e.id], on = S.time >= E.from && S.time < E.to;
       h += `<article class="card fest"><h4>${E.name}</h4><p class="sub">${on ? `It's on now, until ${fmtTime(E.to)}. Everyone here will be glad to see you.` : (S.time < E.from ? `It starts at ${fmtTime(E.from)}.` : "It's over for this year.")}</p>${on ? `<div class="foot"><span class="due">Joining takes a couple of hours.</span><button class="btn" data-act="evjoin" type="button" style="margin-left:auto">Join in</button></div>` : ''}</article>`; } }
+    h += matchCard(p);
     for (const id of questsAt(p)) h += questCard(id);
     if (p === 'cart') h += cartWares();
     const here = folkAt(p);
@@ -7059,6 +7211,7 @@ function renderSheet(kind, data) {
     const ev = bds.map(v => ({ d:VILLAGERS[v].bday[1], t:`${VILLAGERS[v].name}'s birthday${si === S.season && VILLAGERS[v].bday[1] === S.day ? ' (today!)' : ''}`, c:'gift' }));
     ev.push({ d:FEST_DAY, t:`${FEST[si].name}, all day from 10 am`, c:'gold' });
     for (const id of EIDS) if (EVENTS[id].season === si) ev.push({ d:EVENTS[id].day, t:evCalLine(id), c:'gold' });
+    for (const k of MKEYS) { const m = (S.matched || {})[k]; if (!m) continue; const w = dateOf(m.wed); if (w.y === S.year && w.s === si) ev.push({ d:w.d, t:`${VILLAGERS[MATCHES[k].a].name} and ${VILLAGERS[MATCHES[k].b].name}'s wedding, ${VPLACES[MATCHES[k].place].name}, ${fmtTime(MATCHES[k].from)}`, c:'gold' }); }
     for (const e of ev.sort((a, b) => a.d - b.d)) h += `<li class="${e.c}">Day ${e.d}: ${e.t}</li>`;
     if (known('zara')) h += `<li>Market days, when Zara's cart comes: 5, 12, 19 and 26 (the dots)</li>`;
     h += `<li>Days 7, 21 and 28 are rest days. No school, and people keep different hours.</li></ul>`;
@@ -7304,6 +7457,7 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'brewring') { if (potSlots() - S.brewing.length > 0 && Object.entries(RING_NEED).every(([k, n]) => (S.inv[k] || 0) >= n)) { for (const [k, n] of Object.entries(RING_NEED)) S.inv[k] -= n; S.brewing.push('ring'); blip(300, 900, .35, 'sine', .05); } renderSheet('cauldron'); }
   else if (act === 'bouquet') { giveBouquet(id); return; }
   else if (act === 'bracelet') { giveBracelet(id); return; }
+  else if (act === 'mwed') { if (!joinMatchWedding(id)) renderSheet('place', { p:MATCHES[id].place }); return; }
   else if (act === 'brace') { if (S.coins >= BRACELET_COST) { S.coins -= BRACELET_COST; S.inv.bracelet = (S.inv.bracelet || 0) + 1; SND.coin(); } renderSheet('market'); }
   else if (act === 'propose') { propose(id); return; }
   else if (act === 'goodbye') { sheetOpen = 'goodbye'; renderSheet('goodbye', { v:id }); return; }
@@ -7441,7 +7595,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 25, BUILD_DATE = 'Nov 10'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 26, BUILD_DATE = 'Nov 10'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();

@@ -14,7 +14,7 @@ Matt, Nov 10, 2026: his wife is close to full hearts with everyone in autumn of 
 - At 8 hearts, each villager starts a personal story of three or four steps: a scene, a favour or a place to meet, and an ending with a keepsake gift. They use the story-quest system (`QUESTS`) and show in the Journal's Stories tab.
 - 15 stories, one each. They build on the 2/4/6/8 scenes (Mara and the mill, Fen and the ferry, Silas's song, Juno's mother, Hettie's letters, and so on).
 
-## Part 3: matchmaking
+## Part 3: matchmaking — DONE Nov 10, 2026 (Build 26). As planned; weddings are a week after the story ends, at the couple's own place.
 - Five pairs who are sweet on each other: Silas and Isolde, Rowan and Juno, Fen and Bertram, Wren and Zara, Mara and Aldous.
 - A pair opens once both are at 6+ hearts with her and neither is her partner (or engaged to her). One of them confides in her, she carries notes and sets up a meeting, and it ends in a village wedding she's invited to.
 - Once paired, they can't be dated, and the game asks her to confirm before that happens. Each married pair gets new chat lines about each other, and they stand together at festivals.

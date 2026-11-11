@@ -7,14 +7,16 @@ const sim7 = fs.readFileSync('sim7.js', 'utf8').split('\n').slice(2, 7).join('\n
 const store = {}; globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => store[k] = v, removeItem: k => delete store[k] };
 eval(src); const t = __t; t.startGame(true);
 // node questsim.js heart → the heart quests (PLAN-hearts.md Part 2), else the original six stories.
-const HEART = process.argv[2] === 'heart', QL = t.QIDS.filter(id => !!t.QUESTS[id].heart === HEART);
+// node questsim.js match → the five matchmaking stories (Part 3).
+const MODE = process.argv[2] || '', HEART = MODE === 'heart' || MODE === 'match', QL = t.QIDS.filter(id => MODE === 'match' ? !!t.QUESTS[id].match : MODE === 'heart' ? !!t.QUESTS[id].heart : !t.QUESTS[id].heart && !t.QUESTS[id].match);
 let bad = 0, n = 0; const ok = (c, m) => { n++; if (!c) { bad++; if (bad < 30) console.log('BAD', m); } };
 const body = () => document.getElementById('shBody').innerHTML, clean = h => !/undefined|NaN|\[object/.test(h);
 const close = () => { if (t.sheet) t.closeSheet(); };
 const S = () => t.S;
 close();
 
-// 1. data sanity
+// 1. data sanity (as in year 2, so late arrivals like Silas count)
+const y0 = S().year; S().year = 2;
 const valid = id => !!t.ITEMS[id];
 for (const id of QL) {
   const Q = t.QUESTS[id];
@@ -33,6 +35,7 @@ for (const id of QL) {
     }
   });
 }
+S().year = y0;
 for (const id of t.EIDS) {
   const E = t.EVENTS[id];
   ok(!!t.VPLACES[E.place] && E.from < E.to && E.day >= 1 && E.day <= 28 && E.day !== t.FEST_DAY, id + ' event basics');
@@ -54,10 +57,10 @@ sleep();
 ok(Object.keys(S().quests).length === 0, 'no stories on day 2');
 // unlock everything
 S().spells.push('firebolt');
-for (const v of t.VIDS) S().fr[v] = HEART ? 850 : 450;
+for (const v of t.VIDS) S().fr[v] = MODE === 'heart' ? 850 : MODE === 'match' ? 650 : 450;
 if (HEART) { S().year = 2; for (const v of t.VIDS) S().scenes[v + 8] = true; }
 sleep();
-if (HEART) { ok(QL.filter(id => S().quests[id]).length === 1, 'one heart story a morning'); untilFound(() => QL.every(id => S().quests[id]), 20); }
+if (MODE === 'heart') { ok(QL.filter(id => S().quests[id]).length === 1, 'one heart story a morning'); untilFound(() => QL.every(id => S().quests[id]), 20); }
 const unlocked = Object.keys(S().quests).filter(id => QL.includes(id));
 ok(unlocked.length === QL.length, 'every story unlocked: ' + unlocked.join(','));
 // 3. walk each story
@@ -107,6 +110,7 @@ for (const id of QL) {
   ok(t.qState(id).done, id + ' done');
   t.openSheet('journal'); close();
 }
+if (MODE === 'match') { ok(QL.every(id => S().matched[t.QUESTS[id].match]), 'every couple together'); console.log(`match stories: all ${QL.length} walked start to finish`); console.log(`${n - bad} passed, ${bad} failed`); process.exit(bad ? 1 : 0); }
 if (HEART) { ok(QL.every(id => S().mementos[id.slice(2)]), 'every keepsake'); t.openSheet('relics'); ok(clean(body()) && body().split('Keepsakes from friends').length === 2 && QL.every(id => body().includes(t.MEMENTOS[id.slice(2)].name.replace(/'/g, '&#39;')) || body().includes(t.MEMENTOS[id.slice(2)].name)), 'keepsakes on the shelf'); close();
   t.openSheet('journal'); close(); console.log(`heart stories: all ${QL.length} walked start to finish, ${QL.reduce((a, id) => a + (t.QUESTS[id].reward.coins || 0), 0)} coins in all`); console.log(`${n - bad} passed, ${bad} failed`); process.exit(bad ? 1 : 0); }
 ok(S().spells.includes('kin'), 'Hettie gave the charm');
