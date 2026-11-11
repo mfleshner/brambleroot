@@ -875,7 +875,7 @@ function newState() {
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     hollow:hollowState(), helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
-    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{}, fbest:{}, bff:{} };
+    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{}, fbest:{}, bff:{}, mementos:{} };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -6189,6 +6189,197 @@ const QUESTS = {
     ],
     reward:{ coins:600, fr:{ aldous:120, odile:60 } }, rtext:'600 coins from the town hall.' }
 };
+
+/* ---- heart quests (PLAN-hearts.md Part 2): one personal story per villager, opening at 8 hearts ----
+   They're ordinary QUESTS (id 'h_' + villager, heart:true). questMorning opens at most one a morning, so a save that's
+   already full of 8-heart friends gets a new story each day rather than fifteen at once. Each ends with a keepsake
+   (MEMENTOS, reward.memento → S.mementos), shown on the relic shelf under "Keepsakes from friends". */
+const MEMENTOS = {
+  mara:   { name:'The mill song',         col:'#e9b064', desc:"The old harvest song, in Hettie's words and your handwriting, floury at the corners." },
+  fen:    { name:"Fen's river map",       col:'#7fb2d6', desc:'Every pool, eddy and mood of the river, signed by two ferrymen. One of them is you.' },
+  pip:    { name:'The lopsided loaf',     col:'#f29a9a', desc:"Pip's first loaf, dried hard and kept forever. Do not eat." },
+  odile:  { name:"Odile's first potion",  col:'#bf98e0', desc:'A tiny bottle of slightly cloudy Calming Draught, with a label in perfect copperplate.' },
+  wren:   { name:'The straw skep',        col:'#f2d36b', desc:'The old basket you caught the runaway swarm in. It still smells of honey.' },
+  rowan:  { name:'A little iron bell',    col:'#d9825a', desc:"Cast from the offcuts of his father's hammer. It rings like the school bell, only smaller." },
+  silas:  { name:'A printed song sheet',  col:'#7a8ad6', desc:'Brambleroot, words and music, with every name in the inn signed round the edges.' },
+  theo:   { name:'Brambleroot Brews',     col:'#6ab88a', desc:'The first copy of the book: recipes by Bramble, by you, and (in very small letters) by Theo.' },
+  isolde: { name:'The twentieth-year menu', col:'#d86a6a', desc:"The menu from Isolde's surprise supper, signed by everyone who was there." },
+  juno:   { name:"The Kingfisher's nameplate", col:'#4ab0b8', desc:"The old brass nameplate from Juno's mum's boat, polished till it shines." },
+  hettie: { name:'A pressed hill sprig',  col:'#8ab86a', desc:"From Bramble's garden on the hill, replanted. Pressed in Hettie's journal first, then given to you." },
+  aldous: { name:'The unused speech',     col:'#c8a24a', desc:'Forty pages of notes for the Founders\' Day speech. He used none of them.' },
+  zara:   { name:"Zara's first key",      col:'#e89a3a', desc:'The key to her little corner at the inn. She had two cut. This is the other one.' },
+  bertram:{ name:"The bell's old rope",   col:'#5a7ab8', desc:'The frayed rope from the fog bell, swapped for a new one. He wanted you to have the first.' },
+  tilly:  { name:"Tilly's star chart",    col:'#7ac0e8', desc:'A map of the sky, in crayon. The cat has its own star now. It is official.' }
+};
+const HEART_QUESTS = {
+  h_mara: { title:'The mill song', host:'mara', cast:['mara', 'silas', 'hettie'], unlock:'Mara, at 8 hearts', hook:'Mara keeps humming a song she can\'t finish.',
+    steps:[
+      { v:'mara', btn:'Ask about the humming', hint:'Mara keeps humming the same few notes at the mill. Ask her about it.',
+        text:`Mara stops mid-hum and goes pink. "The mill song. My husband sang it at the first grinding of every harvest. Nobody has since." She brushes flour off her sleeve. "I've forgotten the second half. Silas knows every song in the valley. Would you ask him? Don't say it's for me. I'll go red."` },
+      { v:'silas', btn:'Ask about the mill song', hint:'Ask Silas if he knows the old mill song.',
+        text:`Silas hums the tune at once, then stops in the same place Mara did. "Millers' songs were never written down. They're passed hand to hand, like bread." He thinks. "Granny Hettie's been to seventy harvests. If anyone remembers the words, it's her."` },
+      { v:'hettie', give:{ pick:'crop', n:3 }, btn:'Give 3 crops for her soup', hint:'Visit Granny Hettie with 3 crops for her harvest soup. She remembers better while she cooks.',
+        text:`Hettie chops your crops into the pot and sings while she stirs, in a thin, creaky voice, all three verses. The last one is about the stones turning and the people who turn them, and coming home with flour in your hair. You write it all down. "Don't tell Mara I cried," Hettie says. "Onions."` },
+      { v:'mara', btn:'Bring Mara the song', hint:'Take the words back to Mara at the mill.',
+        text:`Mara reads the page twice. Then she sets the stones turning and sings, and you sing with her, badly, and somewhere around the second verse Turnip starts bleating along. Mara sings the last verse alone. Her voice doesn't shake once. When it's done she laughs and wipes her eyes with a floury hand. "He'd have liked you," she says. "He'd have liked you a lot."` }
+    ], reward:{ coins:300, items:{ honey:1 }, fr:{ mara:120, silas:40, hettie:40 }, memento:'mara' }, rtext:'300 coins, a jar of honey and a keepsake: the mill song.' },
+  h_fen: { title:"The ferryman's map", host:'fen', cast:['fen', 'juno'], unlock:'Old Fen, at 8 hearts', hook:'Old Fen wants to write the river down.',
+    steps:[
+      { v:'fen', btn:'Ask about the map', hint:'Old Fen has been muttering about a map. Ask him.',
+        text:`Fen unrolls a sheet of old sailcloth across the ferry bench. It's blank. "Sixty years I've known this river, and it's all up here." He taps his head. "Heads don't last. Cloth does. I want to write her down: every pool, every eddy, where the fish sit when. For whoever comes next." He looks at you sideways. "Bring me two fish, and I'll show you where each kind bites."` },
+      { v:'fen', give:{ pick:['minnow', 'trout', 'sunfish', 'perch', 'mudcat', 'iceperch', 'moonfish'], n:2 }, btn:'Give Fen 2 fish', hint:'Bring Old Fen 2 fish from the river, so he can mark where each kind bites.',
+        text:`Fen turns each fish over and marks the cloth: a trout under the willows, a perch by the old mooring, a circle round the deep pool with a question mark. "That's Juno's water," he says. "Divers know the bottom. Ferrymen only know the top. Ask her what's down there."` },
+      { v:'juno', btn:'Ask about the deep pools', hint:'Ask Juno what lies at the bottom of the river.',
+        text:`Juno draws on your hand with a stick of charcoal, too fast to follow: the sunken cart, the cold spring, the eel's hole, the place where the river bed glitters. "Don't let Fen draw the eel too big," she says. "He always does. It's a perfectly normal eel."` },
+      { v:'fen', btn:'Finish the map', hint:'Take Juno\'s notes back to Old Fen.',
+        text:`Fen adds everything, including a very large eel. Then he signs the corner of the map, and holds out the pen. You sign under him. "Two ferrymen," he says. "The river likes that. She likes to know she's watched." He rolls up the map and gives it to you. "Keep it at yours. Fewer leaks."` }
+    ], reward:{ coins:250, items:{ moonfish:1 }, fr:{ fen:120, juno:40 }, memento:'fen' }, rtext:"250 coins, a Moonfish and a keepsake: Fen's river map." },
+  h_pip: { title:"Pip's first loaf", host:'pip', cast:['pip', 'mara'], unlock:'Pip, at 8 hearts', hook:'Pip has a very secret baking plan.',
+    steps:[
+      { v:'pip', btn:'Ask about the secret', hint:'Pip has a secret plan and needs a grown-up. Find them.',
+        text:`Pip checks over both shoulders and whispers very loudly. "It's Ma's birthday soon. I want to bake her a loaf. By myself. Without her knowing." A pause. "I'll need flour. And an oven. And someone who's allowed to use the oven."` },
+      { v:'mara', give:{ pick:'crop', n:2 }, btn:'Trade 2 crops for flour', hint:'Mara will grind a sack of flour for Pip, for 2 crops from your garden.',
+        text:`Mara grinds the flour herself, and adds a spoonful of something from a jar on the top shelf. "My husband's trick," she says. "A pinch of malt. Makes it rise like it means it." She ties the sack with a red string. "Tell Pip it's from the mill. Don't tell Pip I'm coming to the party."` },
+      { v:'pip', give:{ pick:['honey', 'sunberry', 'star', 'melon', 'glimmer'], n:1 }, btn:'Give something sweet for the glaze', hint:'Bring Pip something sweet for the glaze: honey, a Sunberry, Starfruit, Bellmelon or a Glimmerberry.',
+        text:`You and Pip bake in your cottage, because your oven is "a witch oven, so it's better". Pip kneads with enormous concentration and their tongue out. The loaf comes out lopsided, cracked across the top and slightly burnt on one side. Pip stares at it. "It's perfect," they whisper. It is.` },
+      { v:'pip', btn:'Ask how the birthday went', hint:'Ask Pip how the birthday went.',
+        text:`Pip runs at you so fast they nearly knock you over. "She CRIED. In a good way. She said it was the best loaf in the valley and she's a BAKER so she knows." They press a second, smaller, even more lopsided loaf into your hands. "This one's yours. I made it after. You can't eat it, it's for keeping. Ma says to dry it."` }
+    ], reward:{ coins:150, fr:{ pip:150, mara:40 }, memento:'pip' }, rtext:'150 coins and a keepsake: the lopsided loaf.' },
+  h_odile: { title:"Odile's examination", host:'odile', cast:['odile', 'theo'], unlock:'Odile, at 8 hearts', hook:'Odile has never brewed a potion.',
+    steps:[
+      { v:'odile', btn:'Ask about the old papers', hint:'Odile has found her old Guild examination papers. Ask her about them.',
+        text:`Odile shows you a yellowed exam paper. Question one: Brew a Calming Draught. Her answer is beautifully written and entirely theoretical. "I never brewed one," she says. "Not once. After the Guild said no, I couldn't bear to try." She folds it carefully. "I'm fifty-three. It's silly. But I'd like to, just once."` },
+      { v:'theo', btn:'Ask Theo for a simple recipe', hint:'Ask Theo for the simplest Calming Draught he knows.',
+        text:`Theo takes this extremely seriously. He writes the recipe out in large, clear letters, with drawings, and underlines the hard bits twice. Then he adds a note at the bottom: "There is no such thing as not enough talent. There is only not enough practice. (Please don't tell her I wrote that, it's embarrassing.)"` },
+      { v:'odile', give:{ pick:['mint', 'violet', 'moon'], n:2 }, btn:'Give 2 herbs for the brew', hint:'Bring Odile 2 herbs for her brew: Calm-mint, Wood Violet or Moonpetal.',
+        text:`Odile lays the herbs out on her desk as if they might bite. "After class," she says. "In the schoolroom. With the door shut, in case it explodes." She doesn't think it will explode. She's quite sure it will explode.` },
+      { at:'school', after:900, btn:'Brew with Odile', hint:'Go to the school after lessons (from 3 pm) and brew with Odile.',
+        text:`It doesn't explode. It goes cloudy, then clear, then a soft pale green, and it smells exactly the way a Calming Draught should. Odile looks at it for a long time. Then she takes the old exam paper, writes "Answer: see attached" across the top, and pins it to the noticeboard next to the bottle. The next morning, twenty children want to know who made it.` }
+    ], reward:{ coins:200, items:{ calming:1 }, fr:{ odile:150, theo:40 }, memento:'odile' }, rtext:"200 coins, a Calming Draught and a keepsake: Odile's first potion." },
+  h_wren: { title:'The runaway swarm', host:'wren', cast:['wren', 'hettie', 'tilly'], unlock:'Wren, at 8 hearts', hook:"Wren's bees have swarmed.",
+    steps:[
+      { v:'wren', btn:'Ask what happened', hint:'Something is wrong with Wren\'s bees. Find her.',
+        text:`Wren is standing by an empty hive with her veil in her hands. "They swarmed. A new queen took half of them off this morning." She's trying very hard to sound calm. "It's natural. It's fine. It's just, if they settle somewhere bad, someone'll smoke them out. Has anyone seen them?"` },
+      { v:['hettie', 'tilly'], btn:'Ask about the bees', hint:'Ask Granny Hettie or Tilly. One of them saw where the swarm went.',
+        text:`"A cloud of bees? Humming like a kettle?" They saw it go over the square and settle in the old cherry tree by the well. "It's still there," you hear. "It looks like a big brown beard. A buzzing one."` },
+      { at:'square', give:{ pick:['moon', 'violet', 'mint', 'glimmer', 'sunberry'], n:2 }, btn:'Coax the swarm with 2 flowers', hint:'Go to the square with Wren\'s old straw skep and 2 flowers or berries to coax the swarm down.',
+        text:`You set the flowers in the old straw skep and hold it under the branch, very still. Nothing happens for a long time. Then one bee walks in. Then ten. Then the whole beard slides down into the basket with a sound like rain, and you're standing in the square holding ten thousand bees, trying not to laugh.` },
+      { v:'wren', btn:'Bring the swarm home', hint:'Carry the swarm back to Wren.',
+        text:`Wren tips the bees into a new hive and watches them walk in, one by one. Then she paints a name on the hive. It's yours. "That's what you do," she says. "A swarm's a new family. You name it after whoever brought it home." She tells the bees. They seem to approve.` }
+    ], reward:{ coins:200, items:{ honey:2 }, fr:{ wren:150, hettie:30, tilly:30 }, memento:'wren' }, rtext:'200 coins, two jars of honey and a keepsake: the straw skep.' },
+  h_rowan: { title:"His father's hammer", host:'rowan', cast:['rowan', 'odile'], unlock:'Rowan, at 8 hearts', hook:"Rowan has decided what to do with his father's hammer.",
+    steps:[
+      { v:'rowan', btn:'Ask about the hammer', hint:'Rowan wants to talk about his father\'s hammer. He\'s usually at the smithy.',
+        text:`Rowan sets his father's hammer on the anvil. "I've been thinking. It just sits there, being heavy and disappointed in me." He almost smiles. "I want to melt it down. Make something with it that he'd hate and I'd be proud of. But it needs a hotter fire than I can make. Something with real heat in it."` },
+      { v:'rowan', give:{ pick:['ember', 'firemoss', 'emberglass', 'pepper'], n:2 }, btn:'Give 2 things for the fire', hint:'Bring Rowan 2 things with real heat in them: Emberroot, Fire Moss, Ember Glass or Sunpepper.',
+        text:`The forge roars white. The old hammer goes soft, then bright, then puddles in the crucible like sunrise. Rowan watches it with his jaw set. "Now," he says. "What to make. Something for the valley. Not a sword." He thinks. "Ask Odile what the school needs. She always needs something."` },
+      { v:'odile', btn:'Ask what the school needs', hint:'Ask Odile what the school needs most.',
+        text:`Odile doesn't hesitate. "A bell. The old one cracked when I was a girl. I've been ringing a saucepan for thirty years." She looks at you. "Is this Rowan's doing? Tell him a bell. Tell him it should be loud enough to be heard at the mill, because the Pip family is always late."` },
+      { at:'school', btn:'Hang the new bell', hint:'Go to the school. Rowan is hanging the new bell.',
+        text:`The bell is small and bright, with a ring of iron leaves round the rim. Rowan rings it once. It's loud enough to be heard at the mill, the ferry, and probably the next valley. The children cheer. Rowan stands with his hands in his pockets, looking at it. "He'd have hated it," he says. "It's the best thing I've ever made." Then he gives you the offcut: a little bell, just like it.` }
+    ], reward:{ coins:300, fr:{ rowan:120, odile:40 }, memento:'rowan' }, rtext:'300 coins and a keepsake: a little iron bell.' },
+  h_silas: { title:'Brambleroot, all of it', host:'silas', cast:['silas', 'isolde', 'aldous'], unlock:'Silas, at 8 hearts', hook:'Silas wants to play his song for the whole valley.',
+    steps:[
+      { v:'silas', btn:'Ask about the song', hint:'Silas has an idea about his song. He\'s usually at the inn.',
+        text:`Silas turns his lute over and over. "I want to play Brambleroot. All of it. For everyone, not just whoever's in the inn on a Tuesday." He swallows. "I haven't played a proper concert since the city. I'm terrified. Will you help me fill the room?"` },
+      { v:'isolde', btn:'Ask Isolde to host', hint:'Ask Isolde if the inn can host a concert.',
+        text:`Isolde is already moving tables in her head. "A concert? At the Kettle? I'll do a cider. I'll do pies. I'll do a cider pie." She stops. "He's nervous, isn't he? Tell him the whole inn's going to sing anyway, so he might as well be in front of them."` },
+      { v:'aldous', btn:'Ask the mayor to announce it', hint:'Ask Mayor Aldous to announce the concert.',
+        text:`Aldous is delighted to make an announcement. He makes three. He has posters painted. He rings a handbell in the square, then is told off by Odile, who prefers her own bell. By evening there isn't a soul in the valley who doesn't know.` },
+      { at:'inn', after:1140, btn:'Go to the concert', hint:'Go to the inn one evening, after 7 pm, for the concert.',
+        text:`The inn is so full people are sitting on the stairs and in the windows. Silas plays Brambleroot from beginning to end, and by the last verse everyone is singing the bits they know. Then he plays one more, a new one nobody's heard. It's about an inn where people don't clap, they sing. Isolde has to go into the kitchen for a while. When Silas comes down off the little stage, he finds you first.` }
+    ], reward:{ coins:250, fr:{ silas:120, isolde:40, aldous:30 }, memento:'silas' }, rtext:'250 coins and a keepsake: a printed song sheet.' },
+  h_theo: { title:'Brambleroot Brews', host:'theo', cast:['theo', 'hettie'], unlock:'Theo, at 8 hearts', hook:'Theo wants to write a book.',
+    steps:[
+      { v:'theo', btn:'Ask about the book', hint:'Theo has a big idea. He\'s usually at the apothecary.',
+        text:`Theo has covered the shop counter in paper. "A book," he says, too fast. "Your aunt's recipes, and yours, all in one place, so they're never lost. Properly tested. With pictures." He takes a breath. "I'll need samples to draw from. Two of your best. If that's all right."` },
+      { v:'theo', give:{ pick:'potion', n:2 }, btn:'Give Theo 2 potions', hint:'Bring Theo 2 of your potions to draw for the book.',
+        text:`Theo draws your potions from four angles each and measures the colour against a chart he made himself. "Now your aunt's," he says. "I've read everything of hers in the Guild library, but the good ones were never written down. Granny Hettie will have them."` },
+      { v:'hettie', btn:"Ask for Bramble's recipes", hint:"Ask Granny Hettie for your aunt's recipes from her letters.",
+        text:`Hettie hands you a bundle of letters tied with string. "Recipes. Thirty of them. Half are for potions and half are for revenge on the mayor's grandmother." She pats your hand. "Tell the boy to leave the revenge ones out. Or don't. They're very good."` },
+      { v:'theo', btn:'Bring Theo the letters', hint:'Take the letters back to Theo.',
+        text:`Theo works for a week. When he's done, he gives you the first copy: Brambleroot Brews, by Bramble and by you, with drawings, an index, and, on the very last page in very small letters, "with notes by T." He's left one of the revenge recipes in. "For historical accuracy," he says.` }
+    ], reward:{ coins:350, fr:{ theo:120, hettie:30 }, memento:'theo' }, rtext:'350 coins and a keepsake: the first copy of Brambleroot Brews.' },
+  h_isolde: { title:'Twenty years at the Kettle', host:'isolde', cast:['isolde', 'mara', 'silas'], unlock:'Isolde, at 8 hearts', hook:'Mara has a secret about Isolde.',
+    steps:[
+      { v:'mara', btn:'Ask about the secret', hint:'Mara has a secret about Isolde. Find her at the mill.',
+        text:`Mara pulls you behind a flour sack. "It's twenty years this month since Isolde took on the inn. Twenty years, and she's never had a night off, and she'd die before she let anyone fuss." She grins. "So we're going to fuss. A surprise supper. You do the food. I'll do the fussing. Get the regulars."` },
+      { v:['silas', 'juno', 'rowan'], btn:'Tell a regular about the plan', hint:'Tell one of the inn\'s regulars about the surprise: Silas, Juno or Rowan.',
+        text:`You whisper the plan. The regular you tell immediately tells all the others, in whispers that can be heard across the square. Somehow, by evening, the only person in the valley who doesn't know is Isolde. It's a small valley. It's a miracle.` },
+      { at:'inn', give:{ pick:'crop', n:4 }, btn:'Cook the surprise supper', hint:'Go to the inn with 4 crops and cook the surprise supper while Mara keeps Isolde busy.',
+        text:`Mara drags Isolde off to the mill "to look at a funny-shaped turnip", and you take over her kitchen. It's terrifying. Everything is in exactly the right place except you. But by the time the regulars arrive, there's a supper on every table and a cake with twenty candles, slightly lopsided.` },
+      { v:'isolde', btn:'Bring Isolde home', hint:'Find Isolde and bring her back to the inn.',
+        text:`The whole inn shouts surprise. Isolde puts her hand over her mouth. Then, out of pure habit, she tries to serve everyone, and Mara sits her down, and you sit her down again, and Silas plays, and she finally, finally stays sitting. "Twenty years," she says, and laughs, and can't stop. "Nobody's ever cooked for me in my own kitchen. It's awful. It's wonderful. You used the wrong pan."` }
+    ], reward:{ coins:250, items:{ hearth:1 }, fr:{ isolde:150, mara:30, silas:30 }, memento:'isolde' }, rtext:'250 coins, a Hearth Tonic and a keepsake: the twentieth-year menu.' },
+  h_juno: { title:'The Kingfisher', host:'juno', cast:['juno', 'rowan', 'fen'], unlock:'Juno, at 8 hearts', hook:"Juno has found her mum's old boat.",
+    steps:[
+      { v:'juno', btn:'Ask about the boat', hint:'Juno has found something under the docks. Ask her about it.',
+        text:`Juno drags you under the docks to a long shape under a sheet of sacking. It's a boat: small, green, half rotten. The nameplate says Kingfisher. "Mum's," Juno says. "I thought it sank. Fen pulled it up years ago and never told me, because he thought I'd cry." She wipes her nose. "I'm going to fix her. I'll need nails. Good ones."` },
+      { v:'rowan', btn:'Ask Rowan for boat nails', hint:'Ask Rowan to forge copper nails for the boat.',
+        text:`Rowan forges a whole bag of copper nails without being asked twice, and a new brass rowlock for good measure. "Copper doesn't rust in water," he says. "Tell Juno to soak the planks first. And tell Fen to stop pretending he knows nothing about it. He asked me for nails for that boat ten years ago."` },
+      { v:'fen', give:{ pick:'forage', n:3 }, btn:'Give 3 Wood finds for the pitch', hint:"Bring Old Fen 3 finds from the Old Wood. He knows an old recipe for caulking pitch.",
+        text:`Fen grumbles that he doesn't know what you're talking about, then grinds your finds into a black, sweet-smelling pitch without stopping once to check a recipe. "Her mum used to caulk her with this," he says, not looking up. "Every spring. Same pot. Tell the girl the seams want doing twice."` },
+      { at:'docks', btn:'Launch the Kingfisher', hint:'Go to the docks. Juno is ready to launch the Kingfisher.',
+        text:`The Kingfisher slides into the river, rocks once, and floats. Juno paddles out to the middle and back, laughing and crying at once, and Fen pretends to be very busy with a rope. When she climbs out, Juno unscrews the old brass nameplate, polishes it on her sleeve and gives it to you. "She's got a new one coming," she says. "This one's for her first mate."` }
+    ], reward:{ coins:300, items:{ moonfish:1 }, fr:{ juno:150, rowan:30, fen:40 }, memento:'juno' }, rtext:"300 coins, a Moonfish and a keepsake: the Kingfisher's nameplate." },
+  h_hettie: { title:"Bramble's hill garden", host:'hettie', cast:['hettie', 'wren'], unlock:'Granny Hettie, at 8 hearts', hook:'Granny Hettie wants to plant something.',
+    steps:[
+      { v:'hettie', btn:'Ask about the hill', hint:'Granny Hettie has a plan for the hill. Ask her.',
+        text:`"Your aunt kept a herb garden on the hill when we were girls," Hettie says. "Gone wild now, all nettles. I want it back. Before I'm too old to climb up there." She sniffs. "Which is next Tuesday, at this rate. I'll need cuttings. Good ones, from the Wood."` },
+      { v:'hettie', give:{ pick:'forage', n:3 }, btn:'Give 3 Wood finds for cuttings', hint:'Bring Granny Hettie 3 finds from the Old Wood to plant.',
+        text:`Hettie plants every one with her own hands, kneeling in the dirt and naming them as she goes, and you dig where she points. "There. And there. Bramble had the mint there, and she kept a stone there for sitting on." She sits on it. "Now it wants bees. A garden's not a garden without bees. Ask the Wren girl."` },
+      { v:'wren', btn:'Ask Wren for a hive', hint:'Ask Wren if she can spare a hive for the hill.',
+        text:`Wren carries a hive up the hill herself, singing to it under her breath the whole way. "The bees here used to belong to the hill," she says. "Before my time. They'll be glad to come home."` },
+      { v:'hettie', btn:'Visit the hill garden', hint:'Go and see Granny Hettie about the finished garden.',
+        text:`It's warm on the hill. The cuttings have taken, the bees are working, and Hettie has painted a little sign in green: BRAMBLE'S GARDEN. Under it, smaller, in fresh paint: AND HETTIE'S. AND YOURS. She presses a sprig into your hand. "It was ours," she says. "Now it's yours too. Come and sit on the stone sometimes."` }
+    ], reward:{ coins:200, items:{ calming:1 }, fr:{ hettie:150, wren:30 }, memento:'hettie' }, rtext:'200 coins, a Calming Draught and a keepsake: a pressed hill sprig.' },
+  h_aldous: { title:"The mayor's speech", host:'aldous', cast:['aldous', 'odile', 'isolde'], unlock:'Mayor Aldous, at 8 hearts', hook:'Mayor Aldous has to give a speech.',
+    steps:[
+      { v:'aldous', btn:'Ask about the speech', hint:'Mayor Aldous is fretting about something. He\'s usually in the square.',
+        text:`Aldous is clutching forty pages of notes. "Founders' Day. The mayor gives a speech. My mother's were legendary. My grandmother's made people weep." He holds up the notes. "Mine is about drainage. Please help me."` },
+      { v:'odile', btn:'Ask Odile for advice', hint:'Ask Odile how to write a good speech.',
+        text:`Odile reads the first page and puts it down gently. "Tell him what I tell the children," she says. "Say one true thing, say it plainly, and sit down. Nobody ever complained that a speech was too short."` },
+      { v:'isolde', btn:'Ask what people want to hear', hint:'Ask Isolde what the valley actually wants to hear.',
+        text:`Isolde doesn't even look up from her pies. "That he likes us," she says. "That's all. He thinks we want a mayor like his mother. We don't. We want him. He just doesn't believe it."` },
+      { at:'square', btn:'Hear the speech', hint:'Go to the square for the Founders\' Day speech.',
+        text:`Aldous climbs onto the steps with his forty pages. He looks at the crowd. He looks at the pages. Then he folds them up and puts them in his pocket. "I'm not as good at this as my mother," he says. "But I love this valley, and I love all of you, even the ones who park carts on the bridge." He sits down. There is a silence, and then the loudest cheer anyone can remember. He gives you the forty pages afterwards. "A souvenir. Of a narrow escape."` }
+    ], reward:{ coins:400, fr:{ aldous:120, odile:30, isolde:30 }, memento:'aldous' }, rtext:'400 coins and a keepsake: the unused speech.' },
+  h_zara: { title:'A door with her name on it', host:'zara', cast:['zara', 'aldous', 'isolde'], unlock:'Zara, at 8 hearts', hook:'Zara is thinking about something unusual for her: staying.',
+    steps:[
+      { v:'zara', btn:'Ask what she\'s thinking about', hint:'Zara seems distracted. Ask her what\'s on her mind.',
+        text:`Zara is sitting on the cart steps, not selling anything, which is unheard of. "I've been thinking," she says. "Not about staying. I'd go mad. But about having somewhere to come back to. A shelf. A door. Something with my name on it." She laughs at herself. "Ridiculous. Ask the mayor if there's anywhere going, would you? I can't ask. I'd haggle."` },
+      { v:'aldous', btn:'Ask about an empty room', hint:'Ask Mayor Aldous if there\'s a room in the valley Zara could have.',
+        text:`Aldous consults three ledgers. "Nothing on the square. But Isolde's had the little back room at the inn empty for years. Ask her. And tell Zara there's no rent. The valley owes her for all the things she found that we didn't know we needed."` },
+      { v:'isolde', give:{ pick:'potion', n:1 }, btn:'Give a potion for the first shelf', hint:'Ask Isolde about the back room, and bring a potion for Zara\'s first shelf.',
+        text:`Isolde gives you the key before you've finished asking. "It's got a window, a shelf, and a smell of old apples. She'll love it." You put your potion on the empty shelf, so it isn't empty. Isolde puts a jar of pickles beside it. "So it's got stock," she says.` },
+      { v:'zara', btn:'Give Zara the key', hint:'Take the key to Zara.',
+        text:`Zara turns the key over in her fingers for a long time. "I'll still go on the road," she says. "Every week." Then: "But I'll come back to this." She has a second key cut that same afternoon, and gives it to you. "In case I lose mine. And so there's someone who's allowed in. Nobody's ever been allowed in before."` }
+    ], reward:{ coins:300, fr:{ zara:150, aldous:30, isolde:30 }, memento:'zara' }, rtext:"300 coins and a keepsake: Zara's first key." },
+  h_bertram: { title:'The fog bell', host:'bertram', cast:['bertram', 'rowan', 'fen'], unlock:'Bertram, at 8 hearts', hook:'Bertram wants to hang an old bell.',
+    steps:[
+      { v:'bertram', btn:'Ask about the bell', hint:'Bertram wants to talk about a bell. Find him by the river.',
+        text:`Bertram shows you his old ship's bell, green with age. "Fog comes up the river every autumn, thick as porridge. Fen's lost his way twice, though he'd never say. I want to hang this on the docks, so anyone out on the water can find the bank." He pats it. "It needs a bracket. Iron. Strong."` },
+      { v:'rowan', btn:'Ask Rowan for a bracket', hint:'Ask Rowan to make an iron bracket for the bell.',
+        text:`Rowan makes a bracket shaped like a ship's wheel, because he can't help himself. "Tell Bertram it'll hold a cow," he says. "Tell him I don't know why he'd hang a cow on it. Tell him it's free."` },
+      { v:'fen', btn:'Tell Fen about the bell', hint:'Tell Old Fen about the fog bell.',
+        text:`Fen goes very still. "That's the bell off the Merrow. The barge from the flood year." He clears his throat. "Bertram and me pulled her crew off together. Argued the whole time about whose knot was better." A pause. "Mine was. You can tell him I said so. Tell him I'll ring it first."` },
+      { at:'docks', btn:'Hang the bell', hint:'Go to the docks to hang the fog bell.',
+        text:`The bell goes up on Rowan's bracket at the end of the dock. Fen and Bertram both reach for the rope at the same moment, and argue about it for ten minutes, and in the end they ring it together. It sounds out across the river, deep and clear. Bertram gives you the old frayed rope afterwards, and ties a new one on. "First rope," he says. "Bad luck to throw it away."` }
+    ], reward:{ coins:250, fr:{ bertram:150, fen:40, rowan:30 }, memento:'bertram' }, rtext:"250 coins and a keepsake: the bell's old rope." },
+  h_tilly: { title:"Tilly's star", host:'tilly', cast:['tilly', 'bertram'], unlock:'Tilly, at 8 hearts', hook:'Tilly has lost a star.',
+    steps:[
+      { v:'tilly', btn:'Ask what\'s wrong', hint:'Tilly is upset. Find her.',
+        text:`Tilly is sitting on the well with her chin in her hands. "I named a star after the cat. And now I can't find it. It was right there and now it isn't." Her lip wobbles. "Pip says stars don't move. Pip is wrong about a lot of things, but what if they're right?"` },
+      { v:'bertram', btn:"Ask about moving stars", hint:"Ask Bertram, who knows the sky, about Tilly's star.",
+        text:`Bertram laughs, gently. "They do move, a little, with the seasons. Her star's gone round behind the hill, that's all." He hands you his spyglass. "Go up the lighthouse after dark and look east. It'll be there, low down, near the bright one."` },
+      { at:'lighthouse', after:1200, btn:"Look for Tilly's star", hint:'Climb the lighthouse after dark (from 8 pm) and look east for Tilly\'s star.',
+        text:`It takes a while, with the spyglass and the cold and the wind. But there it is, low in the east, right where Bertram said, near the bright one. You draw it all on a scrap of paper, every star around it, so she'll never lose it again.` },
+      { v:'tilly', btn:'Show Tilly the star', hint:'Show Tilly where her star went.',
+        text:`Tilly looks at your drawing, then at the sky, then at your drawing. "It went round the back of the hill," she says, in wonder. "Like it was hiding." She copies your map in crayon, much bigger, with the cat's star in gold, and gives you the copy. "That's the official one," she says. "The cat's star is official now. It's on the map."` }
+    ], reward:{ coins:150, items:{ glimmer:1 }, fr:{ tilly:150, bertram:30 }, memento:'tilly' }, rtext:"150 coins, a Glimmerberry and a keepsake: Tilly's star chart." }
+};
+for (const [id, Q] of Object.entries(HEART_QUESTS)) { Q.heart = true; Q.when = () => heartsOf(Q.host) >= 8; QUESTS[id] = Q; }
+
 const QIDS = Object.keys(QUESTS);
 const qState = id => (S.quests || {})[id];
 const qStep = id => { const st = qState(id); return st && !st.done ? QUESTS[id].steps[st.s] : null; };
@@ -6230,6 +6421,7 @@ function questReward(Q) {
   if (r.coins) { earn(r.coins); out.push(`${fmt(r.coins)} coins.`); }
   if (r.items) { giveItems(r.items); out.push(Object.entries(r.items).map(([k, n]) => `${n} ${itemName(k)}`).join(' and ') + '.'); }
   if (r.lit) out.push('The lighthouse shines over the river every night now.');
+  if (r.memento) { (S.mementos = S.mementos || {})[r.memento] = true; out.push(`A keepsake for your shelf: ${MEMENTOS[r.memento].name}.`); }
   if (r.fr) { const g = []; for (const [v, n] of Object.entries(r.fr)) { addFr(v, n); applyGifts(v, g); } out.push(`${nameList(Object.keys(r.fr))} ${Object.keys(r.fr).length > 1 ? 'are' : 'is'} much fonder of you.`, ...g); }
   checkStars();
   return out;
@@ -6260,8 +6452,11 @@ function questHollow(f) {
 // Mornings: new stories open as friendships grow.
 function questMorning(lines) {
   if (!S.quests) S.quests = {};
+  let heartOpened = false;
   for (const id of QIDS) {
     const Q = QUESTS[id]; if (S.quests[id] || !Q.cast.every(arrived) || !Q.when()) continue;
+    if (Q.heart && heartOpened) continue; // one heart story a morning
+    if (Q.heart) heartOpened = true;
     S.quests[id] = { s:0, at:absDay() };
     lines.push({ t:`A new story: ${Q.title}. ${Q.hook} (See Stories in the Journal.)`, c:'gold', v:Q.host, mood:'neutral' });
   }
@@ -6631,9 +6826,14 @@ function renderSheet(kind, data) {
       S.mail.forEach((m, i) => { h += `<button class="vrow ${m.read ? '' : 'unread'}" type="button" data-act="letter" data-i="${i}">${fromPic(m.from, 44)}<div class="info"><span class="name">${m.title}</span><span class="meta">${fromName(m.from)} · ${m.day}${m.read ? '' : ' · new'}</span></div><span class="chev" aria-hidden="true">›</span></button>`; });
     } else if (journalTab === 'stories') {
       h += `<p class="sub">Stories open up as you grow closer to people. None of them run out of time, so do each step whenever you like.</p>`;
-      for (const id of QIDS) {
+      const rank = id => { const st = qState(id); return !st ? 1 : st.done ? 2 : 0; }, ids = QIDS.slice().sort((a, b) => rank(a) - rank(b));
+      const heartWait = QIDS.filter(id => QUESTS[id].heart && !qState(id) && QUESTS[id].cast.every(arrived));
+      let doneHead = false, waitShown = false;
+      for (const id of ids) {
         const Q = QUESTS[id], st = qState(id), crowd = `<div class="crowd">${Q.cast.map(v => portrait(v, st && st.done ? 'happy' : 'neutral', 36)).join('')}</div>`;
+        if (!st && Q.heart) { if (!waitShown && heartWait.length) { waitShown = true; h += `<div class="vrow dim"><span class="por q">?</span><div class="info"><span class="name">${heartWait.length} friend${heartWait.length === 1 ? '\'s' : 's\''} own stor${heartWait.length === 1 ? 'y' : 'ies'} yet to come</span><span class="meta">Each friend has a story of their own, from 8 hearts${heartWait.length <= 4 ? `: ${nameList(heartWait.map(q => QUESTS[q].host))}` : ''}</span></div></div>`; } continue; }
         if (!st) { if (Q.cast.every(arrived)) h += `<div class="vrow dim"><span class="por q">?</span><div class="info"><span class="name">A story yet to come</span><span class="meta">With ${Q.unlock}</span></div></div>`; continue; }
+        if (st.done && !doneHead) { doneHead = true; h += `<h4 class="sec">Finished</h4>`; }
         if (st.done) { h += `<article class="card done"><div class="chead"><h4>${Q.title}</h4><span class="stars">Finished</span></div>${crowd}<p class="sub">${Q.rtext}</p></article>`; continue; }
         const step = qStep(id); let loc = '', btn = '';
         if (step.v) for (const v of [].concat(step.v)) { const mb = meetBox(v); loc += `<p class="sub where">${canMeet(v) ? `${VILLAGERS[v].name} is right here.` : `${VILLAGERS[v].name} is ${placeLabel(where(v))}.`}</p>`; if (!btn && !canMeet(v) && mb.seek) btn = `<button class="btn alt" data-act="seek" data-id="${v}" type="button">${mb.seek}</button>`; }
@@ -6696,7 +6896,7 @@ function renderSheet(kind, data) {
     if (S.spouse) h += `<li>${VILLAGERS[S.spouse].name} has left the lamp on for you.</li>`;
     if (S.wedding && !S.spouse && S.wedding.at === absDay() + 1) h += `<li class="gold">Tomorrow is your wedding day.</li>`;
     h += `<li>You'll wake at 6:00 am with full energy.</li></ul>`;
-    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button>${S.hollowMax ? `<button class="btn alt" data-act="relics" type="button">The relic shelf${Object.keys(HS().relics || {}).length ? ` (${Object.keys(HS().relics).length})` : ''}</button>` : ''}<button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>${S.hew && S.hew.met && !S.hew.wed ? `<button class="btn alt" data-act="hewease" type="button">Hew's curses: ${S.hew.ease ? 'eased (no effects)' : 'on'}</button>` : ''}<p class="build">${buildLabel()}</p>`;
+    h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div><button class="btn alt" data-act="mirror" type="button">Look in the mirror</button>${S.hollowMax || Object.keys(S.mementos || {}).length ? `<button class="btn alt" data-act="relics" type="button">The relic shelf${Object.keys(HS().relics || {}).length ? ` (${Object.keys(HS().relics).length})` : ''}</button>` : ''}<button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>${S.hew && S.hew.met && !S.hew.wed ? `<button class="btn alt" data-act="hewease" type="button">Hew's curses: ${S.hew.ease ? 'eased (no effects)' : 'on'}</button>` : ''}<p class="build">${buildLabel()}</p>`;
   } else if (kind === 'clock') {
     title = 'The clock';
     h += `<p class="sub">Time only moves while you're walking or working. Stand still, and it waits for you.</p>`;
@@ -6915,6 +7115,10 @@ function renderSheet(kind, data) {
       h += `<h4 class="band">${B.name} <span>· floors ${bi * 10 + 1} to ${bi * 10 + 10}</span></h4>`;
       for (const k of ks) { const R0 = RELICS[k]; h += got[k] ? row(R0.col, R0.name, R0.desc, '') : row('#3a3346', 'An empty spot', R0.warden ? `${MOBS[WARDENS[R0.warden].k].name} on floor ${R0.warden} guards something for this spot.` : `Something rare is hidden in the ${B.name}. Keep exploring.`, '', 'dim'); }
     });
+    const mem = Object.keys(MEMENTOS).filter(k => (S.mementos || {})[k]);
+    h += `<h4 class="band">Keepsakes from friends <span>· ${mem.length} of ${Object.keys(MEMENTOS).length}</span></h4>`;
+    if (!mem.length) h += `<p class="sub">Each friend has a story of their own once you're at 8 hearts. Each one ends with something for this shelf.</p>`;
+    for (const k of mem) h += row(MEMENTOS[k].col, MEMENTOS[k].name, MEMENTOS[k].desc, '');
     h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
   } else if (kind === 'hpage') {
     title = `Journal · floor ${data.f}`;

@@ -10,7 +10,7 @@ Matt, Nov 10, 2026: his wife is close to full hearts with everyone in autumn of 
 - **Best-friend help:** most mornings, one best friend at 10 hearts leaves something small (`BFF_HELP[v]`): a breakfast, a fish, a jar of honey, herbs, a little favour. One-off items or a bit of energy, never a permanent perk, so the economy holds.
 - If she later dates a best friend, the romance scenes take over as usual (the best-friend scenes use their own keys).
 
-## Part 2: heart quests
+## Part 2: heart quests — DONE Nov 10, 2026 (Build 25). Four steps each; one opens a morning; keepsakes go on the relic shelf.
 - At 8 hearts, each villager starts a personal story of three or four steps: a scene, a favour or a place to meet, and an ending with a keepsake gift. They use the story-quest system (`QUESTS`) and show in the Journal's Stories tab.
 - 15 stories, one each. They build on the 2/4/6/8 scenes (Mara and the mill, Fen and the ferry, Silas's song, Juno's mother, Hettie's letters, and so on).
 

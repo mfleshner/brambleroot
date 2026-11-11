@@ -2,10 +2,12 @@
 // Walks every story start to finish, checks the blocked cases, every group event (sun and rain), saves,
 // Bramble's Charm, and then runs a "typical player" friendship model for 2 years to report when things open up.
 const fs = require('fs');
-const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", "globalThis.__t={get S(){return S},set S(v){S=v},startGame,endDay,closeSheet,openSheet,renderSheet,get sheet(){return sheetOpen},VILLAGERS,VIDS,where,canMeet,villageFolk,VPLACES,VSPOTS,VB,SCHED,enterVillage,leaveVillage,heartsOf,addFr,talkTo,QUESTS,QIDS,qStep,qState,qBlock,qHint,questDo,questHollow,hollowFloor,EVENTS,EIDS,evNow,joinEvent,evPlace,lampLit,bgKeyNow,buildStatic,draw,castSpell,learnSpell,SPELLS,migrate,newState,ITEMS,CROPS,FORAGE,POTIONS,itemValue,absDay,genVisits,inValley,arrived,seekPlace,setCal:v=>{calSeason=v},update,get queue(){return queue},witch,resize,FEST_DAY};\n})();");
+const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", "globalThis.__t={get S(){return S},set S(v){S=v},startGame,endDay,closeSheet,openSheet,renderSheet,get sheet(){return sheetOpen},VILLAGERS,VIDS,where,canMeet,villageFolk,VPLACES,VSPOTS,VB,SCHED,enterVillage,leaveVillage,heartsOf,addFr,talkTo,QUESTS,QIDS,MEMENTOS,qStep,qState,qBlock,qHint,questDo,questHollow,hollowFloor,EVENTS,EIDS,evNow,joinEvent,evPlace,lampLit,bgKeyNow,buildStatic,draw,castSpell,learnSpell,SPELLS,migrate,newState,ITEMS,CROPS,FORAGE,POTIONS,itemValue,absDay,genVisits,inValley,arrived,seekPlace,setCal:v=>{calSeason=v},update,get queue(){return queue},witch,resize,FEST_DAY};\n})();");
 const sim7 = fs.readFileSync('sim7.js', 'utf8').split('\n').slice(2, 7).join('\n'); eval(sim7);
 const store = {}; globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => store[k] = v, removeItem: k => delete store[k] };
 eval(src); const t = __t; t.startGame(true);
+// node questsim.js heart → the heart quests (PLAN-hearts.md Part 2), else the original six stories.
+const HEART = process.argv[2] === 'heart', QL = t.QIDS.filter(id => !!t.QUESTS[id].heart === HEART);
 let bad = 0, n = 0; const ok = (c, m) => { n++; if (!c) { bad++; if (bad < 30) console.log('BAD', m); } };
 const body = () => document.getElementById('shBody').innerHTML, clean = h => !/undefined|NaN|\[object/.test(h);
 const close = () => { if (t.sheet) t.closeSheet(); };
@@ -14,7 +16,7 @@ close();
 
 // 1. data sanity
 const valid = id => !!t.ITEMS[id];
-for (const id of t.QIDS) {
+for (const id of QL) {
   const Q = t.QUESTS[id];
   ok(Q.cast.every(v => t.VILLAGERS[v]), id + ' cast');
   ok(t.VILLAGERS[Q.host] && Q.cast.includes(Q.host), id + ' host');
@@ -52,13 +54,15 @@ sleep();
 ok(Object.keys(S().quests).length === 0, 'no stories on day 2');
 // unlock everything
 S().spells.push('firebolt');
-for (const v of t.VIDS) S().fr[v] = 450;
+for (const v of t.VIDS) S().fr[v] = HEART ? 850 : 450;
+if (HEART) { S().year = 2; for (const v of t.VIDS) S().scenes[v + 8] = true; }
 sleep();
-const unlocked = Object.keys(S().quests);
-ok(unlocked.length === t.QIDS.length, 'every story unlocked: ' + unlocked.join(','));
+if (HEART) { ok(QL.filter(id => S().quests[id]).length === 1, 'one heart story a morning'); untilFound(() => QL.every(id => S().quests[id]), 20); }
+const unlocked = Object.keys(S().quests).filter(id => QL.includes(id));
+ok(unlocked.length === QL.length, 'every story unlocked: ' + unlocked.join(','));
 // 3. walk each story
 const before = { coins:S().coins };
-for (const id of t.QIDS) {
+for (const id of QL) {
   const Q = t.QUESTS[id];
   ok(t.qState(id).s === 0, id + ' starts at step 0');
   t.openSheet('journal'); close();
@@ -103,10 +107,12 @@ for (const id of t.QIDS) {
   ok(t.qState(id).done, id + ' done');
   t.openSheet('journal'); close();
 }
+if (HEART) { ok(QL.every(id => S().mementos[id.slice(2)]), 'every keepsake'); t.openSheet('relics'); ok(clean(body()) && body().split('Keepsakes from friends').length === 2 && QL.every(id => body().includes(t.MEMENTOS[id.slice(2)].name.replace(/'/g, '&#39;')) || body().includes(t.MEMENTOS[id.slice(2)].name)), 'keepsakes on the shelf'); close();
+  t.openSheet('journal'); close(); console.log(`heart stories: all ${QL.length} walked start to finish, ${QL.reduce((a, id) => a + (t.QUESTS[id].reward.coins || 0), 0)} coins in all`); console.log(`${n - bad} passed, ${bad} failed`); process.exit(bad ? 1 : 0); }
 ok(S().spells.includes('kin'), 'Hettie gave the charm');
 ok(t.lampLit(), 'lamp lit');
 S().scene = 'village'; ok(t.bgKeyNow().includes('lit'), 'village background knows the lamp is lit');
-console.log(`stories: all ${t.QIDS.length} walked start to finish`);
+console.log(`stories: all ${QL.length} walked start to finish`);
 { S().scene = 'farm'; const jt = '__jt'; }
 
 // 4. Bramble's Charm
@@ -188,12 +194,12 @@ function play(events, chats, gifts) {
 for (const [label, c, g] of [['busy', 3, 1], ['social', 5, 2]]) {
   const a = play(true, c, g), b = play(false, c, g);
   console.log(`${label} player (${c} chats and ${g} liked gift${g > 1 ? 's' : ''} a day), when each story opens:`);
-  for (const id of t.QIDS) console.log(`  ${t.QUESTS[id].title.padEnd(22)} ${a.opened[id] || 'not in 2 years'}`);
+  for (const id of QL) console.log(`  ${t.QUESTS[id].title.padEnd(22)} ${a.opened[id] || 'not in 2 years'}`);
   console.log(`  spring picnic in year 1: ${a.picnicY1 ? 'yes' : 'no'}`);
   console.log(`  villagers at 5+ hearts at the end of winter, year 1: ${a.friends5} going to events, ${b.friends5} without (the star needs 6)`);
 }
 // value of story rewards
 const coinsOf = r => (r.coins || 0) + Object.entries(r.items || {}).reduce((s, [k, n]) => s + t.itemValue(k) * n, 0);
-const total = t.QIDS.reduce((s, id) => s + coinsOf(t.QUESTS[id].reward), 0);
-console.log(`stories, one-off value of all rewards: ${total} coins (${t.QIDS.map(id => `${id} ${coinsOf(t.QUESTS[id].reward)}`).join(', ')}), plus a spell`);
+const total = QL.reduce((s, id) => s + coinsOf(t.QUESTS[id].reward), 0);
+console.log(`stories, one-off value of all rewards: ${total} coins (${QL.map(id => `${id} ${coinsOf(t.QUESTS[id].reward)}`).join(', ')}), plus a spell`);
 console.log(`against the year-1 earning goals (spring 16k + summer 35k + autumn 33k = 84k): ${(total / 84000 * 100).toFixed(1)}%`);
