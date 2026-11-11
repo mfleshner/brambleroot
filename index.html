@@ -1776,6 +1776,7 @@ function endDay(passedOut) {
   checkStars(lines);
   eventMorning(lines);
   questMorning(lines);
+  shopMorning(lines);
   genVisits(); genWood(); S.scene = 'farm'; HV = null;
   if (isFestDay()) lines.push({ t:`It's the ${FEST[S.season].name} today! The stalls open in the village at 10 am, and everyone will be there: games, prizes and ${FEST_MAIN_NOUN[S.season]}. The farm can wait, if you like.`, c:'gold', v:'odile', mood:'happy' });
   mailMorning(lines);
@@ -5532,7 +5533,21 @@ function shopWant(v) {
   return have.length ? { slot:have[(Math.random() * have.length) | 0] } : null;
 }
 function shopSpawn() {
-  const v = pickShopper(), w = shopWant(v), st = shopState(), d = shopDay();
+  const st = shopState(), d = shopDay(), b = buyerToday();
+  if (b && !d.buyerCame && S.time >= SHOP_OPEN + 30) { // the out-of-town buyer
+    const q = shopQSpot(); if (q < 0) return;
+    d.buyerCame = true; d.people++;
+    SV.custs.push({ v:null, buyer:b, col:BUYERS[b].col, x:SHOP_DOOR[0], y:SHOP_DOOR[1], st:'in', q, n:1, id:'buyer', path:toAisle(6, 4).concat([SHOP_QSPOTS[q].slice()]) });
+    return;
+  }
+  if (basketReady() && !SV.basketOut && Math.random() < BASKET_P) { // someone after the gift basket
+    const q = shopQSpot(); if (q < 0) return;
+    const v = pickShopper(); if (v) st.came[v] = dayKey();
+    SV.basketOut = true; d.people++; if (v && !d.folk.includes(v)) d.folk.push(v);
+    SV.custs.push({ v, basket:true, col:STRANGER_COLS[(Math.random() * STRANGER_COLS.length) | 0], x:SHOP_DOOR[0], y:SHOP_DOOR[1], st:'in', q, n:1, id:'basket', price:basketPrice(), tier:'fair', path:toAisle(2, 4).concat([SHOP_QSPOTS[q].slice()]) });
+    return;
+  }
+  const v = pickShopper(), w = shopWant(v);
   if (v) st.came[v] = dayKey();
   const c = { v, col:STRANGER_COLS[(Math.random() * STRANGER_COLS.length) | 0], x:SHOP_DOOR[0], y:SHOP_DOOR[1], path:[], st:'in', wait:0, n:0, id:null, line:'', lineT:0 };
   const side = Math.random() < .5 ? 2 : 6;
@@ -5558,7 +5573,17 @@ function shopPick(c) {
 // buying a loved or liked thing fills in her gift notebook.
 function shopServe(c, quiet) {
   if (!c || c.st !== 'wait') return false;
+  if (c.buyer) { if (quiet || !buyerToday()) { c.st = 'out'; c.path = outRoute(c.x, 4); shopDay().buyerGone = true; return false; } openSheet('buyer', { c }); return true; }
   const st = shopState(), d = shopDay();
+  if (c.basket) {
+    if (!basketReady()) { c.st = 'out'; c.path = outRoute(c.x, 4); SV.basketOut = false; if (!quiet) shopSay(c, pickLine(SHOP_LINES.out)); return false; }
+    const coins = c.price; st.basket = []; SV.basketOut = false;
+    if (c.v) { addFr(c.v, 15); applyGifts(c.v, SV.gifts); addBuy(c.v); }
+    earn(coins); d.coins += coins; d.sold += BASKET_N; st.total += coins; st.sold += BASKET_N; st.served++; st.baskets = (st.baskets || 0) + 1; addRep(2);
+    c.st = 'out'; c.path = outRoute(c.x, 4);
+    if (!quiet) { SND.gift(); floatText(c.x, c.y - .4, `+${fmt(coins)}`, '#f2b84b'); shopSay(c, 'A whole gift basket! It\'s perfect. It\'s going straight to my sister.'); updateHUD(); }
+    return true;
+  }
   let coins = c.price * c.n, say;
   if (c.ask) {
     if ((S.inv[c.id] || 0) < 1) { c.st = 'out'; c.path = outRoute(c.x, 4); if (!quiet) shopSay(c, pickLine(SHOP_LINES.out)); return false; }
@@ -5592,7 +5617,7 @@ function shopCloseUp(quiet) {
     else if (c.st === 'in' && c.q !== undefined && !c.ask && c.n) { c.st = 'wait'; shopServe(c, true); }
     else if (c.st !== 'out' && c.n && !c.ask && c.slot !== undefined) { const s = st.shelf[c.slot]; if (s.id === c.id) s.n += c.n; }
   }
-  SV.open = false; SV.custs = SV.custs.filter(c => c.st === 'out'); d.idleDone = Math.max(d.idleDone || 0, S.time);
+  SV.open = false; SV.basketOut = false; SV.custs = SV.custs.filter(c => c.st === 'out'); d.idleDone = Math.max(d.idleDone || 0, S.time);
   st.days = (st.days || 0) + (d.counted ? 0 : 1); d.counted = true;
   if (d.coins > (st.best || 0)) st.best = d.coins;
   const sum = { coins:d.coins, sold:d.sold, people:d.people, folk:d.folk.slice(), gifts:SV.gifts.splice(0), learned:SV.learned.splice(0) };
@@ -5624,7 +5649,8 @@ function shopTick(dt) {
     if (c.st === 'browse') { c.wait -= dt; if (c.wait <= 0) shopPick(c); }
   }
   SV.custs = SV.custs.filter(c => !c.gone);
-  if (SV.open && S.time >= SHOP_CLOSE && !activeCusts().length) { toast('Six o\'clock. Time to close up.', 3000); shopCloseUp(); }
+  // After six, once nobody's still choosing, close up: anyone waiting at the counter is served on the way out.
+  if (SV.open && S.time >= SHOP_CLOSE && !activeCusts().some(c => c.st !== 'wait')) { toast('Six o\'clock. Time to close up.', 3000); shopCloseUp(); }
 }
 // At bedtime (or a faint) with the shop still open: close up quietly, and the morning list says how it went.
 function shopEndDay(lines) {
@@ -5680,6 +5706,7 @@ function helperWhere(v, t, d) {
 // The helper sells from the shelves for the minutes between `from` and `to`.
 function helperSales(v, from, to) {
   const st = shopState(), d = shopDay(), r = { coins:0, sold:0, people:0, cut:0 };
+  if (basketReady() && to - from >= 120 && Math.random() < .6) { const bp = basketPrice(); r.coins += bp; r.sold += BASKET_N; r.people++; st.basket = []; st.baskets = (st.baskets || 0) + 1; }
   if (to <= from || !shelvesStocked()) return r;
   const k = dayKey();
   for (let t = from + SHOP_GAP * IDLE_SLOW * Math.random() * .7; t < to; t += SHOP_GAP * shopGapMul() * IDLE_SLOW * (S.rain ? 1.25 : 1) * (.6 + Math.random() * .8)) {
@@ -5781,6 +5808,78 @@ const SHOP_TALK = {
 const shopRibbons = () => Object.values(S.ribbons || {}).reduce((a, ys) => a + (ys ? ys.length : 0), 0);
 const shopKeeps = () => Object.keys(KEEPSAKES).filter(k => S.prizes && S.prizes[k]);
 const shopBgKey = () => `${shopSlots()}${shopUp('window') ? 'w' : ''}${shopUp('sign') ? 's' : ''}${Math.min(6, shopRibbons())}${shopKeeps().length}`;
+
+// ---- Part 4: orders and trade ----
+// Special orders: a villager asks for a set of one thing by a day. Better than shelf prices, plus friendship.
+// A missed one lapses kindly. Up to ORDER_MAX open at once; a new one some mornings (ORDER_P).
+const ORDER_MAX = 2, ORDER_P = .35, ORDER_PAY = 1.6, ORDER_FR = 40;
+// What's makeable right now: this season's crops, fish and Wood finds, and potions brewed from this season's crops.
+function orderPool() {
+  const sn = S.season, inSn = o => o.seasons && o.seasons.includes(sn);
+  const crops = Object.keys(CROPS).filter(k => CROPS[k].seasons.includes(sn));
+  return {
+    crop:crops,
+    fish:Object.keys(FISH).filter(k => inSn(FISH[k]) && k !== 'moonfish'),
+    forage:Object.keys(FORAGE).filter(k => inSn(FORAGE[k]) && !FORAGE[k].grove),
+    potion:Object.keys(POTIONS).filter(k => !POTIONS[k].wild && Object.keys(POTIONS[k].need).every(x => crops.includes(x)))
+  };
+}
+const orderKind = id => CROPS[id] ? 'crop' : FISH[id] ? 'fish' : FORAGE[id] ? 'forage' : 'potion';
+function newOrder() {
+  const st = shopState(), pool = orderPool(), all = [].concat(pool.crop, pool.fish, pool.forage, pool.potion);
+  const who = VIDS.filter(v => inValley(v) && !st.orders.some(o => o.v === v));
+  if (!who.length || !all.length) return null;
+  const v = who[(Math.random() * who.length) | 0], V = VILLAGERS[v];
+  const fav = V.loves.concat(V.likes).filter(k => all.includes(k));
+  const item = fav.length && Math.random() < .7 ? fav[(Math.random() * fav.length) | 0] : all[(Math.random() * all.length) | 0];
+  const k = orderKind(item), n = k === 'crop' ? 5 + ((Math.random() * 4) | 0) : k === 'potion' ? 1 + ((Math.random() * 3) | 0) : 2 + ((Math.random() * 3) | 0);
+  const o = { id:`o${absDay()}${v}`, v, item, n, due:absDay() + 5 + ((Math.random() * 3) | 0), pay:Math.round(itemValue(item) * n * ORDER_PAY / 5) * 5 };
+  st.orders.push(o); return o;
+}
+function orderDone(id) {
+  const st = shopState(), o = st.orders.find(x => x.id === id); if (!o || (S.inv[o.item] || 0) < o.n) return null;
+  S.inv[o.item] -= o.n; st.orders = st.orders.filter(x => x !== o);
+  earn(o.pay); addFr(o.v, ORDER_FR); addRep(3); addBuy(o.v); st.ordersDone = (st.ordersDone || 0) + 1;
+  const g = []; applyGifts(o.v, g); checkStars();
+  return { o, g };
+}
+const ORDER_THANKS = ["Perfect. Exactly what I asked for. You're a marvel.", "Oh, you've done it! I'll tell everyone.", "Just in time. You've saved my week.", "Wonderful. I knew I could count on you."];
+const ORDER_LAPSE = ["found some elsewhere in the end. No harm done", "decided to make do this time. They're not cross at all", "says never mind, and they'll ask again another time"];
+// Gift baskets: three different things in a basket on the counter. The next customer who fancies it buys the lot
+// for BASKET_PAY × their fair prices.
+const BASKET_N = 3, BASKET_PAY = 1.3, BASKET_P = .5;
+const basketItems = () => (S.shop && S.shop.basket) || [];
+const basketReady = () => basketItems().length >= BASKET_N;
+const basketPrice = () => Math.round(basketItems().reduce((a, id) => a + shopPrice(id, 'fair'), 0) * BASKET_PAY);
+function basketAdd(id) { const st = shopState(); st.basket = st.basket || []; if (st.basket.length >= BASKET_N || st.basket.includes(id) || !shelfOk(id) || !(S.inv[id] > 0)) return false; S.inv[id]--; st.basket.push(id); return true; }
+function basketBack() { const st = shopState(); for (const id of st.basket || []) S.inv[id] = (S.inv[id] || 0) + 1; st.basket = []; }
+// Out-of-town buyers: on days 3, 10, 17 and 24 one comes through, wanting one kind of thing from her basket at
+// BUYER_PAY × the stall price, up to BUYER_MAX. She meets them by opening the shop that day.
+const BUYERS = {
+  guild:{ name:'A Guild buyer', want:'potion', label:'potions', col:'#4a3a7a', line:'The Guild pays well for good potions. Show me what you have.' },
+  cook:{ name:'A cook from the coast', want:'fish', label:'fish', col:'#3a6a8a', line:'I cook for a whole harbour. Fish, please, and plenty of it.' },
+  herbalist:{ name:'An herbalist from the hills', want:'forage', label:'finds from the Old Wood', col:'#5a7a3a', line:'Wild things from your Wood? I\'ll pay what they\'re worth. More, even.' },
+  grocer:{ name:'A grocer from town', want:'crop', label:'crops', col:'#8a5a3a', line:'Town folk can\'t get enough of valley crops. What have you grown?' }
+};
+const BUYER_PAY = 1.5, BUYER_MAX = 6, BUYER_IDS = Object.keys(BUYERS);
+const buyerDay = () => S.day % 7 === 3 && !isFestDay();
+const buyerToday = () => buyerDay() ? BUYER_IDS[(hash(S.year, S.season * 31 + S.day, 77) * BUYER_IDS.length) | 0] : null;
+function buyerWants(b) { const ids = BUYERS[b].want === 'fish' ? Object.keys(FISH) : Object.keys(QPICK[BUYERS[b].want]); return ids.filter(k => (S.inv[k] || 0) > 0 && shelfOk(k)); }
+function buyerSell(id, n) {
+  const d = shopDay(), b = buyerToday(); if (!b || d.buyerGone) return 0;
+  const left = BUYER_MAX - (d.buyerGot || 0); n = Math.min(n, left, S.inv[id] || 0); if (n <= 0 || !buyerWants(b).includes(id)) return 0;
+  const c = Math.round(sellValue(id) * BUYER_PAY) * n; S.inv[id] -= n; earn(c); d.coins += c; d.sold += n; d.buyerGot = (d.buyerGot || 0) + n; d.buyerCoins = (d.buyerCoins || 0) + c;
+  shopState().total += c; addRep(1);
+  return c;
+}
+// Mornings: new orders, lapsed ones, and a word when a buyer is in town.
+function shopMorning(lines) {
+  if (!shopReady()) return;
+  const st = shopState(); st.orders = st.orders || [];
+  for (const o of st.orders.slice()) if (absDay() > o.due) { st.orders = st.orders.filter(x => x !== o); lines.push({ t:`${VILLAGERS[o.v].name} ${ORDER_LAPSE[(Math.random() * ORDER_LAPSE.length) | 0]}, about the ${o.n} ${itemName(o.item)}.`, v:o.v }); }
+  if (st.orders.length < ORDER_MAX && !isFestDay() && Math.random() < ORDER_P) { const o = newOrder(); if (o) lines.push({ t:`A special order for the shop: ${VILLAGERS[o.v].name} would like ${o.n} ${itemName(o.item)} by ${dateLabel(o.due)}, and will pay ${fmt(o.pay)} coins. (See the ledger.)`, c:'gold', v:o.v, mood:'happy' }); }
+  const b = buyerToday(); if (b) lines.push({ t:`${BUYERS[b].name} is passing through today, looking for ${BUYERS[b].label}. Open the shop to meet them.`, c:'gold' });
+}
 
 // ---- scenes ----
 function enterRow(place) {
@@ -6087,15 +6186,20 @@ function drawShopper(c) {
     // what they've got (or what they're asking for), and how many
     const bx = px + 6 * u, by = feet - 22 * u - (reduceMotion ? 0 : Math.abs(Math.sin(clock * 3 + c.x)) * u);
     R(ctx, bx - 5 * u, by - 3.4 * u, 10 * u, 6.8 * u, '#f4ead9'); R(ctx, bx - 1.5 * u, by + 3.4 * u, 3 * u, 1.4 * u, '#f4ead9');
-    circ(ctx, bx - 2 * u, by, 2 * u, itemCol(c.id));
+    circ(ctx, bx - 2 * u, by, 2 * u, c.buyer ? '#f2b84b' : c.basket ? '#c9a675' : itemCol(c.id));
     ctx.fillStyle = '#2a1d36'; ctx.font = `700 ${Math.max(8, 3.6 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(c.ask ? '?' : `${c.n}`, bx + 2.4 * u, by + .3 * u);
+    ctx.fillText(c.buyer ? '★' : c.basket ? 'B' : c.ask ? '?' : `${c.n}`, bx + 2.4 * u, by + .3 * u);
   }
 }
 function drawShopDynamic() {
   const u = T / 16;
   drawShopShelves();
   { const hv = helperOn(S.time); if (hv) drawShopper({ v:hv, x:2.6, y:1, st:'helper' }); }
+  { const bi = basketItems(); if (bi.length) { // the gift basket on the counter's left end
+    const bx = ox + 2.5 * T, by = oy + 2 * T + u;
+    bi.forEach((id, i) => circ(ctx, bx - 2.4 * u + i * 2.4 * u, by - .5 * u, 1.6 * u, itemCol(id)));
+    ctx.fillStyle = '#a57a4f'; ctx.beginPath(); ctx.moveTo(bx - 5 * u, by); ctx.lineTo(bx + 5 * u, by); ctx.lineTo(bx + 4 * u, by + 4 * u); ctx.lineTo(bx - 4 * u, by + 4 * u); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#7a5638'; ctx.lineWidth = .8 * u; ctx.beginPath(); ctx.arc(bx, by, 4 * u, Math.PI, 0); ctx.stroke(); } }
   if (SV) for (const c of SV.custs.slice().sort((a, b) => a.y - b.y)) drawShopper(c);
   // the ledger glows when it's time to open up, and there's something on a shelf to sell
   if (!shopIsOpen() && shopHours()) {
@@ -6111,6 +6215,7 @@ function drawShopDynamic() {
 }
 
 // ---- sheets ----
+const buyerCust = () => SV && SV.custs.find(c => c.buyer && c.st === 'wait');
 function shopSheet(kind, data) {
   let h = '', title = '';
   const st = shopState();
@@ -6127,7 +6232,7 @@ function shopSheet(kind, data) {
       const T0 = PRICE_TIERS[s.p || 'fair'];
       h += row(itemCol(s.id), `${itemName(s.id)} ×${s.n}`, `${SHELVES[i].glass ? 'Glass case · ' : ''}${T0.name} · ${slotPrice(i, s.id, s.p)} each${s.n ? '' : ' · sold out'} · have ${S.inv[s.id] || 0} more`, `<button class="btn alt" data-act="shelfopen" data-id="${i}" type="button">Change</button>`, s.n ? '' : 'dim');
     });
-    h += repBox() + helperBox() + upBox();
+    h += ordersBox() + basketBox() + repBox() + helperBox() + upBox();
     const more = st.shelf.some(s => s.id && s.n < SLOT_MAX && (S.inv[s.id] || 0) > 0);
     h += `<div class="cta-row"><button class="btn alt" data-act="shoprestock" type="button" ${more ? '' : 'disabled'}>Top up every shelf from your basket</button></div>`;
     h += `<p class="sub">At a fair price, customers pay a fifth more than the market stall. Villagers head for things they love, tip for them, and grow fonder of you. ${st.days ? `Since you reopened: ${st.days} day${st.days === 1 ? '' : 's'} open, ${fmt(st.total)} coins, best day ${fmt(st.best)}.` : ''}</p>`;
@@ -6153,6 +6258,15 @@ function shopSheet(kind, data) {
       }
     }
     h += `<div class="cta-row"><button class="btn alt" data-act="shopledger" type="button">The ledger</button><button class="btn alt" data-act="close" type="button">Done</button></div>`;
+  } else if (kind === 'buyer') {
+    const bid = buyerToday(), B = BUYERS[bid] || { name:'A traveller', line:'Ah, I\'ve missed my chance. Another day!', label:'things' }, d = shopDay(), left = bid ? BUYER_MAX - (d.buyerGot || 0) : 0;
+    title = B.name;
+    h += `<div class="bubble">${B.line}</div><p class="sub">They'll take up to ${BUYER_MAX} ${B.label} from your basket, at half as much again as the market stall. ${left ? `${left} more.` : 'That\'s all they can carry.'}${d.buyerCoins ? ` So far: ${fmt(d.buyerCoins)} coins.` : ''}</p>`;
+    const ws = bid ? buyerWants(bid) : [];
+    if (!ws.length) h += `<p class="sub">You haven't any ${B.label} in your basket.</p>`;
+    if (left) for (const id of ws) { const n = Math.min(S.inv[id], left), pr = Math.round(sellValue(id) * BUYER_PAY);
+      h += row(itemCol(id), `${itemName(id)} ×${S.inv[id]}`, `${pr} each · the stall pays ${sellValue(id)}`, `<button class="btn alt" data-act="buyersell" data-id="${id}" data-n="1" type="button">Sell 1</button>${n > 1 ? `<button class="btn" data-act="buyersell" data-id="${id}" data-n="${n}" type="button">${n} · ${fmt(pr * n)}</button>` : ''}`); }
+    h += `<div class="cta-row"><button class="btn" data-act="buyerdone" type="button">Thank them and say goodbye</button></div>`;
   } else if (kind === 'shopday') {
     title = 'Closed up';
     const sum = data || {};
@@ -6164,6 +6278,31 @@ function shopSheet(kind, data) {
     h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Good night, shop</button></div>`;
   }
   return { h, title };
+}
+// The ledger's special orders, with Hand over buttons.
+function ordersBox() {
+  const st = shopState(), os = st.orders || [], b = buyerToday(), d = shopDay();
+  let h = '';
+  if (b) h += `<article class="card fest"><h4>${BUYERS[b].name}</h4><p class="sub">${d.buyerGone ? 'They\'ve been and gone. Maybe next week.' : d.buyerCame ? `They're here today, looking for ${BUYERS[b].label}. Tap them at the counter.` : `They're passing through today, looking for ${BUYERS[b].label}. They'll come in once you've been open a little while, and pay half as much again as the market stall for up to ${BUYER_MAX}.`}</p></article>`;
+  h += `<h4 class="sec">Special orders</h4>`;
+  if (!os.length) h += `<p class="sub">No orders just now. Villagers sometimes ask for something special, and pay well for it.</p>`;
+  for (const o of os) {
+    const V = VILLAGERS[o.v], have = S.inv[o.item] || 0, left = o.due - absDay();
+    h += `<div class="vrow">${portrait(o.v, 'happy', 44)}<div class="info"><span class="name">${o.n} ${itemName(o.item)} for ${V.name}</span><span class="meta">${fmt(o.pay)} coins · by ${dateLabel(o.due)}${left <= 1 ? (left <= 0 ? ' (today!)' : ' (tomorrow)') : ''} · you have ${have}</span></div><button class="btn" data-act="shoporder" data-id="${o.id}" type="button" ${have < o.n ? 'disabled' : ''}>Hand over</button></div>`;
+  }
+  return h;
+}
+// The ledger's gift basket: three different things, for a customer to buy all at once.
+function basketBox() {
+  const bi = basketItems();
+  let h = `<h4 class="sec">Gift basket</h4>`;
+  h += `<p class="sub">${bi.length >= BASKET_N ? `Ready on the counter: ${bi.map(itemName).join(', ')}. The next customer who likes the look of it pays <b>${fmt(basketPrice())}</b> for the lot.` : `Put ${BASKET_N} different things in a basket on the counter${bi.length ? ` (${bi.map(itemName).join(', ')} so far)` : ''}. Someone will buy the lot for a third more than they'd cost apiece.`}</p>`;
+  if (bi.length < BASKET_N) {
+    const can = Object.entries(S.inv).filter(([k, n]) => n > 0 && shelfOk(k) && !bi.includes(k)).sort((a, b) => sellValue(b[0]) - sellValue(a[0])).slice(0, 8);
+    if (can.length) h += `<div class="cta-row wrap">${can.map(([k]) => `<button class="btn alt" data-act="basketput" data-id="${k}" type="button">${itemName(k)}</button>`).join('')}</div>`;
+  }
+  if (bi.length) h += `<div class="cta-row"><button class="btn alt" data-act="basketback" type="button">Empty the basket</button></div>`;
+  return h;
 }
 // The ledger's reputation line and the shop's regulars.
 function repBox() {
@@ -6204,6 +6343,11 @@ function genVisitsFix() { const hp = helperToday(); if (hp && S.visits) S.visits
 // Sheet buttons (from the click handler). Returns true if it handled the act.
 function shopAct(act, b) {
   const id = b.dataset.id, item = b.dataset.item;
+  if (act === 'shoporder') { const r = orderDone(id); if (r) { SND.gift(); toast(`${VILLAGERS[r.o.v].name}: "${ORDER_THANKS[(Math.random() * ORDER_THANKS.length) | 0]}" +${fmt(r.o.pay)} coins.`, 4200); for (const g of r.g) toast(g, 5000); updateHUD(); } renderSheet('shop'); return true; }
+  if (act === 'basketput') { if (basketAdd(id)) SND.place(); renderSheet('shop'); return true; }
+  if (act === 'basketback') { if (!SV || !SV.basketOut) basketBack(); else toast('Someone is about to buy it!'); renderSheet('shop'); return true; }
+  if (act === 'buyersell') { const c = buyerSell(id, +b.dataset.n); if (c) { SND.coin(); updateHUD(); } renderSheet('buyer', { c:buyerCust() }); return true; }
+  if (act === 'buyerdone') { const c = buyerCust(); if (c) { c.st = 'out'; c.path = outRoute(c.x, 4); } shopDay().buyerGone = true; closeSheet(); return true; }
   if (act === 'shopup') { if (shopBuyUp(id)) { toast(`${SHOP_UPS[id].name}: done! ${id === 'tables' || id === 'glass' ? 'Tap the new spots to stock them.' : ''}`, 4000); updateHUD(); } renderSheet('shop'); return true; }
   if (act === 'shophelp') { const st = shopState(); if (id === 'none') { helperSettle(S.time); st.helper = null; } else if (helperChoices().includes(id)) { helperSettle(S.time); st.helper = id; shopDay().idleDone = Math.max(shopDay().idleDone || 0, S.time); toast(id === 'pip' ? 'Pip is thrilled. "Can I wear an apron? Can I ring the bell?"' : `${VILLAGERS[id].name} will mind the shop when you're out.`); } genVisitsFix(); renderSheet('shop'); return true; }
   if (act === 'shopopen') { if (shopOpenUp()) { closeSheet(); toast('Open! Customers will start coming in. Tap someone at the counter to serve them.', 4200); } else renderSheet('shop'); return true; }
@@ -7970,7 +8114,9 @@ function updateHUD() {
 let brewTab = 'cauldron', duelSt = null;
 const brewTabs = () => `<div class="tabs" role="tablist">${[['cauldron', 'Cauldron'], ['kitchen', 'Kitchen']].map(([t, l]) => `<button class="tab" role="tab" aria-selected="${brewTab === t}" data-act="btab" data-id="${t}" type="button">${l}</button>`).join('')}</div>`;
 let boardDone = [], boardOrder = [], boardScroll = 0, marketTab = 'buy', journalTab = 'charters', lastSheetKey = '', backupCode = '', calSeason = 0, vFrom = '', vPlace = '';
+let sheetAt = 0; // when the sheet last opened: a phone's click that follows the opening tap mustn't close it
 function openSheet(kind, data) {
+  sheetAt = performance.now();
   if (kind === 'board') { boardDone = []; boardOrder = []; }
   sheetOpen = kind; queue = [];
   $('scrim').hidden = false; $('sheet').hidden = false;
@@ -8502,7 +8648,7 @@ function renderSheet(kind, data) {
   } else if (kind === 'gift') {
     title = 'A gift!';
     h += `<ul class="lines">${data.map(t => `<li class="gift">${t}</li>`).join('')}</ul><div class="cta-row"><button class="btn" data-act="close" type="button">Lovely</button></div>`;
-  } else if (kind === 'shop' || kind === 'shelf' || kind === 'shopday') { const o = shopSheet(kind, data); h += o.h; title = o.title; }
+  } else if (kind === 'shop' || kind === 'shelf' || kind === 'shopday' || kind === 'buyer') { const o = shopSheet(kind, data); h += o.h; title = o.title; }
   const key = kind + '|' + (kind === 'market' ? marketTab : kind === 'journal' ? journalTab : kind === 'cauldron' ? brewTab : '') + '|' + ((data && (data.v || data.p)) || '');
   const keep = key === lastSheetKey ? body.scrollTop : 0;
   $('shTitle').textContent = title; body.innerHTML = h; body.scrollTop = keep; lastSheetKey = key;
@@ -8691,7 +8837,7 @@ $('shBody').addEventListener('click', e => {
   updateHUD(); save();
 });
 $('shClose').addEventListener('click', closeSheet);
-$('scrim').addEventListener('click', () => { if (fishing && fishing.phase === 'reel') return; closeSheet(); });
+$('scrim').addEventListener('click', () => { if (fishing && fishing.phase === 'reel') return; if (performance.now() - sheetAt < 400) return; closeSheet(); });
 const play = fn => () => { if (mode === 'play' && !sheetOpen) fn(); };
 $('clock').addEventListener('click', play(() => openSheet('clock')));
 $('calBtn').addEventListener('click', play(() => { calSeason = S.season; openSheet('calendar'); }));
@@ -8775,7 +8921,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 31, BUILD_DATE = 'Nov 11'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 32, BUILD_DATE = 'Nov 11'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();

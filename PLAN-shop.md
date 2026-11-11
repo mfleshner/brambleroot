@@ -82,7 +82,7 @@ Claude's choices (Matt said "you decide"):
 - (Moved to Part 5: the row fills up when its other two shops open, and their keepers stand in them.)
 - Upgrades as built: two little tables (1,500), a window display (2,000), a painted sign (800), a glass case (3,000, after the tables). Reputation levels New, Known, Popular, Beloved, Famous.
 
-### Part 4: Orders and trade
+### Part 4: Orders and trade (shipped Nov 11, 2026)
 - **Special orders**: a villager asks for a set of things by a day ("six honey cakes by Friday"), on the ledger. Better than shelf prices, plus friendship. No penalty for missing one: it just lapses kindly.
 - **Gift baskets**: bundle three things in a basket on the counter for a bonus.
 - **Out-of-town buyers** on certain days (a Guild buyer for potions, a cook from the coast for fish), with a list of what they're after.

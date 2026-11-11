@@ -3,7 +3,7 @@
 // Then puts the premium next to a season's farm earnings from econ4.js. Run from tests/ after extract.py.
 // Args: days per season to sample (default 40).
 const fs = require('fs'), { execSync } = require('child_process');
-const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", `globalThis.__t={get S(){return S},startGame,update,closeSheet,get sheet(){return sheetOpen},enterShop,shopState,shopDay,shopOpenUp,shopServe,get SV(){return SV},helperSales,HELPER_CUT,shopBuyUp,sellValue,QUESTS,CROPS,POTIONS,VIDS,dayKey};\n})();`);
+const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", `globalThis.__t={get S(){return S},startGame,update,closeSheet,get sheet(){return sheetOpen},enterShop,leaveShop,shopState,shopDay,shopOpenUp,shopServe,get SV(){return SV},helperSales,HELPER_CUT,shopBuyUp,shopMorning,ITEMS,FISH,FORAGE,buyerToday,BUYER_PAY,BUYER_MAX,sellValue,QUESTS,CROPS,POTIONS,VIDS,dayKey};\n})();`);
 const sim7 = fs.readFileSync('sim7.js', 'utf8').split('\n').slice(2, 7).join('\n'); eval(sim7);
 const store = {}; globalThis.localStorage = { getItem:k => store[k] ?? null, setItem:(k, v) => store[k] = String(v), removeItem:k => delete store[k] };
 eval(src); const t = __t; t.startGame(true); const S = t.S; const close = () => { while (t.sheet) t.closeSheet(); }; close();
@@ -19,7 +19,7 @@ for (const [season, year] of [[1, 1], [2, 1], [3, 1], [0, 2]]) {
   let tot = { coins:0, stall:0, people:0, sold:0, fr:0 };
   for (let day = 0; day < N; day++) {
     S.year = year; S.season = season; S.day = 1 + (day % 27); if (S.day === 14) S.day = 15; S.rain = Math.random() < [.22, .12, .25, 0][season];
-    S.time = 540; S.shop = null; S.known = {}; for (const v of t.VIDS) S.fr[v] = 300;
+    S.time = 540; S.shop = null; S.known = {}; if (t.SV) t.leaveShop && t.leaveShop(); for (const v of t.VIDS) S.fr[v] = 300;
     t.enterShop(); const st = t.shopState();
     if (UPS) { S.coins += 10000; ['tables', 'glass', 'window', 'sign'].forEach(t.shopBuyUp); st.rep = 250; }
     // her shelves: up to 4 kinds of this season's crops, 10 each, and two shelves of potions (6 a day: two nights of brewing)
@@ -73,4 +73,23 @@ for (const [season, year] of [[1, 1], [2, 1], [3, 1]]) {
     res[who] = `${Math.round(net / N)} coins (+${Math.round((net / N) - stall / N)} over the stall, +${Math.round((net / stall - 1) * 100)}%)`;
   }
   console.log(`${SEAS[season].padEnd(7)} helper days: Pip after school ${res.pip}; Pip on a rest day ${res['pip rest day']}; spouse or best friend all day ${res.spouse}`);
+}
+
+// Part 4: special orders and buyers over a season (every order handed over in time; the buyer gets 6 of the
+// dearest thing of their kind she'd have).
+for (const [season, year] of [[1, 1], [2, 1], [3, 1]]) {
+  let ordPrem = 0, ords = 0, buyPrem = 0;
+  for (let k = 0; k < N; k++) {
+    S.year = year; S.season = season; S.shop = null; const st = t.shopState(); st.orders = [];
+    for (let d = 1; d <= 28; d++) {
+      S.day = d; const lines = []; t.shopMorning(lines);
+      for (const o of st.orders.slice()) { ords++; ordPrem += o.pay - t.ITEMS[o.item].sell * o.n; st.orders = st.orders.filter(x => x !== o); }
+      const b = t.buyerToday(); if (b) { const kind = { potion:t.POTIONS, fish:t.FISH, forage:t.FORAGE, crop:t.CROPS }[t.BUYERS ? 0 : 0] || null; }
+    }
+    const crops = Object.keys(t.CROPS).filter(id => t.CROPS[id].seasons.includes(season));
+    const pv = Object.keys(t.POTIONS).filter(id => !t.POTIONS[id].wild && Object.keys(t.POTIONS[id].need).every(x => crops.includes(x))).map(id => t.POTIONS[id].sell);
+    const best = { potion:Math.max(...pv), crop:Math.max(...crops.map(id => t.CROPS[id].sell)), fish:Math.max(...Object.values(t.FISH).filter(f => f.seasons.includes(season) && f.sell < 150).map(f => f.sell)), forage:Math.max(...Object.values(t.FORAGE).filter(f => f.seasons && f.seasons.includes(season)).map(f => f.sell)) };
+    for (let d = 1; d <= 28; d++) { S.day = d; const b = t.buyerToday(); if (b) buyPrem += best[{ guild:'potion', cook:'fish', herbalist:'forage', grocer:'crop' }[b]] * (t.BUYER_PAY - 1) * t.BUYER_MAX; }
+  }
+  console.log(`${SEAS[season].padEnd(7)} orders and buyers: ${(ords / N).toFixed(1)} orders a season worth +${Math.round(ordPrem / N)} over the stall if all handed over, and four buyer days worth up to +${Math.round(buyPrem / N)}`);
 }
