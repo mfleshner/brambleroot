@@ -2445,7 +2445,7 @@ function buildCharters(n, legacy) {
 
 /* ================= village life, spells, the Old Wood, wardrobe ================= */
 let rainFx = 0, bgKey = '';
-const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.hew && S.hew.met ? 'h' : ''}|${S.scene === 'village' && lampLit() ? 'lit' : ''}${S.scene === 'village' && rowOpen() ? 'row' : ''}${S.scene === 'row' && shopReady() ? 'shop' : ''}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
+const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.hew && S.hew.met ? 'h' : ''}|${S.scene === 'village' && lampLit() ? 'lit' : ''}${S.scene === 'village' && rowOpen() ? 'row' : ''}${S.scene === 'row' && shopReady() ? 'shop' + (shopUp('window') ? 'w' : '') + (shopUp('sign') ? 's' : '') : ''}${S.scene === 'shop' ? shopBgKey() : ''}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
 Object.assign(BUILD, { gate:{ c:0, r:6, w:1, h:1, stand:[0,6] }, mailbox:{ c:3, r:1, w:1, h:1, stand:[3,2] } });
 VILLAGERS.mara.likes.push('hazel', 'morelbroth'); VILLAGERS.fen.likes.push('chanter', 'chantonic');
 VILLAGERS.pip.likes.push('sunberry', 'glimjam'); VILLAGERS.odile.loves.push('violet'); VILLAGERS.wren.likes.push('glimmer', 'firemoss');
@@ -5441,7 +5441,10 @@ const PRICE_IDS = ['kind', 'fair', 'dear'];
 // in the middle, her place behind it, and five spots in front of it where customers wait.
 const SHELVES = [
   { c:0, r:3, stand:[1, 4] }, { c:0, r:6, stand:[1, 7] }, { c:0, r:9, stand:[1, 10] },
-  { c:8, r:3, stand:[7, 4] }, { c:8, r:6, stand:[7, 7] }, { c:8, r:9, stand:[7, 10] }
+  { c:8, r:3, stand:[7, 4] }, { c:8, r:6, stand:[7, 7] }, { c:8, r:9, stand:[7, 10] },
+  // Part 3: two low tables by the door (replacing the plants), then a glass case in the middle
+  { c:1, r:11, h:1, low:true, stand:[2, 11] }, { c:7, r:11, h:1, low:true, stand:[6, 11] },
+  { c:3, r:5, h:1, glass:true, stand:[3, 6] }, { c:5, r:5, h:1, glass:true, stand:[5, 6] }
 ];
 const SHOP_ME = [4, 1], SHOP_DOOR = [4, 12], SHOP_LEDGER = [4, 2], SHOP_GAPC = 7;
 const SHOP_QSPOTS = [[4, 3], [3, 3], [5, 3], [2, 3], [6, 3]];
@@ -5450,7 +5453,7 @@ function shopState() {
   if (!S.shop) S.shop = { shelf:[], day:null, came:{}, total:0, sold:0, served:0, days:0, best:0 };
   const st = S.shop;
   if (!Array.isArray(st.shelf)) st.shelf = [];
-  while (st.shelf.length < SHOP_SLOTS) st.shelf.push({ id:null, n:0, p:'fair' });
+  while (st.shelf.length < shopSlots()) st.shelf.push({ id:null, n:0, p:'fair' });
   if (!st.came) st.came = {};
   return st;
 }
@@ -5549,7 +5552,7 @@ function shopPick(c) {
   let n = 1 + (Math.random() < .5 ? 1 : 0) + (Math.random() < .2 ? 1 : 0);
   if (POTIONS[c.id] || (ITEMS[c.id] && ITEMS[c.id].dish) || itemValue(c.id) >= 150) n = Math.min(n, 2);
   n = Math.min(n, s.n); s.n -= n;
-  c.n = n; c.price = shopPrice(c.id, s.p); c.tier = s.p; c.q = q; c.st = 'in'; c.path = [[aisle(c.x), c.y], [aisle(c.x), 4], SHOP_QSPOTS[q].slice()];
+  c.n = n; c.price = slotPrice(c.slot, c.id, s.p); c.tier = s.p; c.q = q; c.st = 'in'; c.path = [[aisle(c.x), c.y], [aisle(c.x), 4], SHOP_QSPOTS[q].slice()];
 }
 // She serves someone waiting at the counter. Villagers tip for things they love and get fonder of her;
 // buying a loved or liked thing fills in her gift notebook.
@@ -5569,7 +5572,10 @@ function shopServe(c, quiet) {
     applyGifts(c.v, SV.gifts);
     if ((love || like) && !(S.known[c.v] || {})[c.id]) { (S.known[c.v] = S.known[c.v] || {})[c.id] = love ? 'love' : 'like'; SV.learned.push(`${V.name} ${love ? 'loves' : 'likes'} ${itemName(c.id)}. It's in your gift notebook now.`); }
     say = pickLine(love ? SHOP_LINES.love : like ? SHOP_LINES.like : SHOP_LINES.thanks);
-  } else say = pickLine(SHOP_LINES.stranger);
+    if (addBuy(c.v)) SV.learned.push(`${V.name} is a regular at Brambleroot now.`);
+    if (isRegular(c.v) && SHOP_TALK[c.v] && Math.random() < .5) say = pickLine(SHOP_TALK[c.v]);
+    addRep(love || like ? 2 : 1);
+  } else { say = pickLine(SHOP_LINES.stranger); if (repLevel() >= 3) coins += Math.round(coins * .1); addRep(1); }
   earn(coins);
   d.coins += coins; d.sold += c.n; st.total += coins; st.sold += c.n; st.served++;
   c.st = 'out'; c.path = outRoute(c.x, 4);
@@ -5598,7 +5604,7 @@ function shopCloseUp(quiet) {
 function shopTick(dt) {
   if (!SV) return;
   if (SV.open && S.time >= SV.nextAt && S.time < SHOP_CLOSE && activeCusts().length < SHOP_BUSY) {
-    shopSpawn(); SV.nextAt = S.time + SHOP_GAP * (S.rain ? 1.25 : 1) * (.6 + Math.random() * .8);
+    shopSpawn(); SV.nextAt = S.time + SHOP_GAP * shopGapMul() * (S.rain ? 1.25 : 1) * (.6 + Math.random() * .8);
   }
   for (const c of SV.custs) {
     if (c.sayAt !== undefined && c.say) { c.sayAt -= dt; if (c.sayAt <= 0) { shopSay(c, c.say); c.say = ''; } }
@@ -5676,7 +5682,7 @@ function helperSales(v, from, to) {
   const st = shopState(), d = shopDay(), r = { coins:0, sold:0, people:0, cut:0 };
   if (to <= from || !shelvesStocked()) return r;
   const k = dayKey();
-  for (let t = from + SHOP_GAP * IDLE_SLOW * Math.random() * .7; t < to; t += SHOP_GAP * IDLE_SLOW * (S.rain ? 1.25 : 1) * (.6 + Math.random() * .8)) {
+  for (let t = from + SHOP_GAP * IDLE_SLOW * Math.random() * .7; t < to; t += SHOP_GAP * shopGapMul() * IDLE_SLOW * (S.rain ? 1.25 : 1) * (.6 + Math.random() * .8)) {
     const pool = VIDS.filter(x => x !== v && inValley(x) && st.came[x] !== k && where(x, t) !== 'fest');
     const who = pool.length && Math.random() < SHOP_VILLAGER_P ? pool[(Math.random() * pool.length) | 0] : null;
     if (who) st.came[who] = k;
@@ -5689,8 +5695,9 @@ function helperSales(v, from, to) {
     let n = 1 + (Math.random() < .5 ? 1 : 0) + (Math.random() < .2 ? 1 : 0);
     if (POTIONS[s.id] || (ITEMS[s.id] && ITEMS[s.id].dish) || itemValue(s.id) >= 150) n = Math.min(n, 2);
     n = Math.min(n, s.n); s.n -= n;
-    let c = shopPrice(s.id, s.p) * n;
-    if (who) { const V = VILLAGERS[who], love = V.loves.includes(s.id), like = !love && V.likes.includes(s.id); c += love ? Math.round(c * SHOP_TIP_LOVE) : like ? Math.round(c * SHOP_TIP_LIKE) : 0; addFr(who, 3); }
+    let c = slotPrice(slot, s.id, s.p) * n;
+    if (who) { const V = VILLAGERS[who], love = V.loves.includes(s.id), like = !love && V.likes.includes(s.id); c += love ? Math.round(c * SHOP_TIP_LOVE) : like ? Math.round(c * SHOP_TIP_LIKE) : 0; addFr(who, 3); addBuy(who); }
+    addRep(.5);
     r.coins += c; r.sold += n;
   }
   r.cut = Math.round(r.coins * HELPER_CUT[helperKind(v)]);
@@ -5712,6 +5719,68 @@ function helperNote(r) {
   const V = VILLAGERS[r.v], pool = HELPER_LINES[helperKind(r.v)];
   return `${pool[(Math.random() * pool.length) | 0].replace(/%N/g, V.name)} ${r.sold} thing${r.sold === 1 ? '' : 's'} sold, ${fmt(r.net)} coins in the till${r.cut ? ` (${V.name} kept ${fmt(r.cut)})` : ''}.`;
 }
+
+// ---- Part 3: making it hers. Upgrades, reputation, regulars and decor ----
+// Upgrades are bought from the ledger's "Improvements" (S.shop.up[id]). Two little tables and the glass case add
+// shelves (shopSlots: 6, 8, 10); things in the glass case sell for CASE_BONUS more. The window display brings
+// customers more often; the painted sign makes word spread faster (reputation).
+const SHOP_UPS = {
+  tables:{ name:'Two little tables', cost:1500, desc:'Two low tables by the door, where the plants were: two more places to sell things.' },
+  window:{ name:'A window display', cost:2000, desc:'A proper display in the front window. Passers-by come in about 15% more often.' },
+  sign:  { name:'A freshly painted sign', cost:800, desc:'Isolde\'s nephew repaints the gold letters. Word about the shop spreads half as fast again.' },
+  glass: { name:'A glass display case', cost:3000, needs:'tables', desc:'A glass case in the middle of the room, with two more places to sell. Things in the case sell for 15% more.' }
+};
+const SHOP_UP_IDS = Object.keys(SHOP_UPS), CASE_BONUS = 1.15, WINDOW_GAP = .85, SIGN_REP = 1.5;
+const shopUp = id => !!(S && S.shop && S.shop.up && S.shop.up[id]);
+const shopSlots = () => 6 + (shopUp('tables') ? 2 : 0) + (shopUp('glass') ? 2 : 0);
+const slotPrice = (i, id, p) => Math.max(1, Math.round(shopPrice(id, p) * (SHELVES[i] && SHELVES[i].glass ? CASE_BONUS : 1)));
+function shopBuyUp(id) {
+  const U = SHOP_UPS[id], st = shopState(); if (!U || shopUp(id) || (U.needs && !shopUp(U.needs)) || S.coins < U.cost) return false;
+  S.coins -= U.cost; (st.up = st.up || {})[id] = absDay(); shopState(); bgKey = ''; SND.coin(); return true;
+}
+// Reputation: each happy customer adds to it (more for something they love or like). Levels bring people in
+// more often; from "Beloved" on, well-off travellers tip too.
+const REP_LEVELS = [[0, 'New'], [30, 'Known in the valley'], [90, 'Popular'], [200, 'Beloved'], [400, 'Famous far and wide']];
+const repLevel = () => { const r = (S.shop && S.shop.rep) || 0; let l = 0; REP_LEVELS.forEach(([n], i) => { if (r >= n) l = i; }); return l; };
+function addRep(n) {
+  const st = shopState(), before = repLevel();
+  st.rep = (st.rep || 0) + n * (shopUp('sign') ? SIGN_REP : 1);
+  const after = repLevel();
+  if (after > before) toast(`Word is spreading: Brambleroot is ${REP_LEVELS[after][1].toLowerCase()} now. More customers will come.`, 5000);
+}
+const shopGapMul = () => (1 - .06 * repLevel()) * (shopUp('window') ? WINDOW_GAP : 1);
+// Regulars: a villager who has bought from her REGULAR_N times. They get their own shop lines.
+const REGULAR_N = 6;
+const isRegular = v => !!(S && S.shop && S.shop.buys && (S.shop.buys[v] || 0) >= REGULAR_N);
+function addBuy(v) {
+  const st = shopState(); st.buys = st.buys || {};
+  const was = isRegular(v); st.buys[v] = (st.buys[v] || 0) + 1;
+  return !was && isRegular(v);
+}
+const SHOP_TALK = {
+  mara:["Same as always, love. You know my order better than I do.", "I've told the whole mill about your shelves. The goat is also interested.", "Bramble used to save me the first honey of the year. Just saying."],
+  fen:["Paying in coin today. Don't tell your aunt. She'd want fish.", "Came for one thing. Leaving with three. Same as always.", "Shop smells like it used to. That's a compliment."],
+  pip:["I've been saving all week! It's mostly buttons. Do you take buttons?", "I'm a regular. Odile says that means I'm important.", "Can I ring the bell on the way out? Just once. Twice."],
+  odile:["My usual, please. I've marked it on my calendar. Literally.", "The children write stories about your shop now. One has a dragon in it.", "It's nice, having somewhere to come after school that isn't school."],
+  wren:["The bees approve of your stock. I asked them.", "Swap you a jar of honey for a smile? I'll pay as well, don't worry.", "I always come in for one thing and stay for a chat."],
+  rowan:["The hinges are holding up, then. Course they are.", "My usual. And whatever's new. I like to keep an eye on things.", "Every time the bell rings, I feel quite proud."],
+  silas:["I'm writing a song about your shop. It's called 'Same Time Tomorrow'.", "The acoustics in here are lovely. I'll hum quietly.", "Regulars get a verse each. You're the chorus."],
+  theo:["Purely for research. Again. I'm a very thorough researcher.", "Your labelling is improving. I'm almost jealous.", "I've told no one I shop here. Everyone knows I shop here."],
+  isolde:["Half the inn's menu comes from these shelves now, love.", "I'll take the lot. No, I won't. But I thought about it.", "You've got the knack. Bramble had it too. Customers just like you."],
+  juno:["Mum always said the best things come from the bottom of the Hollow. Or your shelves.", "My usual! And maybe something shiny.", "I tell the river about your shop. It doesn't say much back."],
+  hettie:["Bramble kept the sweets on that shelf too. Some things never change, dear.", "I come in for the company, mostly. And the bargains.", "You've got her laugh, you know. Especially when you're counting change."],
+  aldous:["The mayor's office is proud to support local trade. And I like your stock.", "I've added your shop to the official map. In gold ink.", "My usual, please. The council needn't know how often I come in."],
+  zara:["Professional curiosity, darling. And I need some of this.", "Your stall is better than mine. Don't tell anyone I said so.", "A merchant knows a good shop. This one is a good shop."],
+  bertram:["My usual. The lamp needs feeding, and so do I.", "I can see your shop light from the tower at night. Very reassuring.", "Quiet in here. In a nice way. Like the sea on a calm day."],
+  tilly:["I'm buying a present! It's for me. Is that allowed?", "I counted the jars. There are a lot. I'm going to count them again.", "When I grow up, I'm going to have a shop next to yours."],
+  rosa:["Parcel insisted we come. He's very loyal to the regulars.", "I deliver half of this to people later. Saves you the walk.", "Your shop's on all my rounds now. The most cheerful stop."],
+  corin:["I found your shop on the first try today! Twice in a row now.", "I've marked it on the map with a little star. And a heart. Don't tell.", "I come in to ask for directions, mostly. And to buy things."],
+  marigold:["Bramble's prices were higher. Her manners were worse. Carry on.", "I shopped here for forty years, glaring. Now I just shop.", "Don't tell Hettie I'm a regular. She'll be insufferable."]
+};
+// Decor: festival ribbons she's won hang on the back wall, keepsakes she's bought sit along the shelves.
+const shopRibbons = () => Object.values(S.ribbons || {}).reduce((a, ys) => a + (ys ? ys.length : 0), 0);
+const shopKeeps = () => Object.keys(KEEPSAKES).filter(k => S.prizes && S.prizes[k]);
+const shopBgKey = () => `${shopSlots()}${shopUp('window') ? 'w' : ''}${shopUp('sign') ? 's' : ''}${Math.min(6, shopRibbons())}${shopKeeps().length}`;
 
 // ---- scenes ----
 function enterRow(place) {
@@ -5742,7 +5811,7 @@ function shopGo(c, r, visit) {
   if (back(here.r) !== back(r)) { const a = back(here.r) ? [SHOP_GAPC, 1] : [SHOP_GAPC, 3], b = back(here.r) ? [SHOP_GAPC, 3] : [SHOP_GAPC, 1]; queue.push({ c:a[0], r:a[1], kind:'walk' }, { c:b[0], r:b[1], kind:'walk' }); }
   queue.push(Object.assign({ c, r, kind:visit ? 'visit' : 'walk' }, visit || {}));
 }
-const shelfAt = (c, r) => SHELVES.findIndex(s => s.c === c && (r === s.r || r === s.r + 1));
+const shelfAt = (c, r) => { const n = shopState().shelf.length; if (c === 4 && r === 5 && n > 8) return 8; return SHELVES.findIndex((s, i) => i < n && s.c === c && (r === s.r || (!s.h && r === s.r + 1))); };
 // The customer under a tap: their feet tile or the tile above it (their head), nearest first.
 function shopperAt(c, r, any) {
   if (!SV) return null;
@@ -5866,7 +5935,9 @@ function drawRowShop(g, season) {
       RWINS.push([wx, wy, ww, wh]);
       R(g, wx - 1.5 * u, wy + wh + .5 * u, ww + 3 * u, 2.2 * u, '#7a5638');
       for (let i = 0; i < 4; i++) circ(g, wx - .5 * u + i * (ww + u) / 3, wy + wh, 1.3 * u, ['#ef9aac', '#f2d36b', '#cdbbff', '#8fcf6a'][(i + season) % 4]);
+      if (shopUp('window')) for (let i = 0; i < 3; i++) { R(g, wx + (1 + i * 1.8) * u, wy + wh - 3.4 * u, 1.4 * u, 2.8 * u, ['#ff4d3a', '#cdbbff', '#f2b84b'][i]); }
     }
+    if (shopUp('sign')) { for (const dx of [-.36, .36]) { const sx2 = x + w / 2 + dx * w * .62; circ(g, sx2, sy + 3 * u, 1.2 * u, '#f2c860'); } }
   } else {
     for (const [wx, wy, ww, wh] of wins) { R(g, wx, wy, ww, wh, '#5a5458'); for (const f of [.3, .72]) R(g, wx - u, wy + wh * f - .7 * u, ww + 2 * u, 1.4 * u, '#7a6450'); }
     const dx = x + w / 2; g.save(); g.translate(dx, y + h - 6 * u); g.rotate(-.18); R(g, -5 * u, -.7 * u, 10 * u, 1.4 * u, '#7a6450'); g.restore();
@@ -5912,7 +5983,14 @@ function buildShop(g, season) {
   // side walls between the shelves
   for (const c of [0, 8]) for (let r = 1; r < ROWS - 1; r++) { const x = ox + c * T + (c ? T - 2 * u : 0); R(g, x, oy + r * T, 2 * u, T, '#5a3a4a'); }
   // the shelves (empty frames: the stock is drawn on top each frame)
-  for (const s of SHELVES) {
+  for (const s of SHELVES.slice(0, shopSlots())) {
+    if (s.low) { // a little low table
+      const x = ox + s.c * T + 1.5 * u, y = oy + s.r * T + 5 * u, w = T - 3 * u;
+      g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + u, y + 9 * u, w, 2 * u);
+      R(g, x + u, y + 3 * u, 1.5 * u, 7 * u, '#5a3d26'); R(g, x + w - 2.5 * u, y + 3 * u, 1.5 * u, 7 * u, '#5a3d26');
+      R(g, x, y, w, 3.5 * u, '#a57a4f'); R(g, x, y + 3 * u, w, .8 * u, '#6a4a2c'); continue;
+    }
+    if (s.glass) continue; // the case is drawn once, below
     const x = ox + s.c * T + (s.c ? 2 * u : 2 * u), y = oy + s.r * T + u, w = T - 4 * u, h = 2 * T - 2 * u;
     g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + (s.c ? -u : u), y + h - u, w, 2 * u);
     R(g, x, y, w, h, '#6a4a2c'); R(g, x + u, y + u, w - 2 * u, h - 2 * u, '#5a3d26');
@@ -5934,7 +6012,18 @@ function buildShop(g, season) {
     R(g, hx - .3 * u, hy, .6 * u, 3 * u, '#7a5638'); g.fillStyle = ['#7fd39a', '#cdbbff', '#8a9a5a', '#e0a0b8'][i]; g.beginPath(); g.moveTo(hx - 2.2 * u, hy + 3 * u); g.lineTo(hx + 2.2 * u, hy + 3 * u); g.lineTo(hx, hy + 9 * u); g.closePath(); g.fill();
   }
   R(g, ox + 3.4 * T, oy - T * .3, 2.3 * T, .5 * u, '#c9a675');
-  for (const [c, r] of [[1, 11], [7, 11]]) { const x = ox + c * T + 4 * u, y = oy + r * T + 6 * u; R(g, x, y + 4 * u, 8 * u, 6 * u, '#a85a3a'); circ(g, x + 4 * u, y + u, 5 * u, '#4a8a4a'); circ(g, x + u, y + 3 * u, 3 * u, '#5a9a5a'); circ(g, x + 7 * u, y + 2 * u, 3 * u, '#3f7a3f'); }
+  if (shopUp('glass')) { // the glass display case across the middle of the room
+    const x = ox + 3 * T - 2 * u, y = oy + 5 * T + 2 * u, w = 3 * T + 4 * u, h = T - 3 * u;
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + u, y + h, w, 2 * u);
+    R(g, x, y + h * .55, w, h * .45, '#6a4a2c'); R(g, x + u, y, w - 2 * u, h * .58, 'rgba(200,230,240,.35)');
+    R(g, x, y - u, w, 1.2 * u, '#c8a24a'); R(g, x + w / 2 - .5 * u, y, u, h * .58, '#c8a24a'); R(g, x + 2 * u, y + u, 3 * u, .8 * u, 'rgba(255,255,255,.6)');
+  }
+  // festival ribbons she's won, pinned along the back wall
+  for (let i = 0; i < Math.min(6, shopRibbons()); i++) { const rx = ox + (1.65 + i * .25) * T, ry = oy + T * .3; R(g, rx - .8 * u, ry, .7 * u, 4 * u, '#3a6ab8'); R(g, rx + .1 * u, ry, .7 * u, 4 * u, '#3a6ab8'); circ(g, rx, ry, 2 * u, ['#3a6ab8', '#c94a3a', '#f2b84b'][i % 3]); circ(g, rx, ry, 1 * u, '#f4ead9'); }
+  // keepsakes from the festival prize stalls, in miniature, along the top of the window
+  shopKeeps().forEach((k, i) => circ(g, ox + (6.35 + i * .42) * T, oy + T * .52, 1.8 * u, KEEPSAKES[k].col));
+  if (shopUp('window')) for (let i = 0; i < 5; i++) circ(g, ox + (6.2 + i * .38) * T, oy + T * .4, 1.4 * u, ['#ef9aac', '#f2d36b', '#cdbbff', '#8fcf6a', '#ff8a4a'][i]);
+  for (const [c, r] of (shopUp('tables') ? [] : [[1, 11], [7, 11]])) { const x = ox + c * T + 4 * u, y = oy + r * T + 6 * u; R(g, x, y + 4 * u, 8 * u, 6 * u, '#a85a3a'); circ(g, x + 4 * u, y + u, 5 * u, '#4a8a4a'); circ(g, x + u, y + 3 * u, 3 * u, '#5a9a5a'); circ(g, x + 7 * u, y + 2 * u, 3 * u, '#3f7a3f'); }
   { const x = ox + 1 * T + 2 * u, y = oy + T + 6 * u; g.fillStyle = '#8a6440'; g.beginPath(); g.ellipse(x + 6 * u, y + 5 * u, 6 * u, 3.5 * u, 0, 0, 7); g.fill(); g.fillStyle = '#c87a8a'; g.beginPath(); g.ellipse(x + 6 * u, y + 4.5 * u, 4.5 * u, 2.2 * u, 0, 0, 7); g.fill(); }
   // the counter: a long wooden top, a panelled front, brass scales at one end and the ledger in the middle
   const kx = ox + 2 * T, ky = oy + 2 * T, kw = 5 * T;
@@ -5953,6 +6042,16 @@ function buildShop(g, season) {
 function drawShopShelves() {
   const u = T / 16, sh = shopState().shelf;
   SHELVES.forEach((s, i) => {
+    if (i >= sh.length) return;
+    if (s.h === 1) { // a table or the glass case: up to ten in two rows of five on one surface
+      const it = sh[i]; if (!it.id || !it.n) return;
+      const col = itemCol(it.id), x = ox + s.c * T + 2 * u, y = oy + s.r * T + (s.glass ? 4.5 : 3) * u, w = T - 4 * u;
+      for (let k = 0; k < it.n; k++) { const jx = x + (k % 5) * w / 5, jy = y + (k < 5 ? 1.6 : 0) * u - (k >= 5 ? 0 : 0); R(ctx, jx, jy - (k >= 5 ? 1.8 * u : 0), 2 * u, 2.6 * u, col); R(ctx, jx, jy - (k >= 5 ? 1.8 * u : 0), 2 * u, .6 * u, shade(col, -40)); }
+      const tag = { kind:'#8fcf6a', fair:'#f4ead9', dear:'#f2b84b' }[it.p || 'fair'];
+      R(ctx, x + w / 2 - 3 * u, oy + s.r * T + (s.glass ? 11 : 10.5) * u, 6 * u, 2.6 * u, tag);
+      ctx.fillStyle = '#2a1d36'; ctx.font = `700 ${Math.max(6, 2.2 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(it.n), x + w / 2, oy + s.r * T + (s.glass ? 12.3 : 11.8) * u); return;
+    }
     const it = sh[i], x = ox + s.c * T + 2 * u, y = oy + s.r * T + u, w = T - 4 * u, h = 2 * T - 2 * u;
     if (!it.id || !it.n) { if (!shopIsOpen()) { ctx.fillStyle = 'rgba(244,234,217,.5)'; ctx.font = `700 ${Math.max(9, 5 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('+', x + w / 2, y + h / 2); } return; }
     const col = itemCol(it.id);
@@ -6026,9 +6125,9 @@ function shopSheet(kind, data) {
     st.shelf.forEach((s, i) => {
       if (!s.id) { h += row('#6a4a2c', `Shelf ${i + 1}`, 'Empty', `<button class="btn alt" data-act="shelfopen" data-id="${i}" type="button">Stock</button>`); return; }
       const T0 = PRICE_TIERS[s.p || 'fair'];
-      h += row(itemCol(s.id), `${itemName(s.id)} ×${s.n}`, `${T0.name} · ${shopPrice(s.id, s.p)} each${s.n ? '' : ' · sold out'} · have ${S.inv[s.id] || 0} more`, `<button class="btn alt" data-act="shelfopen" data-id="${i}" type="button">Change</button>`, s.n ? '' : 'dim');
+      h += row(itemCol(s.id), `${itemName(s.id)} ×${s.n}`, `${SHELVES[i].glass ? 'Glass case · ' : ''}${T0.name} · ${slotPrice(i, s.id, s.p)} each${s.n ? '' : ' · sold out'} · have ${S.inv[s.id] || 0} more`, `<button class="btn alt" data-act="shelfopen" data-id="${i}" type="button">Change</button>`, s.n ? '' : 'dim');
     });
-    h += helperBox();
+    h += repBox() + helperBox() + upBox();
     const more = st.shelf.some(s => s.id && s.n < SLOT_MAX && (S.inv[s.id] || 0) > 0);
     h += `<div class="cta-row"><button class="btn alt" data-act="shoprestock" type="button" ${more ? '' : 'disabled'}>Top up every shelf from your basket</button></div>`;
     h += `<p class="sub">At a fair price, customers pay a fifth more than the market stall. Villagers head for things they love, tip for them, and grow fonder of you. ${st.days ? `Since you reopened: ${st.days} day${st.days === 1 ? '' : 's'} open, ${fmt(st.total)} coins, best day ${fmt(st.best)}.` : ''}</p>`;
@@ -6037,19 +6136,20 @@ function shopSheet(kind, data) {
     const i = data.i, s = st.shelf[i];
     title = `Shelf ${i + 1}`;
     if (s.id) {
-      h += row(itemCol(s.id), `${itemName(s.id)} ×${s.n} of ${SLOT_MAX}`, `${shopPrice(s.id, s.p)} each at this price · the market stall pays ${sellValue(s.id)} · have ${S.inv[s.id] || 0} more`, `<button class="btn alt" data-act="shelfback" data-id="${i}" type="button">Take back</button>${s.n < SLOT_MAX && (S.inv[s.id] || 0) > 0 ? `<button class="btn" data-act="shelfput" data-id="${i}" data-item="${s.id}" type="button">Top up</button>` : ''}`);
-      h += `<h4 class="sec">Price</h4><div class="cta-row">${PRICE_IDS.map(p => `<button class="btn ${s.p === p ? '' : 'alt'}" data-act="shelfprice" data-id="${i}" data-item="${p}" type="button">${PRICE_TIERS[p].name} · ${shopPrice(s.id, p)}</button>`).join('')}</div>`;
-      h += `<p class="sub">${PRICE_TIERS[s.p || 'fair'].name}: ${PRICE_TIERS[s.p || 'fair'].note}.</p>`;
+      h += row(itemCol(s.id), `${itemName(s.id)} ×${s.n} of ${SLOT_MAX}`, `${slotPrice(i, s.id, s.p)} each at this price · the market stall pays ${sellValue(s.id)} · have ${S.inv[s.id] || 0} more`, `<button class="btn alt" data-act="shelfback" data-id="${i}" type="button">Take back</button>${s.n < SLOT_MAX && (S.inv[s.id] || 0) > 0 ? `<button class="btn" data-act="shelfput" data-id="${i}" data-item="${s.id}" type="button">Top up</button>` : ''}`);
+      h += `<h4 class="sec">Price</h4><div class="cta-row">${PRICE_IDS.map(p => `<button class="btn ${s.p === p ? '' : 'alt'}" data-act="shelfprice" data-id="${i}" data-item="${p}" type="button">${PRICE_TIERS[p].name} · ${slotPrice(i, s.id, p)}</button>`).join('')}</div>`;
+      h += `<p class="sub">${PRICE_TIERS[s.p || 'fair'].name}: ${PRICE_TIERS[s.p || 'fair'].note}.${SHELVES[i].glass ? ' This is the glass case, so everything here sells for 15% more.' : ''}</p>`;
       const lov = VIDS.filter(v => arrived(v) && (S.known[v] || {})[s.id] === 'love');
       if (lov.length) h += `<p class="sub">${nameList(lov)} love${lov.length === 1 ? 's' : ''} these, and will tip.</p>`;
       h += `<p class="sub">To put something else here, take these back first.</p>`;
     } else {
-      const items = Object.entries(S.inv).filter(([k, n]) => n > 0 && shelfOk(k) && !st.shelf.some(x => x.id === k)).sort((a, b) => sellValue(b[0]) - sellValue(a[0]));
+      const items = Object.entries(S.inv).filter(([k, n]) => n > 0 && shelfOk(k)).sort((a, b) => sellValue(b[0]) - sellValue(a[0]));
+      if (SHELVES[i].glass) h += `<p class="sub">The glass case: things here sell for 15% more.</p>`;
       h += `<p class="sub">Put out up to ${SLOT_MAX} of one thing. Customers pay more than the market stall, and villagers head for what they love.</p>`;
       if (!items.length) h += `<p class="sub">Nothing in your basket to put out. Harvest, forage, fish or brew something first.</p>`;
       for (const [id, n] of items) {
         const lov = VIDS.filter(v => arrived(v) && (S.known[v] || {})[id] === 'love').length;
-        h += row(itemCol(id), `${itemName(id)} ×${n}`, `${shopPrice(id, 'fair')} each at a fair price · market stall ${sellValue(id)}${lov ? ` · ${lov} friend${lov === 1 ? '' : 's'} love${lov === 1 ? 's' : ''} it` : ''}`, `<button class="btn" data-act="shelfput" data-id="${i}" data-item="${id}" type="button">Put out ${Math.min(n, SLOT_MAX)}</button>`);
+        h += row(itemCol(id), `${itemName(id)} ×${n}`, `${slotPrice(i, id, 'fair')} each at a fair price · market stall ${sellValue(id)}${lov ? ` · ${lov} friend${lov === 1 ? '' : 's'} love${lov === 1 ? 's' : ''} it` : ''}`, `<button class="btn" data-act="shelfput" data-id="${i}" data-item="${id}" type="button">Put out ${Math.min(n, SLOT_MAX)}</button>`);
       }
     }
     h += `<div class="cta-row"><button class="btn alt" data-act="shopledger" type="button">The ledger</button><button class="btn alt" data-act="close" type="button">Done</button></div>`;
@@ -6064,6 +6164,24 @@ function shopSheet(kind, data) {
     h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Good night, shop</button></div>`;
   }
   return { h, title };
+}
+// The ledger's reputation line and the shop's regulars.
+function repBox() {
+  const st = shopState(), l = repLevel(), r = Math.floor(st.rep || 0), next = REP_LEVELS[l + 1];
+  let h = `<h4 class="sec">Word about the shop</h4><p class="sub"><b>${REP_LEVELS[l][1]}</b>.${next ? ` ${next[0] - r} more happy customer${next[0] - r === 1 ? '' : 's'} and it'll be ${next[1].toLowerCase()}.` : ' Travellers come from three valleys away.'} ${l ? `Customers come about ${Math.round((1 / (1 - .06 * l) - 1) * 100)}% more often.` : 'The happier your customers, the more people come.'}${l >= 3 ? ' Well-off travellers tip, too.' : ''}</p>`;
+  const regs = VIDS.filter(v => isRegular(v) && arrived(v));
+  if (regs.length) h += `<p class="sub">Your regulars:</p><div class="crowd">${regs.map(v => portrait(v, 'happy', 36)).join('')}</div>`;
+  else h += `<p class="sub">Villagers who buy from you ${REGULAR_N} times become regulars, with something of their own to say.</p>`;
+  return h;
+}
+// The ledger's improvements: things to buy for the shop.
+function upBox() {
+  let h = `<h4 class="sec">Improvements</h4>`;
+  for (const id of SHOP_UP_IDS) {
+    const U = SHOP_UPS[id], have = shopUp(id), lock = U.needs && !shopUp(U.needs);
+    h += row(have ? '#8fcf6a' : '#c9a675', U.name, have ? 'Done. ' + U.desc : `${fmt(U.cost)} coins · ${U.desc}${lock ? ` Needs ${SHOP_UPS[U.needs].name.toLowerCase()} first.` : ''}`, have ? '' : `<button class="btn" data-act="shopup" data-id="${id}" type="button" ${lock || S.coins < U.cost ? 'disabled' : ''}>${fmt(U.cost)}</button>`, have ? 'dim' : '');
+  }
+  return h;
 }
 // The ledger's helper section: who minds the shop when she's not behind the counter.
 function helperBox() {
@@ -6086,6 +6204,7 @@ function genVisitsFix() { const hp = helperToday(); if (hp && S.visits) S.visits
 // Sheet buttons (from the click handler). Returns true if it handled the act.
 function shopAct(act, b) {
   const id = b.dataset.id, item = b.dataset.item;
+  if (act === 'shopup') { if (shopBuyUp(id)) { toast(`${SHOP_UPS[id].name}: done! ${id === 'tables' || id === 'glass' ? 'Tap the new spots to stock them.' : ''}`, 4000); updateHUD(); } renderSheet('shop'); return true; }
   if (act === 'shophelp') { const st = shopState(); if (id === 'none') { helperSettle(S.time); st.helper = null; } else if (helperChoices().includes(id)) { helperSettle(S.time); st.helper = id; shopDay().idleDone = Math.max(shopDay().idleDone || 0, S.time); toast(id === 'pip' ? 'Pip is thrilled. "Can I wear an apron? Can I ring the bell?"' : `${VILLAGERS[id].name} will mind the shop when you're out.`); } genVisitsFix(); renderSheet('shop'); return true; }
   if (act === 'shopopen') { if (shopOpenUp()) { closeSheet(); toast('Open! Customers will start coming in. Tap someone at the counter to serve them.', 4200); } else renderSheet('shop'); return true; }
   if (act === 'shopshut') { closeSheet(); shopCloseUp(); return true; }
@@ -7899,7 +8018,7 @@ const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 function vRow(v, from) {
   const V = VILLAGERS[v], chips = [];
   if (S.talked[v] === dayKey()) chips.push('Chatted'); if (S.gifted[v] === dayKey()) chips.push('Gift given');
-  if (isBday(v)) chips.unshift('Birthday today!');
+  if (isBday(v)) chips.unshift('Birthday today!'); if (isRegular(v)) chips.push('Regular at your shop');
   if (v === S.spouse) chips.unshift('Married'); else if (S.wedding && S.wedding.v === v) chips.unshift('Engaged'); else if (v === S.dating) chips.unshift('Dating');
   return `<button class="vrow" type="button" data-act="vopen" data-from="${from}" data-id="${v}">${portrait(v, isBday(v) ? 'happy' : 'neutral', 52)}<div class="info"><span class="name">${V.name} <span class="role">· ${V.role}</span></span>${hearts(heartsOf(v), v)}<span class="meta">${chips.length ? chips.join(' · ') : 'Hasn\'t seen you today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
 }
@@ -8069,7 +8188,7 @@ function renderSheet(kind, data) {
         if (!arrived(v)) { h += `<div class="vrow dim"><span class="por q">?</span><div class="info"><span class="name">Someone new</span><span class="meta">Arrives in ${SEASONS[V.arrive].toLowerCase()}${(V.arriveY || 1) > S.year ? ` of year ${V.arriveY}` : ''}</span></div></div>`; continue; }
         const chips = [];
         if (S.talked[v] === dayKey()) chips.push('Chatted'); if (S.gifted[v] === dayKey()) chips.push('Gift given');
-        if (isBday(v)) chips.unshift('Birthday today!');
+        if (isBday(v)) chips.unshift('Birthday today!'); if (isRegular(v)) chips.push('Regular at your shop');
         if (v === S.spouse) chips.unshift('Married'); else if (S.wedding && S.wedding.v === v) chips.unshift('Engaged'); else if (v === S.dating) chips.unshift('Dating'); else if (isBff(v)) chips.unshift('Best friend');
         { const mk = matchOf(v); if (mk) chips.push(`${matchMarried(mk) ? 'Married to' : 'With'} ${VILLAGERS[mateOf(v)].name}`); }
         const at = where(v); chips.unshift(V.market && at === 'away' ? `On the road. Back ${nextMarket()}` : cap(placeLabel(at)));
@@ -8656,7 +8775,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 30, BUILD_DATE = 'Nov 11'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 31, BUILD_DATE = 'Nov 11'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();

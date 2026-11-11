@@ -74,12 +74,13 @@ Claude's choices (Matt said "you decide"):
 - The shop shown as open on the row with the helper behind the counter; walking in lets her take over.
 - Tests and sims: helper days against running it herself and against the farm stall.
 
-### Part 3: Making it hers
+### Part 3: Making it hers (shipped Nov 11, 2026)
 - **Upgrades** (coins and materials): more shelves (6 → 8 → 10), a display case in the middle of the room (dishes and potions sell at a better price), a painted sign, a window display (more customers), a bell over the door.
 - **Decor** from festival prizes and keepsakes on the shop's walls and window.
 - **Reputation**: grows with happy customers. It brings people in more often and unlocks travellers who pay more.
 - **Regulars**: each villager gets a few shop lines and favourite things; a villager who has bought from her often enough becomes a regular, with a chip on the village list.
-- Villagers' schedules gain a stop on the row now and then, so the street has people on it.
+- (Moved to Part 5: the row fills up when its other two shops open, and their keepers stand in them.)
+- Upgrades as built: two little tables (1,500), a window display (2,000), a painted sign (800), a glass case (3,000, after the tables). Reputation levels New, Known, Popular, Beloved, Famous.
 
 ### Part 4: Orders and trade
 - **Special orders**: a villager asks for a set of things by a day ("six honey cakes by Friday"), on the ledger. Better than shelf prices, plus friendship. No penalty for missing one: it just lapses kindly.

@@ -3,7 +3,7 @@
 // Then puts the premium next to a season's farm earnings from econ4.js. Run from tests/ after extract.py.
 // Args: days per season to sample (default 40).
 const fs = require('fs'), { execSync } = require('child_process');
-const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", `globalThis.__t={get S(){return S},startGame,update,closeSheet,get sheet(){return sheetOpen},enterShop,shopState,shopDay,shopOpenUp,shopServe,get SV(){return SV},helperSales,HELPER_CUT,sellValue,QUESTS,CROPS,POTIONS,VIDS,dayKey};\n})();`);
+const src = fs.readFileSync('b.js', 'utf8').replace("requestAnimationFrame(frame);\n})();", `globalThis.__t={get S(){return S},startGame,update,closeSheet,get sheet(){return sheetOpen},enterShop,shopState,shopDay,shopOpenUp,shopServe,get SV(){return SV},helperSales,HELPER_CUT,shopBuyUp,sellValue,QUESTS,CROPS,POTIONS,VIDS,dayKey};\n})();`);
 const sim7 = fs.readFileSync('sim7.js', 'utf8').split('\n').slice(2, 7).join('\n'); eval(sim7);
 const store = {}; globalThis.localStorage = { getItem:k => store[k] ?? null, setItem:(k, v) => store[k] = String(v), removeItem:k => delete store[k] };
 eval(src); const t = __t; t.startGame(true); const S = t.S; const close = () => { while (t.sheet) t.closeSheet(); }; close();
@@ -11,6 +11,8 @@ const N = +(process.argv[2] || 40);
 S.quests.shop = { s:5, done:true, at:1 };
 const SEAS = ['spring', 'summer', 'autumn', 'winter'];
 const out = {};
+const UPS = process.argv[3] === 'up';
+if (UPS) console.log('(with every improvement bought and a Beloved shop: 10 places, the glass case, the window, the sign)');
 for (const [season, year] of [[1, 1], [2, 1], [3, 1], [0, 2]]) {
   const crops = Object.keys(t.CROPS).filter(id => t.CROPS[id].seasons.includes(season));
   const pots = Object.keys(t.POTIONS).filter(id => !t.POTIONS[id].wild && Object.keys(t.POTIONS[id].need).every(k => crops.includes(k)));
@@ -19,9 +21,11 @@ for (const [season, year] of [[1, 1], [2, 1], [3, 1], [0, 2]]) {
     S.year = year; S.season = season; S.day = 1 + (day % 27); if (S.day === 14) S.day = 15; S.rain = Math.random() < [.22, .12, .25, 0][season];
     S.time = 540; S.shop = null; S.known = {}; for (const v of t.VIDS) S.fr[v] = 300;
     t.enterShop(); const st = t.shopState();
+    if (UPS) { S.coins += 10000; ['tables', 'glass', 'window', 'sign'].forEach(t.shopBuyUp); st.rep = 250; }
     // her shelves: up to 4 kinds of this season's crops, 10 each, and two shelves of potions (6 a day: two nights of brewing)
-    const kinds = crops.slice(0, 4).concat(pots.slice(0, 6 - Math.min(4, crops.length)));
-    S.inv = {}; kinds.forEach((id, i) => { if (i >= 6) return; const n = t.POTIONS[id] ? 3 : 10; st.shelf[i] = { id, n, p:'fair' }; });
+    const nS = st.shelf.length, kinds = crops.slice(0, 4).concat(pots.slice(0, 6 - Math.min(4, crops.length)));
+    while (kinds.length < nS) kinds.push(kinds[kinds.length % Math.max(1, kinds.length)]);
+    S.inv = {}; kinds.forEach((id, i) => { if (i >= nS) return; const n = t.POTIONS[id] ? 3 : 10; st.shelf[i] = { id, n, p:'fair' }; });
     const stock0 = st.shelf.map(s => ({ id:s.id, n:s.n }));
     const fr0 = t.VIDS.reduce((a, v) => a + S.fr[v], 0), c0 = S.coins;
     t.shopOpenUp();
