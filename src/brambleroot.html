@@ -941,7 +941,7 @@ function newState() {
     seeds:{ mint:6, ember:3 }, sprinklers:0, inv:{}, plots, slots:1, brewing:[], reqs:[], steps:zeroMap(), hearts:zeroMap(), gifts:{},
     hollow:hollowState(), helped:0, missed:0, rain:false, snow:false, nextRain:false, fr:zeroMap(), talked:{}, gifted:{}, scenes:{}, known:{}, tut:0, up:{}, debt:0, proj:{}, done:{}, charters:{}, perks:[], starsThisSeason:0, spells:[], mana:0, manaMax:0, mail:[], sent:{}, thanks:[], fest:{}, found:{}, foundTotal:0, grove:false, visits:[], visitKey:'', wood:null, scene:'farm', blessing:null, whispered:'', shrine:'', woodSeen:false, look:null,
     greenhouse:false, rod:false, lantern:false, almanac:false, bell:false, hives:0, speed:5, over:false, fishCaught:0, pace:'brisk', clockTip:false, upDisc:0,
-    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{}, fbest:{}, bff:{}, mementos:{}, matched:{} };
+    dating:null, wedding:null, spouse:null, weddingDay:null, quests:{}, events:{}, evToday:null, play:null, cart:null, tickets:0, ribbons:{}, prizes:{}, fbest:{}, bff:{}, mementos:{}, matched:{}, shop:null, rowSeen:false, shopSeen:false };
 }
 function migrate(s) {
   if (!s || typeof s !== 'object') return null;
@@ -1049,6 +1049,8 @@ function buildStatic() {
   const g = bg.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
   bgKey = bgKeyNow(); if (S && S.scene === 'wood') { buildWood(g, pal, season); return; }
   if (S && S.scene === 'village') { buildVillage(g, pal, season); return; }
+  if (S && S.scene === 'row') { buildRow(g, pal, season); return; }
+  if (S && S.scene === 'shop') { buildShop(g, season); return; }
   if (S && S.scene === 'hollow') { buildHollow(g); return; }
   const u = T / 16;
   R(g, 0, 0, W, H, pal.forest);
@@ -1415,6 +1417,8 @@ function draw() {
   if (S.scene === 'hollow') drawHollowDynamic();
   else if (S.scene === 'wood') drawWoodDynamic();
   else if (S.scene === 'village') { drawVillageWindows(night); drawVillageDynamic(); }
+  else if (S.scene === 'row') { drawRowWindows(night); drawRowDynamic(); }
+  else if (S.scene === 'shop') drawShopDynamic();
   else { for (let i = 0; i < 56; i++) drawPlot(S.plots[i], plotCol(i), plotRow(i), i); drawGreenhouse(); drawHives(); drawDynamicBuildings(night); drawMailbox(); drawKeepsakes(); drawVisitors(); }
   const u = T / 16;
   ctx.strokeStyle = 'rgba(242,184,75,.85)'; ctx.lineWidth = Math.max(1.5, u * .8); ctx.setLineDash([u * 2, u * 1.5]);
@@ -1425,12 +1429,13 @@ function draw() {
   ctx.globalAlpha = 1;
   if (S.scene === 'wood') { ctx.fillStyle = 'rgba(8,20,14,.16)'; ctx.fillRect(0, 0, W, H); }
   if (S.scene === 'hollow') drawHollowLight();
-  if (night > 0 && S.scene !== 'hollow') {
+  if (night > 0 && S.scene !== 'hollow' && S.scene !== 'shop') {
     ctx.fillStyle = `rgba(22,16,58,${night})`; ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'lighter';
     const k = night / .62;
     const glow = (x, y, r, rgb, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
     if (S.scene === 'village') villageGlows(glow, k);
+    else if (S.scene === 'row') rowGlows(glow, k);
     else if (S.scene !== 'wood') {
     const cb = BUILD.cottage, wy = oy + cb.r * T + cb.h * T * .74;
     glow(ox + cb.c * T + cb.w * T * .22, wy, T * 1.3, '255,190,90', .5 * k);
@@ -1449,7 +1454,7 @@ function draw() {
     }
     ctx.globalCompositeOperation = 'source-over';
   }
-  if ((S.rain || S.snow || clock < rainFx) && drops.length && S.scene !== 'hollow') {
+  if ((S.rain || S.snow || clock < rainFx) && drops.length && S.scene !== 'hollow' && S.scene !== 'shop') {
     if (S.rain || clock < rainFx) {
       ctx.fillStyle = 'rgba(30,50,80,.12)'; ctx.fillRect(0, 0, W, H);
       ctx.strokeStyle = 'rgba(170,200,240,.35)'; ctx.lineWidth = 1; ctx.beginPath();
@@ -1558,6 +1563,7 @@ function autoSelect() {
 }
 function tired() { toast('Too tired to keep working. Sleep to get your energy back.'); queue = []; return false; }
 function visit(k, q) {
+  if (rowVisit(k, q)) return;
   if (k === 'villager') { const x = (S.visits || []).find(z => z.v === q.v); if (x && visitPresent(x)) openSheet('villager', { v:q.v, from:'garden', mood:isPartner(q.v) ? 'love' : undefined, line:S.talked[q.v] === dayKey() ? null : (x.spouse ? sayLine(q.v + ':r', ROMANCE[q.v].wed) : visitLine(q.v)) }); else toast(`${VILLAGERS[q.v].name} has already headed home.`); return; }
   if (k === 'gate') { openSheet('gate'); return; }
   if (k === 'tovillage') { enterVillage(q.seek, q.place); return; }
@@ -1602,6 +1608,8 @@ function tileAt(x, y) {
 function enqueue(t, fromDrag) {
   if (S.scene === 'wood') return enqueueWood(t, fromDrag);
   if (S.scene === 'village') return enqueueVillage(t, fromDrag);
+  if (S.scene === 'row') return enqueueRow(t, fromDrag);
+  if (S.scene === 'shop') return enqueueShop(t, fromDrag);
   if (queue.some(q => q.c === t.c && q.r === t.r && q.kind === 'field')) return;
   if (inField(t.c, t.r)) {
     const i = plotIdx(t.c, t.r), p = S.plots[i], a = predict(p);
@@ -1631,7 +1639,7 @@ C.addEventListener('pointermove', e => {
   const t = tileAt(e.clientX, e.clientY); if (!t) return;
   const key = t.c + ',' + t.r; if (key === lastKey) return;
   if (S.scene === 'hollow') return;
-  if (S.scene === 'village') return;
+  if (S.scene === 'village' || S.scene === 'row' || S.scene === 'shop') return;
   if (S.scene === 'wood' || inField(t.c, t.r)) enqueue(t, true);
   lastKey = key;
 });
@@ -1660,12 +1668,13 @@ function update(dt) {
   if (mode !== 'play' || !S) return;
   if (!sheetOpen) {
     // The clock only moves while she's busy: walking, working, or a firebolt is in the air.
-    const busy = queue.length > 0 || witch.walk > 0 || witch.act > 0 || (S.scene === 'hollow' && HV && HV.bolts.length > 0);
+    const busy = queue.length > 0 || witch.walk > 0 || witch.act > 0 || (S.scene === 'hollow' && HV && HV.bolts.length > 0) || (S.scene === 'shop' && shopIsOpen());
     if (busy) S.time += dt * 7.2 * paceMul();
     for (const x of S.visits || []) if (!x.seen && visitPresent(x)) { x.seen = true; toast(x.spouse ? `${VILLAGERS[x.v].name} is out in the garden.` : `${VILLAGERS[x.v].name} stopped by the garden. Tap them to say hello.`); }
     if (S.time >= passOut()) { S.time = passOut(); endDay(true); return; }
     if (S.scene === 'village' && isFestDay() && S.time >= FEST_CLOSE) festClosedToast();
     if (S.scene === 'hollow') { updateHollow(dt); if (S.scene !== 'hollow' || sheetOpen) return; }
+    if (S.scene === 'shop') { shopTick(dt); if (sheetOpen) return; }
     if (witch.act > 0) witch.act -= dt;
     else if (queue.length) {
       const q = queue[0], dx = q.c - witch.x, dy = q.r - witch.y, dist = Math.hypot(dx, dy), step = S.speed * dt;
@@ -1692,6 +1701,7 @@ function update(dt) {
 function endDay(passedOut) {
   queue = []; witch.act = 0;
   const lines = [];
+  shopEndDay(lines);
   if (S.giftNote) { for (const t of S.giftNote) lines.push({ t, c:'gift' }); delete S.giftNote; }
   if (passedOut) lines.push({ t:S.fainted ? "You fainted in the Hollow. The cat fetched Old Fen, who carried you home. Everything you found is safe in your basket. You'll start tomorrow tired." : "You dozed off in the garden. The cat dragged a blanket over you. You'll start tomorrow tired.", c:'bad' });
   S.fainted = false;
@@ -2422,7 +2432,7 @@ function buildCharters(n, legacy) {
 
 /* ================= village life, spells, the Old Wood, wardrobe ================= */
 let rainFx = 0, bgKey = '';
-const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.hew && S.hew.met ? 'h' : ''}|${S.scene === 'village' && lampLit() ? 'lit' : ''}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
+const bgKeyNow = () => S ? `${S.scene}|${S.season}|${S.grove ? 1 : 0}|${S.hew && S.hew.met ? 'h' : ''}|${S.scene === 'village' && lampLit() ? 'lit' : ''}${S.scene === 'village' && rowOpen() ? 'row' : ''}${S.scene === 'row' && shopReady() ? 'shop' : ''}|${S.scene === 'hollow' && HV ? HV.floor + ':' + HV.seed : ''}` : '';
 Object.assign(BUILD, { gate:{ c:0, r:6, w:1, h:1, stand:[0,6] }, mailbox:{ c:3, r:1, w:1, h:1, stand:[3,2] } });
 VILLAGERS.mara.likes.push('hazel', 'morelbroth'); VILLAGERS.fen.likes.push('chanter', 'chantonic');
 VILLAGERS.pip.likes.push('sunberry', 'glimjam'); VILLAGERS.odile.loves.push('violet'); VILLAGERS.wren.likes.push('glimmer', 'firemoss');
@@ -4998,7 +5008,8 @@ const VPLACES = {
   cart:      { name:"Zara's cart", title:"Zara's cart", sub:'A painted wagon with a striped awning, full of things from far away.' },
   docks:     { name:'the docks', title:'The docks', sub:"Fen's ferry, Juno's boat and a lot of opinions about the weather." },
   fest:      { name:'the festival', title:'The festival', sub:'The whole village, dressed up for the day.' },
-  lighthouse:{ name:'the lighthouse', title:'The lighthouse', indoor:true, sub:"Bertram's lighthouse at the river mouth. The lamp turns all night." }
+  lighthouse:{ name:'the lighthouse', title:'The lighthouse', indoor:true, sub:"Bertram's lighthouse at the river mouth. The lamp turns all night." },
+  shopfront: { name:'your aunt\'s shop on Old Market Row', title:'Brambleroot', indoor:true, scene:'row', sub:'Bramble\'s old shop at the top of Old Market Row. Boarded windows, and a faded gold sign over the door.' }
 };
 const SCHED = {
   mara:   { day:[[360, 'mill'], [720, 'square'], [810, 'mill'], [1080, 'inn'], [1230, 'home']] },
@@ -5056,7 +5067,7 @@ function meetBox(v) {
   if (V.market && p === 'away') return { ok:false, note:`${V.name}'s cart is out on the road. It comes back ${nextMarket()}. Her cart comes every seventh day: days 5, 12, 19 and 26.` };
   if (p === 'away') return { ok:false, note:`${V.name} isn't in the valley yet.` };
   if (p === 'home') return { ok:false, note:`${V.name} is at home${u ? `, and out again at ${fmtTime(u)}` : (S.time >= 1020 ? ' for the night. Back out tomorrow' : '')}.` };
-  const go = S.scene === 'farm' || S.scene === 'village';
+  const go = S.scene === 'farm' || S.scene === 'village' || S.scene === 'row';
   const hint = p === 'garden' || p === 'cottage' ? (go ? 'Head home to say hello.' : 'Head home to find them.') : (go ? 'Go and find them there to chat or give a gift.' : 'Head home, then down to the village to find them.');
   return { ok:false, note:`${V.name} is ${placeLabel(p)}${till}. ${hint}`, seek:go ? (p === 'garden' || p === 'cottage' ? 'Go home' : `Go to ${VPLACES[p].name}`) : '' };
 }
@@ -5064,6 +5075,7 @@ function meetBox(v) {
 function seekVillager(v) {
   const p = where(v);
   closeSheet();
+  if (S.scene === 'row') { queue.push({ c:ROW_EXIT[0], r:ROW_EXIT[1], kind:'visit', b:'rowexit', seek:v }); return; }
   if (p === 'garden' || p === 'cottage') {
     if (S.scene === 'village') leaveVillage();
     if (S.scene !== 'farm') return;
@@ -5169,11 +5181,12 @@ function villageFolk() {
   return out;
 }
 const folkAt = p => VIDS.filter(v => where(v) === p);
-function enterVillage(seek, place) {
-  S.scene = 'village'; witch.x = V_EXIT[0]; witch.y = V_EXIT[1]; cat.x = 4.4; cat.y = 12.6; cat.trail = []; queue = [];
+function enterVillage(seek, place, at) {
+  S.scene = 'village'; witch.x = (at || V_EXIT)[0]; witch.y = (at || V_EXIT)[1]; cat.x = witch.x + .4; cat.y = witch.y + .6; cat.trail = []; queue = [];
   if (!S.villageSeen) { S.villageSeen = true; toast('The village. Tap someone to chat, or tap a building to see who\'s inside. The path home is at the bottom.', 5600); }
   festArrive();
   if (seek) seekInVillage(seek);
+  else if (place && rowPlace(place)) queue.push({ c:ROW_IN[0], r:ROW_IN[1], kind:'visit', b:'torow', place });
   else if (place) { const B = VB[place] || (place === 'square' ? VB.well : null); if (B) queue.push({ c:B.stand[0], r:B.stand[1], kind:'visit', b:'vplace', place }); }
 }
 function leaveVillage() { S.scene = 'farm'; witch.x = 0; witch.y = 6; cat.x = .4; cat.y = 6.5; cat.trail = []; queue = []; }
@@ -5184,6 +5197,7 @@ function enqueueVillage(t, fromDrag) {
   const f = folk.find(z => z.c === t.c && z.r === t.r) || (vBuildingAt(t.c, t.r) ? null : folk.find(z => z.c === t.c && z.r === t.r + 1));
   if (f) { queue.push({ c:f.wc, r:f.wr, kind:'visit', b:'vperson', v:f.v }); return; }
   if (t.r === V_EXIT[1] && t.c >= 3 && t.c <= 5) { queue.push({ c:V_EXIT[0], r:V_EXIT[1], kind:'visit', b:'vexit' }); return; }
+  if (rowOpen() && t.c === ROW_IN[0] && (t.r === ROW_IN[1] || t.r === ROW_IN[1] - 1)) { queue.push({ c:ROW_IN[0], r:ROW_IN[1], kind:'visit', b:'torow' }); return; }
   const b = vBuildingAt(t.c, t.r);
   if (b) { const B = VB[b]; queue.push({ c:B.stand[0], r:B.stand[1], kind:'visit', b:'vplace', place:b === 'well' ? 'square' : b }); return; }
   if (t.r === V_RIVER && t.c !== 4) { toast('The river. The bridge is in the middle, and the docks are to the right.'); return; }
@@ -5235,6 +5249,7 @@ function buildVillage(g, pal, season) {
   // trees and hedges around the edges
   for (const [c, r] of [[0, 10], [2, 11], [0, 12]]) tree(g, ox + (c + .5) * T, oy + (r + 1) * T, T * 1.05, hash(c, r, 21), pal, season);
   vBuildings(g, season);
+  if (rowOpen()) drawRowArch(g, season);
   // signpost home
   const ex = ox + V_EXIT[0] * T, ey = oy + V_EXIT[1] * T;
   R(g, ex + 13 * u, ey + 4 * u, 1.5 * u, 10 * u, '#5a3d26'); R(g, ex + 9 * u, ey + 3 * u, 8 * u, 4 * u, '#c9a675');
@@ -5371,6 +5386,591 @@ function villageGlows(glow, k) {
 function drawVillageWindows(night) {
   if (night <= .2) return;
   for (const [x, y, w, h, kind] of VWINS) if (!kind) R(ctx, x, y, w, h, '#ffcf6b');
+}
+
+/* ================= the shop (PLAN-shop.md) ================= */
+// Part 1. Old Market Row (S.scene 'row') opens off the village once the shop story starts (rowOpen). Bramble's old
+// shop sits at the top of it; once restored (shopReady), she walks inside (S.scene 'shop'), stocks the shelves,
+// opens up from the ledger, and serves customers by tapping them at the counter. Customers wait patiently.
+// Persistent: S.shop = shopState() (shelves, today's tally, who came in today, lifetime totals). The open shop itself
+// (SV: customers, next arrival) is per visit and is never saved: loading always starts on the farm.
+const ROW_IN = [8, 8], ROW_EXIT = [4, 12];
+const RB = {
+  shop:  { c:2, r:0, w:5, h:3, stand:[4, 3] },
+  frontA:{ c:0, r:4, w:2, h:3, stand:[2, 5] },
+  frontB:{ c:0, r:8, w:2, h:3, stand:[2, 9] },
+  frontC:{ c:7, r:4, w:2, h:3, stand:[6, 5] },
+  frontD:{ c:7, r:8, w:2, h:3, stand:[6, 9] },
+  fountain:{ c:4, r:7, w:1, h:1, stand:[4, 8] }
+};
+const ROW_FRONTS = {
+  frontA:'Boarded up. A faded painted boot over the door: this was a cobbler\'s, long ago.',
+  frontB:'Boarded up. Through a gap you can see an old bread oven. Mara says her grandmother baked here.',
+  frontC:'Boarded up. Hooks in the ceiling for lamps and wind chimes. It looks like it sold curiosities.',
+  frontD:'Boarded up. A tailor\'s dummy is still in the window, wearing a very dusty hat.'
+};
+const rowOpen = () => !!(S && S.quests && S.quests.shop);
+const shopReady = () => !!(S && S.quests && S.quests.shop && S.quests.shop.done);
+const rowPlace = p => !!(VPLACES[p] && VPLACES[p].scene === 'row');
+
+// ---- shop numbers ----
+const SHOP_OPEN = 540, SHOP_CLOSE = 1080, SHOP_SLOTS = 6, SLOT_MAX = 10, SHOP_GAP = 50, SHOP_BUSY = 5, SHOP_WALK = 2.4;
+const SHOP_VILLAGER_P = .75, SHOP_ASK_P = .35, DEAR_P = .4, SHOP_TIP_LOVE = .15, SHOP_TIP_LIKE = .05;
+const PRICE_TIERS = {
+  kind:{ name:'Kind', mult:1.05, note:'a little under the going rate. Villagers who buy it get fonder of you' },
+  fair:{ name:'Fair', mult:1.2, note:'the going rate' },
+  dear:{ name:'Dear', mult:1.45, note:'about 4 in 10 customers put it back' }
+};
+const PRICE_IDS = ['kind', 'fair', 'dear'];
+// Inside the shop: shelves on both walls (1 × 2 tiles, browsed from `stand`), the counter on row 2 with the ledger
+// in the middle, her place behind it, and five spots in front of it where customers wait.
+const SHELVES = [
+  { c:0, r:3, stand:[1, 4] }, { c:0, r:6, stand:[1, 7] }, { c:0, r:9, stand:[1, 10] },
+  { c:8, r:3, stand:[7, 4] }, { c:8, r:6, stand:[7, 7] }, { c:8, r:9, stand:[7, 10] }
+];
+const SHOP_ME = [4, 1], SHOP_DOOR = [4, 12], SHOP_LEDGER = [4, 2], SHOP_GAPC = 7;
+const SHOP_QSPOTS = [[4, 3], [3, 3], [5, 3], [2, 3], [6, 3]];
+
+function shopState() {
+  if (!S.shop) S.shop = { shelf:[], day:null, came:{}, total:0, sold:0, served:0, days:0, best:0 };
+  const st = S.shop;
+  if (!Array.isArray(st.shelf)) st.shelf = [];
+  while (st.shelf.length < SHOP_SLOTS) st.shelf.push({ id:null, n:0, p:'fair' });
+  if (!st.came) st.came = {};
+  return st;
+}
+function shopDay() { const st = shopState(); if (!st.day || st.day.k !== dayKey()) st.day = { k:dayKey(), coins:0, sold:0, people:0, folk:[], opened:false }; return st.day; }
+const shelfOk = id => !!ITEMS[id] && !NOGIFT[id] && itemValue(id) > 0;
+const shopPrice = (id, p) => Math.max(1, Math.round(sellValue(id) * PRICE_TIERS[p || 'fair'].mult));
+const shopHours = () => S.time >= SHOP_OPEN && S.time < SHOP_CLOSE;
+const shelvesStocked = () => shopState().shelf.some(s => s.id && s.n > 0);
+
+// ---- stocking ----
+function shelfPut(i, id) {
+  const st = shopState(), s = st.shelf[i]; if (!s || !shelfOk(id)) return 0;
+  if (s.id && s.id !== id) { if (s.n) S.inv[s.id] = (S.inv[s.id] || 0) + s.n; s.n = 0; }
+  s.id = id;
+  const n = Math.min(SLOT_MAX - s.n, S.inv[id] || 0); if (n <= 0) return 0;
+  S.inv[id] -= n; s.n += n; return n;
+}
+function shelfBack(i) {
+  const s = shopState().shelf[i]; if (!s || !s.id) return 0;
+  const n = s.n; if (n) S.inv[s.id] = (S.inv[s.id] || 0) + n;
+  s.id = null; s.n = 0; s.p = 'fair'; return n;
+}
+// Tops every shelf back up with what's already on it, from the basket.
+function shelfRestock() { let n = 0; shopState().shelf.forEach((s, i) => { if (s.id) n += shelfPut(i, s.id); }); return n; }
+
+// ---- the open shop ----
+let SV = null;   // { open, custs, nextAt, gifts, learned, seen }
+const shopIsOpen = () => !!(SV && SV.open);
+const activeCusts = () => SV ? SV.custs.filter(c => c.st !== 'out') : [];
+function shopOpenUp() {
+  if (S.scene !== 'shop' || shopIsOpen() || !shopHours() || !shelvesStocked()) return false;
+  SV = { open:true, custs:[], nextAt:S.time + 8, gifts:[], learned:[] };
+  shopDay().opened = true; SND.gift();
+  return true;
+}
+const SHOP_LINES = {
+  thanks:["Lovely. Just what I needed.", "Thank you, dear. Same time tomorrow?", "It's good to see this place open again.", "Your aunt used to wrap things in brown paper. You do it better.", "I'll tell everyone. Well, Hettie. Which is everyone.", "Keep the change. No, really. Keep it.", "The bell rings in E. I checked. Rowan was right.", "I came in for one thing. I always do.", "Smells like summer in here. Even when it isn't.", "You've a gift for this. Two gifts, counting the witching."],
+  love:["Oh! My favourite. You remembered. Or you guessed. Either way!", "I'd have paid double. Don't tell anyone I said that.", "This is the best thing that's happened to me all week.", "You've made my whole day. Here, a little extra for the jar.", "I've been dreaming about these. Literally. Last night."],
+  like:["Oh, nice. I like these.", "Good choice to put these out. I'll take some.", "These never last long at my house.", "Just the thing. Thank you."],
+  dear:["Hm. A bit dear for me today.", "Pricey. I'll think about it. I won't.", "I'll wait for a sale, I think.", "Lovely, but not at that price, dear."],
+  none:["Just browsing. I'll come back when you've got more in!", "Nothing for me today, but it's lovely in here.", "I only came in to hear the bell, honestly."],
+  out:["Oh, you've run out? Never mind. Another day!", "Ah, gone already. That's a good sign for you."],
+  stranger:["Fine wares. I'll tell them about you down the road.", "Much obliged, witch.", "A fair price. Rare, these days.", "I'll be back this way. Keep some for me."]
+};
+const pickLine = list => list[(Math.random() * list.length) | 0];
+function shopQSpot() {
+  const taken = new Set(activeCusts().filter(c => c.q !== undefined).map(c => c.q));
+  for (let i = 0; i < SHOP_QSPOTS.length; i++) if (!taken.has(i)) return i;
+  return -1;
+}
+// Customers keep to the aisles either side of the rug and table: up from the door, along an aisle, and back.
+const aisle = c => c < 4 ? 2 : 6;
+const toAisle = (side, r) => [[4, 11], [side, 11], [side, r]];
+const outRoute = (x, y) => { const a = aisle(x); return [[a, Math.max(4, Math.min(11, Math.round(y)))], [a, 11], [4, 11], SHOP_DOOR.slice()]; };
+const STRANGER_COLS = ['#6a5a8a', '#8a5a4a', '#4a6a7a', '#7a6a3a', '#5a7a5a', '#8a4a6a'];
+// Who comes in: mostly villagers who are about today (each once a day), the rest travellers off the road.
+function pickShopper() {
+  const st = shopState(), k = dayKey(), here = new Set(SV.custs.map(c => c.v));
+  const pool = VIDS.filter(v => inValley(v) && st.came[v] !== k && !here.has(v) && where(v) !== 'fest');
+  return pool.length && Math.random() < SHOP_VILLAGER_P ? pool[(Math.random() * pool.length) | 0] : null;
+}
+// What they're after: a villager heads for something they love or like if it's out; sometimes they ask for one of
+// those that's still in her basket; otherwise anything on the shelves.
+function shopWant(v) {
+  const sh = shopState().shelf, have = sh.map((s, i) => i).filter(i => sh[i].id && sh[i].n > 0);
+  if (v) {
+    const V = VILLAGERS[v];
+    for (const list of ['loves', 'likes']) { const m = have.filter(i => V[list].includes(sh[i].id)); if (m.length) return { slot:m[(Math.random() * m.length) | 0] }; }
+    if (Math.random() < SHOP_ASK_P) {
+      const w = V.loves.concat(V.likes).filter(id => (S.inv[id] || 0) > 0 && shelfOk(id) && !sh.some(s => s.id === id && s.n > 0));
+      if (w.length) return { ask:w[(Math.random() * w.length) | 0] };
+    }
+  }
+  return have.length ? { slot:have[(Math.random() * have.length) | 0] } : null;
+}
+function shopSpawn() {
+  const v = pickShopper(), w = shopWant(v), st = shopState(), d = shopDay();
+  if (v) st.came[v] = dayKey();
+  const c = { v, col:STRANGER_COLS[(Math.random() * STRANGER_COLS.length) | 0], x:SHOP_DOOR[0], y:SHOP_DOOR[1], path:[], st:'in', wait:0, n:0, id:null, line:'', lineT:0 };
+  const side = Math.random() < .5 ? 2 : 6;
+  if (!w) { c.path = toAisle(side, 6).concat([[side, 11], [4, 11], SHOP_DOOR.slice()]); c.st = 'out'; c.say = pickLine(SHOP_LINES.none); c.sayAt = 2.5; }
+  else if (w.ask) { const q = shopQSpot(); if (q < 0) return; c.ask = true; c.id = w.ask; c.n = 1; c.price = shopPrice(w.ask, 'fair'); c.tier = 'fair'; c.q = q; c.path = toAisle(side, 4).concat([SHOP_QSPOTS[q].slice()]); }
+  else { c.slot = w.slot; c.id = st.shelf[w.slot].id; const sd = SHELVES[w.slot].stand; c.path = toAisle(aisle(sd[0]), sd[1]).concat([sd.slice()]); }
+  d.people++; if (v && !d.folk.includes(v)) d.folk.push(v);
+  SV.custs.push(c);
+}
+// At the shelf: take 1 to 3 (or put it back if it's dear), then go and wait at the counter.
+function shopPick(c) {
+  const s = shopState().shelf[c.slot];
+  const leave = say => { c.st = 'out'; c.say = say; c.sayAt = 0; c.path = outRoute(c.x, c.y); };
+  if (!s.id || s.n <= 0 || s.id !== c.id) { leave(pickLine(SHOP_LINES.out)); return; }
+  if (s.p === 'dear' && Math.random() < DEAR_P) { leave(pickLine(SHOP_LINES.dear)); return; }
+  const q = shopQSpot(); if (q < 0) { c.wait = 1; return; } // the counter's full: keep browsing a moment
+  let n = 1 + (Math.random() < .5 ? 1 : 0) + (Math.random() < .2 ? 1 : 0);
+  if (POTIONS[c.id] || (ITEMS[c.id] && ITEMS[c.id].dish) || itemValue(c.id) >= 150) n = Math.min(n, 2);
+  n = Math.min(n, s.n); s.n -= n;
+  c.n = n; c.price = shopPrice(c.id, s.p); c.tier = s.p; c.q = q; c.st = 'in'; c.path = [[aisle(c.x), c.y], [aisle(c.x), 4], SHOP_QSPOTS[q].slice()];
+}
+// She serves someone waiting at the counter. Villagers tip for things they love and get fonder of her;
+// buying a loved or liked thing fills in her gift notebook.
+function shopServe(c, quiet) {
+  if (!c || c.st !== 'wait') return false;
+  const st = shopState(), d = shopDay();
+  let coins = c.price * c.n, say;
+  if (c.ask) {
+    if ((S.inv[c.id] || 0) < 1) { c.st = 'out'; c.path = outRoute(c.x, 4); if (!quiet) shopSay(c, pickLine(SHOP_LINES.out)); return false; }
+    S.inv[c.id]--;
+  }
+  if (c.v) {
+    const V = VILLAGERS[c.v], love = V.loves.includes(c.id), like = !love && V.likes.includes(c.id);
+    const tip = love ? Math.round(coins * SHOP_TIP_LOVE) : like ? Math.round(coins * SHOP_TIP_LIKE) : 0;
+    coins += tip;
+    addFr(c.v, (love ? 20 : like ? 12 : 6) + (c.tier === 'kind' ? 6 : 0));
+    applyGifts(c.v, SV.gifts);
+    if ((love || like) && !(S.known[c.v] || {})[c.id]) { (S.known[c.v] = S.known[c.v] || {})[c.id] = love ? 'love' : 'like'; SV.learned.push(`${V.name} ${love ? 'loves' : 'likes'} ${itemName(c.id)}. It's in your gift notebook now.`); }
+    say = pickLine(love ? SHOP_LINES.love : like ? SHOP_LINES.like : SHOP_LINES.thanks);
+  } else say = pickLine(SHOP_LINES.stranger);
+  earn(coins);
+  d.coins += coins; d.sold += c.n; st.total += coins; st.sold += c.n; st.served++;
+  c.st = 'out'; c.path = outRoute(c.x, 4);
+  if (!quiet) { SND.coin(); floatText(c.x, c.y - .4, `+${fmt(coins)}`, '#f2b84b'); shopSay(c, say); updateHUD(); }
+  return true;
+}
+function shopSay(c, line) { toast(`${c.v ? VILLAGERS[c.v].name : 'A traveller'}: "${line}"`, 3200); }
+// Closing: anyone waiting is served on the way out, everyone browsing puts things back and goes.
+function shopCloseUp(quiet) {
+  if (!SV || !SV.open) return null;
+  const st = shopState(), d = shopDay();
+  for (const c of SV.custs) {
+    if (c.st === 'wait') shopServe(c, true);
+    else if (c.st === 'in' && c.q !== undefined && !c.ask && c.n) { c.st = 'wait'; shopServe(c, true); }
+    else if (c.st !== 'out' && c.n && !c.ask && c.slot !== undefined) { const s = st.shelf[c.slot]; if (s.id === c.id) s.n += c.n; }
+  }
+  SV.open = false; SV.custs = SV.custs.filter(c => c.st === 'out');
+  st.days = (st.days || 0) + (d.counted ? 0 : 1); d.counted = true;
+  if (d.coins > (st.best || 0)) st.best = d.coins;
+  const sum = { coins:d.coins, sold:d.sold, people:d.people, folk:d.folk.slice(), gifts:SV.gifts.splice(0), learned:SV.learned.splice(0) };
+  checkStars(); updateHUD(); save();
+  if (!quiet) openSheet('shopday', sum);
+  return sum;
+}
+// Each frame while she's in the shop: customers arrive (by the game clock), walk, browse and leave.
+function shopTick(dt) {
+  if (!SV) return;
+  if (SV.open && S.time >= SV.nextAt && S.time < SHOP_CLOSE && activeCusts().length < SHOP_BUSY) {
+    shopSpawn(); SV.nextAt = S.time + SHOP_GAP * (S.rain ? 1.25 : 1) * (.6 + Math.random() * .8);
+  }
+  for (const c of SV.custs) {
+    if (c.sayAt !== undefined && c.say) { c.sayAt -= dt; if (c.sayAt <= 0) { shopSay(c, c.say); c.say = ''; } }
+    if (c.path.length) {
+      const [tx, ty] = c.path[0], dx = tx - c.x, dy = ty - c.y, dist = Math.hypot(dx, dy), step = SHOP_WALK * dt;
+      if (Math.abs(dx) > .01) c.dir = dx > 0 ? 1 : -1;
+      if (dist <= step) { c.x = tx; c.y = ty; c.path.shift(); } else { c.x += dx / dist * step; c.y += dy / dist * step; }
+      c.walk = 1;
+      if (!c.path.length) {
+        if (c.st === 'out') c.gone = true;
+        else if (c.q !== undefined && (c.n || c.ask)) c.st = 'wait';
+        else { c.st = 'browse'; c.wait = 1.1; }
+      }
+      continue;
+    }
+    c.walk = 0;
+    if (c.st === 'browse') { c.wait -= dt; if (c.wait <= 0) shopPick(c); }
+  }
+  SV.custs = SV.custs.filter(c => !c.gone);
+  if (SV.open && S.time >= SHOP_CLOSE && !activeCusts().length) { toast('Six o\'clock. Time to close up.', 3000); shopCloseUp(); }
+}
+// At bedtime (or a faint) with the shop still open: close up quietly, and the morning list says how it went.
+function shopEndDay(lines) {
+  const sum = shopCloseUp(true);
+  if (sum && sum.coins && lines) lines.push({ t:`You closed up the shop on your way home: ${sum.people} customer${sum.people === 1 ? '' : 's'}, ${fmt(sum.coins)} coins.`, c:'gift' });
+  SV = null;
+}
+
+// ---- scenes ----
+function enterRow(place) {
+  S.scene = 'row'; witch.x = ROW_EXIT[0]; witch.y = ROW_EXIT[1] - .01; cat.x = 4.4; cat.y = 12.6; cat.trail = []; queue = [];
+  if (!S.rowSeen) { S.rowSeen = true; toast('Old Market Row. Your aunt\'s shop is at the top. The way back to the square is at the bottom.', 5600); }
+  if (place) queue.push({ c:RB.shop.stand[0], r:RB.shop.stand[1], kind:'visit', b:'rowplace', place });
+}
+function leaveRow(seek) {
+  enterVillage(null, null, ROW_IN);
+  if (seek) seekVillager(seek);
+}
+function enterShop() {
+  S.scene = 'shop'; witch.x = SHOP_DOOR[0]; witch.y = SHOP_DOOR[1] - .01; witch.dir = 1; cat.x = 4.6; cat.y = 12.4; cat.trail = []; queue = [];
+  shopState();
+  if (!SV) SV = { open:false, custs:[], nextAt:0, gifts:[], learned:[] };
+  if (!S.shopSeen) { S.shopSeen = true; toast('Your shop! Tap a shelf to stock it, then tap the ledger on the counter to open up.', 6000); }
+}
+function leaveShop() {
+  const sum = shopCloseUp(true);
+  SV = null;
+  S.scene = 'row'; witch.x = RB.shop.stand[0]; witch.y = RB.shop.stand[1]; cat.x = 4.4; cat.y = 3.6; cat.trail = []; queue = [];
+  if (sum && (sum.people || sum.coins)) openSheet('shopday', sum);
+}
+// Walking around inside: the counter is in the way, so she goes round its open end (column 7).
+function shopGo(c, r, visit) {
+  const back = y => y <= 1.5, here = queue.length ? queue[queue.length - 1] : { c:witch.x, r:witch.y };
+  if (back(here.r) !== back(r)) { const a = back(here.r) ? [SHOP_GAPC, 1] : [SHOP_GAPC, 3], b = back(here.r) ? [SHOP_GAPC, 3] : [SHOP_GAPC, 1]; queue.push({ c:a[0], r:a[1], kind:'walk' }, { c:b[0], r:b[1], kind:'walk' }); }
+  queue.push(Object.assign({ c, r, kind:visit ? 'visit' : 'walk' }, visit || {}));
+}
+const shelfAt = (c, r) => SHELVES.findIndex(s => s.c === c && (r === s.r || r === s.r + 1));
+// The customer under a tap: their feet tile or the tile above it (their head), nearest first.
+function shopperAt(c, r, any) {
+  if (!SV) return null;
+  const hit = SV.custs.filter(z => z.st !== 'out' && (any || z.st === 'wait')).map(z => ({ z, d:Math.min(Math.hypot(z.x - c, z.y - r), Math.hypot(z.x - c, z.y - 1 - r)) })).filter(o => o.d < .75).sort((a, b) => a.d - b.d);
+  return hit.length ? hit[0].z : null;
+}
+function enqueueShop(t, fromDrag) {
+  if (fromDrag) return;
+  const cu = shopperAt(t.c, t.r);
+  if (cu) { if (Math.hypot(witch.x - SHOP_ME[0], witch.y - SHOP_ME[1]) < .2 && !queue.length) shopServe(cu); else { queue = []; shopGo(SHOP_ME[0], SHOP_ME[1], { b:'serve', cust:cu }); } return; }
+  const busy = shopperAt(t.c, t.r, true);
+  if (busy) { toast(`${busy.v ? VILLAGERS[busy.v].name : 'The traveller'} is still ${busy.st === 'browse' ? 'choosing' : 'on the way'}. Tap them when they're waiting at the counter.`, 2600); return; }
+  if (t.r === 2 && t.c >= 2 && t.c <= 6) { queue = []; if (Math.hypot(witch.x - SHOP_ME[0], witch.y - SHOP_ME[1]) < .2) openSheet('shop'); else shopGo(SHOP_ME[0], SHOP_ME[1], { b:'ledger' }); return; }
+  // behind the counter while the shop's open, a tap in front of it (where customers wait) doesn't send her round
+  if (shopIsOpen() && witch.y <= 1.5 && t.r >= 3 && t.r <= 4 && t.c >= 2 && t.c <= 6) return;
+  const si = shelfAt(t.c, t.r);
+  if (si >= 0) { queue = []; const s = SHELVES[si]; shopGo(s.stand[0], s.stand[1], { b:'shelf', i:si }); return; }
+  if (t.r === SHOP_DOOR[1] && t.c >= 3 && t.c <= 5) { queue = []; shopGo(SHOP_DOOR[0], SHOP_DOOR[1], { b:'shopout' }); return; }
+  if (t.r === 2) return;
+  queue = []; shopGo(t.c, t.r, null);
+}
+function enqueueRow(t, fromDrag) {
+  if (fromDrag) return;
+  if (t.r === ROW_EXIT[1] && t.c >= 3 && t.c <= 5) { queue.push({ c:ROW_EXIT[0], r:ROW_EXIT[1], kind:'visit', b:'rowexit' }); return; }
+  for (const k in RB) {
+    const b = RB[k];
+    if (t.c >= b.c && t.c < b.c + b.w && t.r >= b.r && t.r < b.r + b.h) { queue.push({ c:b.stand[0], r:b.stand[1], kind:'visit', b:'rowb', id:k }); return; }
+  }
+  queue.push({ c:t.c, r:t.r, kind:'walk' });
+}
+// The visits (from visit()).
+function rowVisit(k, q) {
+  if (k === 'torow') { enterRow(q.place); return true; }
+  if (k === 'rowexit') { leaveRow(q.seek); return true; }
+  if (k === 'rowplace' || (k === 'rowb' && q.id === 'shop')) { if (shopReady()) enterShop(); else openSheet('place', { p:'shopfront' }); return true; }
+  if (k === 'rowb') { toast(q.id === 'fountain' ? (S.season === 3 ? 'The fountain has frozen into a little ice sculpture of a fish. Someone has given it a scarf.' : 'An old stone fountain. Someone has thrown a button in for luck.') : ROW_FRONTS[q.id], 4800); return true; }
+  if (k === 'shopout') { leaveShop(); return true; }
+  if (k === 'ledger') { openSheet('shop'); return true; }
+  if (k === 'shelf') { openSheet('shelf', { i:q.i, p:'s' + q.i }); return true; }
+  if (k === 'serve') { if (q.cust && q.cust.st === 'wait') shopServe(q.cust); return true; }
+  return false;
+}
+// Walk her to a place on the row, from wherever she is.
+function seekRow(p) {
+  if (S.scene === 'row') { queue.push({ c:RB.shop.stand[0], r:RB.shop.stand[1], kind:'visit', b:'rowplace', place:p }); return; }
+  if (S.scene === 'village') { queue.push({ c:ROW_IN[0], r:ROW_IN[1], kind:'visit', b:'torow', place:p }); return; }
+  if (S.scene === 'farm') queue.push({ c:BUILD.gate.stand[0], r:BUILD.gate.stand[1], kind:'visit', b:'tovillage', place:p });
+}
+
+// ---- drawing: the row ----
+function cobble(g, x, y, c, r, light, dark, base) {
+  const u = T / 16; R(g, x, y, T, T, base);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) R(g, x + i * 4 * u + (j % 2) * 2 * u + .5 * u, y + j * 4 * u + .5 * u, 3.2 * u, 3.2 * u, hash(c * 4 + i, r * 4 + j, 17) > .5 ? light : dark);
+}
+// The way in from the village: a little arch at the right end of the lower path, hung with a painted sign.
+function drawRowArch(g, season) {
+  const u = T / 16, x = ox + ROW_IN[0] * T, y = oy + ROW_IN[1] * T;
+  R(g, x + 2 * u, y - 6 * u, 2 * u, T + 5 * u, '#5a3d26'); R(g, x + T - 3 * u, y - 6 * u, 2 * u, T + 5 * u, '#5a3d26');
+  g.strokeStyle = season === 3 ? '#e9eef2' : '#6a4a6a'; g.lineWidth = 2 * u; g.beginPath(); g.arc(x + T / 2 - .5 * u, y - 5 * u, 6 * u, Math.PI, 0); g.stroke();
+  for (const [dx, dy] of [[-5, 0], [-2.5, -4.5], [2, -5], [5, -1]]) circ(g, x + T / 2 + dx * u, y - 5 * u + dy * u, 1.3 * u, season === 3 ? '#ffffff' : ['#ef9aac', '#f2d36b', '#e07a3a', '#cdbbff'][season]);
+  R(g, x + 3 * u, y - u, T - 7 * u, 4.5 * u, '#c9a675'); R(g, x + 4 * u, y + .5 * u, T - 9 * u, .6 * u, '#5a3d26'); R(g, x + 4 * u, y + 2 * u, T - 11 * u, .6 * u, '#5a3d26');
+}
+let RWINS = [];
+function buildRow(g, pal, season) {
+  const u = T / 16, snow = season === 3;
+  R(g, 0, 0, W, H, pal.forest);
+  for (let i = 0; i < 240; i++) {
+    const x = hash(i, 21, 9) * W, y = hash(i, 22, 9) * H;
+    if (x > ox - T * .3 && x < ox + COLS * T + T * .3 && y > oy - T * .2 && y < oy + ROWS * T + T * 1.2) continue;
+    tree(g, x, y + T, T * (1 + hash(i, 23, 9) * .6), hash(i, 24, 9), pal, season);
+  }
+  const L = snow ? '#d8d4cc' : '#b0a494', D = snow ? '#bcb8b0' : '#958877', B = snow ? '#c8c4bc' : '#a2968a';
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const x = ox + c * T, y = oy + r * T;
+    if (r >= 3 && c >= 2 && c <= 6) cobble(g, x, y, c, r, L, D, B);
+    else if (r >= 3) { R(g, x, y, T, T, snow ? '#e4e0d8' : '#c2b6a2'); R(g, x, y + T - u, T, u, snow ? '#cfcac0' : '#a89a84'); R(g, x + T - u, y, u, T, snow ? '#cfcac0' : '#a89a84'); }
+    else { R(g, x, y, T, T, pal.g[(c + r) % 2]); for (let i = 0; i < 5; i++) R(g, x + hash(c, r, i + 30) * (T - u), y + hash(c, r, i + 40) * (T - 2 * u), u, 2 * u, i % 3 ? pal.bl[0] : pal.bl[1]); }
+  }
+  // the gardens either side of the shop
+  for (const [c, r] of [[0, 1], [8, 1]]) tree(g, ox + (c + .5) * T, oy + (r + 1.2) * T, T * 1.05, hash(c, r, 61), pal, season);
+  for (const c of [0, 1, 7, 8]) if (pal.fl.length) for (let i = 0; i < 3; i++) circ(g, ox + (c + .2 + hash(c, i, 66) * .6) * T, oy + (2.3 + hash(c, i, 67) * .5) * T, u * 1.2, pal.fl[(hash(c, i, 68) * pal.fl.length) | 0]);
+  RWINS = [];
+  const bx = k => ox + RB[k].c * T, by = k => oy + RB[k].r * T, bw = k => RB[k].w * T, bh = k => RB[k].h * T;
+  // the four shut shopfronts
+  const fronts = { frontA:['#c9b28a', '#6a4a3a'], frontB:['#d8c0a0', '#8a5a3a'], frontC:['#b8a8c8', '#5a4a6a'], frontD:['#c0b8a0', '#4a5a6a'] };
+  for (const k in fronts) {
+    const wins = vHouse(g, bx(k), by(k), bw(k), bh(k), fronts[k][0], fronts[k][1], season, { wins:[.28, .72], roofH:.42 });
+    for (const [wx, wy, ww, wh] of wins) { R(g, wx, wy, ww, wh, '#4a4048'); for (const f of [.25, .7]) R(g, wx - u, wy + wh * f - .7 * u, ww + 2 * u, 1.4 * u, '#8a6a48'); }
+    const dx = bx(k) + bw(k) / 2; R(g, dx - 3 * u, by(k) + bh(k) - 9 * u, 6 * u, 1.3 * u, '#8a6a48'); R(g, dx - 3 * u, by(k) + bh(k) - 5 * u, 6 * u, 1.3 * u, '#8a6a48');
+  }
+  drawRowShop(g, season);
+  // the fountain
+  const fx = ox + (RB.fountain.c + .5) * T, fy = oy + (RB.fountain.r + .6) * T;
+  g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(fx, fy + 4 * u, 8 * u, 3 * u, 0, 0, 7); g.fill();
+  g.fillStyle = '#8b8273'; g.beginPath(); g.ellipse(fx, fy + u, 7.5 * u, 4 * u, 0, 0, 7); g.fill();
+  g.fillStyle = snow ? '#dceaf2' : '#4a7a9a'; g.beginPath(); g.ellipse(fx, fy, 5.8 * u, 2.6 * u, 0, 0, 7); g.fill();
+  R(g, fx - u, fy - 7 * u, 2 * u, 7 * u, '#9a9284'); circ(g, fx, fy - 7.5 * u, 2 * u, '#a8a092');
+  // lamp posts and benches along the street
+  for (const [c, r] of [[2, 3.2], [7, 3.2], [2, 7.2], [7, 7.2], [2, 11.2], [7, 11.2]]) {
+    const lx = ox + c * T, ly = oy + r * T; R(g, lx - .7 * u, ly, 1.4 * u, 12 * u, '#3a3a42'); R(g, lx - 2 * u, ly - 3 * u, 4 * u, 3.4 * u, '#2e2e36'); R(g, lx - 1.3 * u, ly - 2.3 * u, 2.6 * u, 2 * u, '#f2d36b');
+    RWINS.push([lx - 1.3 * u, ly - 2.3 * u, 2.6 * u, 2 * u, 'lamp']);
+  }
+  for (const [c, r] of [[1, 7], [7, 11]]) { const x = ox + c * T + 2 * u, y = oy + r * T + 6 * u; R(g, x, y, T - 4 * u, 2.2 * u, '#8a6440'); R(g, x, y + 3.5 * u, T - 4 * u, 1.6 * u, '#7a5638'); R(g, x + u, y + 2 * u, 1.4 * u, 6 * u, '#5a3d26'); R(g, x + T - 6.4 * u, y + 2 * u, 1.4 * u, 6 * u, '#5a3d26'); }
+  // signpost back to the square
+  const ex = ox + ROW_EXIT[0] * T, ey = oy + ROW_EXIT[1] * T;
+  R(g, ex + 13 * u, ey + 4 * u, 1.5 * u, 10 * u, '#5a3d26'); R(g, ex + 9 * u, ey + 3 * u, 8 * u, 4 * u, '#c9a675');
+  g.fillStyle = '#5a3d26'; g.beginPath(); g.moveTo(ex + 11 * u, ey + 5 * u); g.lineTo(ex + 14.5 * u, ey + 3.8 * u); g.lineTo(ex + 14.5 * u, ey + 6.2 * u); g.closePath(); g.fill();
+}
+// Bramble's shop: boarded and grey until the story's done, then bright, with its gold sign and window boxes.
+function drawRowShop(g, season) {
+  const u = T / 16, b = RB.shop, x = ox + b.c * T, y = oy + b.r * T, w = b.w * T, h = b.h * T, ok = shopReady();
+  const wins = vHouse(g, x, y, w, h, ok ? '#e8d8b8' : '#a8a092', ok ? '#5a3a6c' : '#5a5260', season, { wins:[.2, .8], door:ok ? '#3f6a4a' : '#4a4038', chimney:true, roofH:.4 });
+  // the sign board across the front
+  const sw = w * .62, sx = x + (w - sw) / 2, sy = y + h * .41;
+  R(g, sx, sy, sw, 6 * u, ok ? '#3a2a4a' : '#5a5050'); R(g, sx + u * .6, sy + u * .6, sw - 1.2 * u, 4.8 * u, ok ? '#4a3460' : '#6a6060');
+  g.font = `700 ${Math.max(7, 4.2 * u)}px "IM Fell English SC", Georgia, serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = ok ? '#f2c860' : 'rgba(200,180,120,.45)'; g.fillText('BRAMBLEROOT', x + w / 2, sy + 3.2 * u);
+  if (ok) {
+    for (const [wx, wy, ww, wh] of wins) {
+      RWINS.push([wx, wy, ww, wh]);
+      R(g, wx - 1.5 * u, wy + wh + .5 * u, ww + 3 * u, 2.2 * u, '#7a5638');
+      for (let i = 0; i < 4; i++) circ(g, wx - .5 * u + i * (ww + u) / 3, wy + wh, 1.3 * u, ['#ef9aac', '#f2d36b', '#cdbbff', '#8fcf6a'][(i + season) % 4]);
+    }
+  } else {
+    for (const [wx, wy, ww, wh] of wins) { R(g, wx, wy, ww, wh, '#5a5458'); for (const f of [.3, .72]) R(g, wx - u, wy + wh * f - .7 * u, ww + 2 * u, 1.4 * u, '#7a6450'); }
+    const dx = x + w / 2; g.save(); g.translate(dx, y + h - 6 * u); g.rotate(-.18); R(g, -5 * u, -.7 * u, 10 * u, 1.4 * u, '#7a6450'); g.restore();
+    g.save(); g.translate(dx, y + h - 9 * u); g.rotate(.14); R(g, -5 * u, -.7 * u, 10 * u, 1.4 * u, '#7a6450'); g.restore();
+  }
+}
+function drawRowDynamic() {
+  const u = T / 16, b = RB.shop;
+  if (shopReady()) {
+    // the little card in the door: Open while the shop's open, Closed otherwise
+    const dx = ox + (b.c + b.w / 2) * T, dy = oy + (b.r + b.h) * T - 9 * u, open = shopIsOpen();
+    R(ctx, dx - 4 * u, dy, 8 * u, 3.6 * u, open ? '#f4ead9' : '#c8bfb4');
+    ctx.font = `700 ${Math.max(6, 2.4 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = open ? '#3f6a4a' : '#7a6a6a'; ctx.fillText(open ? 'OPEN' : 'CLOSED', dx, dy + 1.9 * u);
+  } else if (qStep('shop') && qStep('shop').at === 'shopfront') {
+    const bx = ox + (b.c + b.w / 2) * T, by = oy + (b.r + .2) * T - (reduceMotion ? 0 : Math.abs(Math.sin(clock * 3)) * u);
+    circ(ctx, bx, by, 4 * u, '#f2b84b'); ctx.fillStyle = '#2a1d36'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.max(10, 6 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.fillText('!', bx, by + .3 * u);
+  }
+}
+function rowGlows(glow, k) { for (const [x, y, w, h, kind] of RWINS) glow(x + w / 2, y + h / 2, T * (kind === 'lamp' ? 1.1 : .9), kind === 'lamp' ? '255,220,140' : '255,190,90', (kind === 'lamp' ? .55 : .42) * k); }
+function drawRowWindows(night) { if (night <= .2) return; for (const [x, y, w, h, kind] of RWINS) if (!kind) R(ctx, x, y, w, h, '#ffcf6b'); }
+
+// ---- drawing: inside the shop ----
+function buildShop(g, season) {
+  const u = T / 16;
+  R(g, 0, 0, W, H, '#1e1622');
+  // floorboards
+  for (let r = 1; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const x = ox + c * T, y = oy + r * T;
+    R(g, x, y, T, T, (c + r) % 2 ? '#9a7450' : '#94704c');
+    for (let k = 0; k < 4; k++) R(g, x, y + k * 4 * u, T, .5 * u, '#7a5638');
+    R(g, x + ((r * 7 + c * 3) % 4) * 4 * u, y, .5 * u, T, '#7a5638');
+  }
+  // the back wall: panelling, the window, Bramble's portrait, a clock
+  R(g, ox, oy - T * .4, COLS * T, T * 1.4, '#6a4a5a'); R(g, ox, oy + T * .6, COLS * T, T * .4, '#5a3a4a'); R(g, ox, oy + T - u, COLS * T, u, '#3a2430');
+  for (let c = 0; c <= COLS; c++) R(g, ox + c * T - .4 * u, oy - T * .4, .8 * u, T * 1.4, '#5a3a4a');
+  const wx = ox + 6 * T + 2 * u, wy = oy - T * .25; R(g, wx, wy, 2 * T - 4 * u, T * .75, '#3a2430'); R(g, wx + u, wy + u, 2 * T - 6 * u, T * .75 - 2 * u, ['#bfe0f2', '#9fd0f0', '#f2c890', '#d8e8f2'][season]);
+  R(g, wx + T - 2.5 * u, wy, u, T * .75, '#3a2430'); for (let i = 0; i < 3; i++) circ(g, wx + (4 + i * 8) * u, wy + T * .72, 1.4 * u, ['#ef9aac', '#f2d36b', '#8fcf6a'][i]);
+  const px = ox + .5 * T, py = oy - T * .2; R(g, px, py, T * .9, T * .7, '#c8a24a'); R(g, px + u, py + u, T * .9 - 2 * u, T * .7 - 2 * u, '#4a3a5a');
+  circ(g, px + T * .45, py + T * .3, 3 * u, '#e8c8a8'); R(g, px + T * .45 - 3 * u, py + T * .45, 6 * u, 3.5 * u, '#3f6a4a'); g.fillStyle = '#2a1d36'; g.beginPath(); g.moveTo(px + T * .45 - 5 * u, py + T * .22); g.lineTo(px + T * .45, py - .5 * u); g.lineTo(px + T * .45 + 5 * u, py + T * .22); g.closePath(); g.fill();
+  const cx = ox + 2.5 * T, cy = oy + T * .05; circ(g, cx, cy, 4 * u, '#c8a24a'); circ(g, cx, cy, 3.2 * u, '#f4ead9'); R(g, cx - .3 * u, cy - 2.6 * u, .6 * u, 2.6 * u, '#2a1d36'); R(g, cx, cy - .3 * u, 2 * u, .6 * u, '#2a1d36');
+  // side walls between the shelves
+  for (const c of [0, 8]) for (let r = 1; r < ROWS - 1; r++) { const x = ox + c * T + (c ? T - 2 * u : 0); R(g, x, oy + r * T, 2 * u, T, '#5a3a4a'); }
+  // the shelves (empty frames: the stock is drawn on top each frame)
+  for (const s of SHELVES) {
+    const x = ox + s.c * T + (s.c ? 2 * u : 2 * u), y = oy + s.r * T + u, w = T - 4 * u, h = 2 * T - 2 * u;
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + (s.c ? -u : u), y + h - u, w, 2 * u);
+    R(g, x, y, w, h, '#6a4a2c'); R(g, x + u, y + u, w - 2 * u, h - 2 * u, '#5a3d26');
+    for (let k = 1; k <= 3; k++) R(g, x, y + k * h / 4 - u, w, 1.6 * u, '#8a6440');
+  }
+  // the rug, a plant in each corner, a cat basket behind the counter
+  g.fillStyle = '#7a3a4a'; g.beginPath(); g.ellipse(ox + 4.5 * T, oy + 8 * T, 1.9 * T, 1.5 * T, 0, 0, 7); g.fill();
+  g.fillStyle = '#9a4a5a'; g.beginPath(); g.ellipse(ox + 4.5 * T, oy + 8 * T, 1.75 * T, 1.36 * T, 0, 0, 7); g.fill();
+  g.strokeStyle = '#c8a24a'; g.lineWidth = u; g.beginPath(); g.ellipse(ox + 4.5 * T, oy + 8 * T, 1.4 * T, 1.05 * T, 0, 0, 7); g.stroke();
+  { // a little round table in the middle with a jug of flowers
+    const tx = ox + 4.5 * T, ty = oy + 7.7 * T;
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(tx, ty + 9 * u, 8 * u, 2.5 * u, 0, 0, 7); g.fill();
+    R(g, tx - u, ty, 2 * u, 9 * u, '#5a3d26'); g.fillStyle = '#8a6440'; g.beginPath(); g.ellipse(tx, ty, 9 * u, 3.5 * u, 0, 0, 7); g.fill();
+    g.fillStyle = '#a57a4f'; g.beginPath(); g.ellipse(tx, ty - .6 * u, 8 * u, 2.6 * u, 0, 0, 7); g.fill();
+    R(g, tx - 2 * u, ty - 6 * u, 4 * u, 5 * u, '#5a7a9a'); for (const [dx, dy, c] of [[-2.5, -8, '#ef9aac'], [0, -9.5, '#f2d36b'], [2.5, -8, '#cdbbff'], [-1, -7, '#8fcf6a']]) circ(g, tx + dx * u, ty + dy * u, 1.6 * u, c);
+  }
+  for (let i = 0; i < 4; i++) { // herbs drying on a string along the back wall
+    const hx = ox + (3.6 + i * .5) * T, hy = oy - T * .3;
+    R(g, hx - .3 * u, hy, .6 * u, 3 * u, '#7a5638'); g.fillStyle = ['#7fd39a', '#cdbbff', '#8a9a5a', '#e0a0b8'][i]; g.beginPath(); g.moveTo(hx - 2.2 * u, hy + 3 * u); g.lineTo(hx + 2.2 * u, hy + 3 * u); g.lineTo(hx, hy + 9 * u); g.closePath(); g.fill();
+  }
+  R(g, ox + 3.4 * T, oy - T * .3, 2.3 * T, .5 * u, '#c9a675');
+  for (const [c, r] of [[1, 11], [7, 11]]) { const x = ox + c * T + 4 * u, y = oy + r * T + 6 * u; R(g, x, y + 4 * u, 8 * u, 6 * u, '#a85a3a'); circ(g, x + 4 * u, y + u, 5 * u, '#4a8a4a'); circ(g, x + u, y + 3 * u, 3 * u, '#5a9a5a'); circ(g, x + 7 * u, y + 2 * u, 3 * u, '#3f7a3f'); }
+  { const x = ox + 1 * T + 2 * u, y = oy + T + 6 * u; g.fillStyle = '#8a6440'; g.beginPath(); g.ellipse(x + 6 * u, y + 5 * u, 6 * u, 3.5 * u, 0, 0, 7); g.fill(); g.fillStyle = '#c87a8a'; g.beginPath(); g.ellipse(x + 6 * u, y + 4.5 * u, 4.5 * u, 2.2 * u, 0, 0, 7); g.fill(); }
+  // the counter: a long wooden top, a panelled front, brass scales at one end and the ledger in the middle
+  const kx = ox + 2 * T, ky = oy + 2 * T, kw = 5 * T;
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(kx + u, ky + T - u, kw, 2 * u);
+  R(g, kx, ky + 4 * u, kw, T - 4 * u, '#6a4a2c'); for (let i = 0; i < 5; i++) R(g, kx + i * T + 2 * u, ky + 7 * u, T - 4 * u, T - 10 * u, '#7a5638');
+  R(g, kx - u, ky + u, kw + 2 * u, 4 * u, '#a57a4f'); R(g, kx - u, ky + 4.5 * u, kw + 2 * u, u, '#5a3d26');
+  const lx = ox + SHOP_LEDGER[0] * T; R(g, lx + 3 * u, ky - .5 * u, 10 * u, 4.5 * u, '#3a6a5a'); R(g, lx + 4 * u, ky, 3.8 * u, 3.5 * u, '#f4ead9'); R(g, lx + 8.2 * u, ky, 3.8 * u, 3.5 * u, '#f4ead9');
+  for (let i = 0; i < 3; i++) { R(g, lx + 4.5 * u, ky + (.6 + i) * u, 2.8 * u, .4 * u, '#8a7a8a'); R(g, lx + 8.7 * u, ky + (.6 + i) * u, 2.8 * u, .4 * u, '#8a7a8a'); }
+  const sx = ox + 5.5 * T; R(g, sx - .5 * u, ky - 5 * u, u, 6 * u, '#c8a24a'); R(g, sx - 5 * u, ky - 5 * u, 10 * u, .8 * u, '#c8a24a');
+  for (const d of [-4, 4]) { g.fillStyle = '#d8b060'; g.beginPath(); g.ellipse(sx + d * u, ky - 1 * u, 2.5 * u, 1 * u, 0, 0, 7); g.fill(); }
+  // the door and its mat
+  const dx = ox + SHOP_DOOR[0] * T, dy = oy + SHOP_DOOR[1] * T;
+  R(g, dx - 2 * u, dy + T - 3 * u, T + 4 * u, 3 * u, '#3a2430'); R(g, dx + u, dy + 6 * u, T - 2 * u, 7 * u, '#5a6a4a'); for (let i = 0; i < 4; i++) R(g, dx + 2 * u, dy + (7 + i * 1.6) * u, T - 4 * u, .5 * u, '#4a5a3a');
+}
+// What's on each shelf: a row of jars (or bundles) in the item's colour, fewer as they sell, and the price tier.
+function drawShopShelves() {
+  const u = T / 16, sh = shopState().shelf;
+  SHELVES.forEach((s, i) => {
+    const it = sh[i], x = ox + s.c * T + 2 * u, y = oy + s.r * T + u, w = T - 4 * u, h = 2 * T - 2 * u;
+    if (!it.id || !it.n) { if (!shopIsOpen()) { ctx.fillStyle = 'rgba(244,234,217,.5)'; ctx.font = `700 ${Math.max(9, 5 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('+', x + w / 2, y + h / 2); } return; }
+    const col = itemCol(it.id);
+    for (let k = 0; k < it.n; k++) {
+      // four to a board, three boards: room for all ten
+      const lvl = 3 - Math.floor(k / 4), slot = k % 4, jx = x + 1.2 * u + slot * (w - 2.4 * u) / 4, jy = y + lvl * h / 4 - 4.4 * u;
+      R(ctx, jx, jy, 2.3 * u, 3.4 * u, col); R(ctx, jx, jy, 2.3 * u, .8 * u, shade(col, -40)); R(ctx, jx + .5 * u, jy + 1.2 * u, .6 * u, 1.4 * u, 'rgba(255,255,255,.45)');
+    }
+    const tag = { kind:'#8fcf6a', fair:'#f4ead9', dear:'#f2b84b' }[it.p || 'fair'];
+    R(ctx, x + w / 2 - 3 * u, y + h - 3.4 * u, 6 * u, 2.6 * u, tag);
+    ctx.fillStyle = '#2a1d36'; ctx.font = `700 ${Math.max(6, 2.2 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(it.n), x + w / 2, y + h - 2.1 * u);
+  });
+}
+function drawShopper(c) {
+  const u = T / 16, px = ox + (c.x + .5) * T, feet = oy + (c.y + .9) * T;
+  const bob = c.walk && !reduceMotion ? Math.abs(Math.sin(clock * 10)) * u : 0;
+  if (c.v) {
+    const L = VILLAGERS[c.v].look, k = L.age === 'kid' ? .85 : 1;
+    ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(px, feet, 5 * u, 1.6 * u, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = L.shirt; ctx.beginPath(); ctx.moveTo(px - 4.5 * u * k, feet - u - bob); ctx.lineTo(px + 4.5 * u * k, feet - u - bob); ctx.lineTo(px + 2.8 * u * k, feet - 9 * u * k - bob); ctx.lineTo(px - 2.8 * u * k, feet - 9 * u * k - bob); ctx.closePath(); ctx.fill();
+    const img = porImage(c.v), s = 12 * u * k;
+    if (img.complete && img.naturalWidth) ctx.drawImage(img, px - s / 2, feet - 9 * u * k - s + u - bob, s, s);
+    else circ(ctx, px, feet - 9 * u * k - s / 2 + u - bob, s / 2, VILLAGERS[c.v].col);
+  } else {
+    // a traveller in a hooded cloak
+    ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(px, feet, 5 * u, 1.6 * u, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = c.col; ctx.beginPath(); ctx.moveTo(px - 5 * u, feet - u - bob); ctx.lineTo(px + 5 * u, feet - u - bob); ctx.lineTo(px + 2.6 * u, feet - 12 * u - bob); ctx.lineTo(px - 2.6 * u, feet - 12 * u - bob); ctx.closePath(); ctx.fill();
+    circ(ctx, px, feet - 14 * u - bob, 4.2 * u, c.col); circ(ctx, px + (c.dir || 1) * .8 * u, feet - 13.6 * u - bob, 2.8 * u, '#e8c8a8');
+    R(ctx, px - 3.5 * u, feet - 6 * u - bob, 7 * u, 1.2 * u, shade(c.col, -30));
+  }
+  if (c.st === 'wait') {
+    // what they've got (or what they're asking for), and how many
+    const bx = px + 6 * u, by = feet - 22 * u - (reduceMotion ? 0 : Math.abs(Math.sin(clock * 3 + c.x)) * u);
+    R(ctx, bx - 5 * u, by - 3.4 * u, 10 * u, 6.8 * u, '#f4ead9'); R(ctx, bx - 1.5 * u, by + 3.4 * u, 3 * u, 1.4 * u, '#f4ead9');
+    circ(ctx, bx - 2 * u, by, 2 * u, itemCol(c.id));
+    ctx.fillStyle = '#2a1d36'; ctx.font = `700 ${Math.max(8, 3.6 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(c.ask ? '?' : `${c.n}`, bx + 2.4 * u, by + .3 * u);
+  }
+}
+function drawShopDynamic() {
+  const u = T / 16;
+  drawShopShelves();
+  if (SV) for (const c of SV.custs.slice().sort((a, b) => a.y - b.y)) drawShopper(c);
+  // the ledger glows when it's time to open up, and there's something on a shelf to sell
+  if (!shopIsOpen() && shopHours()) {
+    const lx = ox + (SHOP_LEDGER[0] + .5) * T, ly = oy + SHOP_LEDGER[1] * T - 4 * u - (reduceMotion ? 0 : Math.abs(Math.sin(clock * 3)) * u);
+    circ(ctx, lx, ly, 3.6 * u, '#f2b84b'); ctx.fillStyle = '#2a1d36'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.max(9, 5.4 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.fillText('!', lx, ly + .3 * u);
+  }
+  // Open / Closed over the door
+  const dx = ox + (SHOP_DOOR[0] + .5) * T, dy = oy + SHOP_DOOR[1] * T + 2 * u, open = shopIsOpen();
+  R(ctx, dx - 5 * u, dy, 10 * u, 3.6 * u, open ? '#f4ead9' : '#c8bfb4');
+  ctx.font = `700 ${Math.max(6, 2.4 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = open ? '#3f6a4a' : '#7a6a6a'; ctx.fillText(open ? 'OPEN' : 'CLOSED', dx, dy + 1.9 * u);
+}
+
+// ---- sheets ----
+function shopSheet(kind, data) {
+  let h = '', title = '';
+  const st = shopState();
+  if (kind === 'shop') {
+    title = 'Brambleroot';
+    const d = shopDay(), open = shopIsOpen();
+    h += `<p class="sub">${open ? `Open until ${fmtTime(SHOP_CLOSE)}. Tap a customer waiting at the counter to serve them.` : shopHours() ? 'Closed. You can open up any time until 6 pm.' : S.time < SHOP_OPEN ? 'Closed. You can open up from 9 am.' : 'Closed for the day. The shop opens from 9 am to 6 pm.'} While the shop is open, the clock keeps going.</p>`;
+    if (d.people || d.coins) h += `<p class="sub">Today so far: ${d.people} customer${d.people === 1 ? '' : 's'}, ${d.sold} thing${d.sold === 1 ? '' : 's'} sold, <b>${fmt(d.coins)}</b> coins.</p>`;
+    if (open) h += `<div class="cta-row"><button class="btn" data-act="shopshut" type="button">Close up</button></div>`;
+    else { const why = !shopHours() ? '' : !shelvesStocked() ? 'Put something on a shelf first.' : ''; h += `<div class="cta-row"><button class="btn" data-act="shopopen" type="button" ${!shopHours() || why ? 'disabled' : ''}>Open up</button></div>${why ? `<p class="sub why">${why}</p>` : ''}`; }
+    h += `<h4 class="sec">Shelves</h4>`;
+    st.shelf.forEach((s, i) => {
+      if (!s.id) { h += row('#6a4a2c', `Shelf ${i + 1}`, 'Empty', `<button class="btn alt" data-act="shelfopen" data-id="${i}" type="button">Stock</button>`); return; }
+      const T0 = PRICE_TIERS[s.p || 'fair'];
+      h += row(itemCol(s.id), `${itemName(s.id)} ×${s.n}`, `${T0.name} · ${shopPrice(s.id, s.p)} each${s.n ? '' : ' · sold out'} · have ${S.inv[s.id] || 0} more`, `<button class="btn alt" data-act="shelfopen" data-id="${i}" type="button">Change</button>`, s.n ? '' : 'dim');
+    });
+    const more = st.shelf.some(s => s.id && s.n < SLOT_MAX && (S.inv[s.id] || 0) > 0);
+    h += `<div class="cta-row"><button class="btn alt" data-act="shoprestock" type="button" ${more ? '' : 'disabled'}>Top up every shelf from your basket</button></div>`;
+    h += `<p class="sub">At a fair price, customers pay a fifth more than the market stall. Villagers head for things they love, tip for them, and grow fonder of you. ${st.days ? `Since you reopened: ${st.days} day${st.days === 1 ? '' : 's'} open, ${fmt(st.total)} coins, best day ${fmt(st.best)}.` : ''}</p>`;
+    h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
+  } else if (kind === 'shelf') {
+    const i = data.i, s = st.shelf[i];
+    title = `Shelf ${i + 1}`;
+    if (s.id) {
+      h += row(itemCol(s.id), `${itemName(s.id)} ×${s.n} of ${SLOT_MAX}`, `${shopPrice(s.id, s.p)} each at this price · the market stall pays ${sellValue(s.id)} · have ${S.inv[s.id] || 0} more`, `<button class="btn alt" data-act="shelfback" data-id="${i}" type="button">Take back</button>${s.n < SLOT_MAX && (S.inv[s.id] || 0) > 0 ? `<button class="btn" data-act="shelfput" data-id="${i}" data-item="${s.id}" type="button">Top up</button>` : ''}`);
+      h += `<h4 class="sec">Price</h4><div class="cta-row">${PRICE_IDS.map(p => `<button class="btn ${s.p === p ? '' : 'alt'}" data-act="shelfprice" data-id="${i}" data-item="${p}" type="button">${PRICE_TIERS[p].name} · ${shopPrice(s.id, p)}</button>`).join('')}</div>`;
+      h += `<p class="sub">${PRICE_TIERS[s.p || 'fair'].name}: ${PRICE_TIERS[s.p || 'fair'].note}.</p>`;
+      const lov = VIDS.filter(v => arrived(v) && (S.known[v] || {})[s.id] === 'love');
+      if (lov.length) h += `<p class="sub">${nameList(lov)} love${lov.length === 1 ? 's' : ''} these, and will tip.</p>`;
+      h += `<p class="sub">To put something else here, take these back first.</p>`;
+    } else {
+      const items = Object.entries(S.inv).filter(([k, n]) => n > 0 && shelfOk(k) && !st.shelf.some(x => x.id === k)).sort((a, b) => sellValue(b[0]) - sellValue(a[0]));
+      h += `<p class="sub">Put out up to ${SLOT_MAX} of one thing. Customers pay more than the market stall, and villagers head for what they love.</p>`;
+      if (!items.length) h += `<p class="sub">Nothing in your basket to put out. Harvest, forage, fish or brew something first.</p>`;
+      for (const [id, n] of items) {
+        const lov = VIDS.filter(v => arrived(v) && (S.known[v] || {})[id] === 'love').length;
+        h += row(itemCol(id), `${itemName(id)} ×${n}`, `${shopPrice(id, 'fair')} each at a fair price · market stall ${sellValue(id)}${lov ? ` · ${lov} friend${lov === 1 ? '' : 's'} love${lov === 1 ? 's' : ''} it` : ''}`, `<button class="btn" data-act="shelfput" data-id="${i}" data-item="${id}" type="button">Put out ${Math.min(n, SLOT_MAX)}</button>`);
+      }
+    }
+    h += `<div class="cta-row"><button class="btn alt" data-act="shopledger" type="button">The ledger</button><button class="btn alt" data-act="close" type="button">Done</button></div>`;
+  } else if (kind === 'shopday') {
+    title = 'Closed up';
+    const sum = data || {};
+    h += `<p class="scene">${sum.people ? `You turn the card to Closed and count the till. ${sum.people} customer${sum.people === 1 ? '' : 's'} today, ${sum.sold} thing${sum.sold === 1 ? '' : 's'} sold.` : 'A quiet day. Nobody came in, but the shop looks lovely.'}</p>`;
+    if (sum.coins) h += `<p class="sub">The till holds <b>${fmt(sum.coins)}</b> coins.</p>`;
+    if (sum.folk && sum.folk.length) h += `<div class="crowd">${sum.folk.map(v => portrait(v, 'happy', 40)).join('')}</div>`;
+    const lines = (sum.learned || []).concat(sum.gifts || []);
+    if (lines.length) h += `<ul class="lines">${lines.map(t => `<li class="gift">${t}</li>`).join('')}</ul>`;
+    h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Good night, shop</button></div>`;
+  }
+  return { h, title };
+}
+// Sheet buttons (from the click handler). Returns true if it handled the act.
+function shopAct(act, b) {
+  const id = b.dataset.id, item = b.dataset.item;
+  if (act === 'shopopen') { if (shopOpenUp()) { closeSheet(); toast('Open! Customers will start coming in. Tap someone at the counter to serve them.', 4200); } else renderSheet('shop'); return true; }
+  if (act === 'shopshut') { closeSheet(); shopCloseUp(); return true; }
+  if (act === 'shopledger') { sheetOpen = 'shop'; renderSheet('shop'); return true; }
+  if (act === 'shelfopen') { sheetOpen = 'shelf'; renderSheet('shelf', { i:+id, p:'s' + id }); return true; }
+  if (act === 'shelfput') { if (shelfPut(+id, item)) SND.place(); renderSheet('shelf', { i:+id, p:'s' + id }); return true; }
+  if (act === 'shelfback') { shelfBack(+id); renderSheet('shelf', { i:+id, p:'s' + id }); return true; }
+  if (act === 'shelfprice') { const s = shopState().shelf[+id]; if (s && PRICE_TIERS[item]) s.p = item; renderSheet('shelf', { i:+id, p:'s' + id }); return true; }
+  if (act === 'shoprestock') { const n = shelfRestock(); if (n) { SND.place(); toast(`Topped up the shelves: ${n} more thing${n === 1 ? '' : 's'} out.`); } renderSheet('shop'); return true; }
+  if (act === 'gorow') { closeSheet(); enterRow(); return true; }
+  return false;
 }
 
 /* ================= the Hollow ================= */
@@ -6475,6 +7075,25 @@ const QUESTS = {
     reward:{ coins:600, fr:{ aldous:120, odile:60 } }, rtext:'600 coins from the town hall.' }
 };
 
+/* ---- the shop story (PLAN-shop.md Part 1): reopening Bramble's old shop on Old Market Row ----
+   Opens from summer of year 1. Its `at` steps happen at 'shopfront', a place on the row (VPLACES.shopfront.scene).
+   Step kind `pay` (new here): pay that many coins to the person you're talking to. */
+QUESTS.shop = { title:'The shop on Old Market Row', host:'odile', cast:['odile', 'rowan', 'mara'], when:() => S.year > 1 || S.season >= 1, unlock:'the summer of your first year',
+  hook:'Odile has found an old key with your aunt\'s handwriting on the tag.',
+  steps:[
+    { v:'odile', btn:'Ask about the key', hint:'Odile has found something of your aunt\'s. She\'s at the school on weekdays, or about the square.',
+      text:`Odile turns a heavy iron key over in her hands. The paper tag says "the shop" in Bramble's terrible spelling. "It was in the school's key box, behind forty years of lost mittens." She smiles. "Your aunt kept a shop, you know. On Old Market Row, off the end of the square. It's been shut since the market moved. Nobody's been in since she..." She presses the key into your palm. "It's yours. Go and look. Take a lantern. And maybe a broom."` },
+    { at:'shopfront', btn:'Unlock the door', hint:'Take the key to Old Market Row: the little arch at the right end of the village\'s lower path. The shop is at the top of the row.',
+      text:`The lock is stiff, then gives all at once. Inside it smells of dust and dried lavender. The shelves have come off the walls, the window is grey with years, and a mouse watches you from the counter, unbothered. But it's all still here: the long counter, the brass scales, and an old ledger open at Bramble's last entry, "Sold the last jar of honey to Fen. He paid in fish. AGAIN." Outside, under the grime, the sign over the door still says BRAMBLEROOT in faded gold. The door won't shut again, though, and the shelves need new planks. Rowan at the smithy could fix the iron. Mara might have wood at the mill.` },
+    { v:'rowan', pay:500, btn:'Pay Rowan · 500 coins', hint:'Ask Rowan to make new hinges, a lock and a shop bell. It\'ll cost 500 coins for the iron. He\'s at the smithy.',
+      text:`Rowan whistles when you describe the hinges. "Rusted through? Course they are. Forty years." He sketches on the back of his hand. "New hinges, a proper lock, and you'll want a bell over the door. Every shop wants a bell." He takes the coins and grins. "I'll have it hung by tomorrow. And I'll make the bell ring in E. Your aunt's rang in E. I fixed it for her when I was twelve. Hammered my thumb."` },
+    { v:'mara', give:{ pick:'crop', n:8 }, btn:'Trade 8 crops for planks', hint:'Mara has old planks in the mill loft for new shelves. She\'ll swap them for 8 crops for the bakehouse. She\'s usually at the mill.',
+      text:`Mara laughs when you ask. "Planks? I've a loft full. My mother kept every board from the old granary, in case." She leads you up a ladder into a cloud of flour. "Bramble bought her bread from my mother, every morning, and paid in herbs. My mother said it was the only fair trade in the valley." She loads the planks onto a barrow. "Pip and Tilly will wheel them over. Very slowly. Stopping for every goat."` },
+    { at:'shopfront', give:{ pick:'forage', n:4 }, btn:'Dress the window and open up', hint:'Back to the shop on Old Market Row, with 4 finds from the Old Wood to dress the window.',
+      text:`Rowan's bell rings in E when you push the door. The new shelves are up, the counter's polished, and you fill the window with flowers and finds from the Wood. When you step back outside, half the village is standing in the row. Odile has brought tea. Fen has brought a fish, "for old times' sake". Mara's bread is still warm. You reach up and turn the little card in the door from Closed to Open, and everyone cheers, and the mouse, who has stayed, watches from the counter as the first customer of forty years walks in.` }
+  ],
+  reward:{ shop:true, fr:{ odile:80, rowan:60, mara:60 } }, rtext:'Brambleroot, your aunt\'s old shop, open again.' };
+
 /* ---- heart quests (PLAN-hearts.md Part 2): one personal story per villager, opening at 8 hearts ----
    They're ordinary QUESTS (id 'h_' + villager, heart:true). questMorning opens at most one a morning, so a save that's
    already full of 8-heart friends gets a new story each day rather than fifteen at once. Each ends with a keepsake
@@ -6861,18 +7480,20 @@ function qBlock(id, v) {
   if (step.floor) return 'This happens in the Hollow.';
   if (step.v) { const vs = v && [].concat(step.v).includes(v) ? [v] : [].concat(step.v); if (!vs.some(canMeet)) return `Find ${vs.length > 1 ? `${nameList(vs).replace(' and ', ' or ')}` : VILLAGERS[vs[0]].name} first.`; }
   if (step.at) {
-    if (S.scene !== 'village') return `Head to ${VPLACES[step.at].name}.`;
+    if (S.scene !== (VPLACES[step.at].scene || 'village')) return `Head to ${VPLACES[step.at].name}.`;
     if (step.after && S.time < step.after) return `Come back after ${fmtTime(step.after)}.`;
     const miss = (step.need || []).filter(v => where(v) !== step.at);
     if (miss.length) return `${nameList(miss)} ${miss.length > 1 ? "aren't" : "isn't"} here right now.`;
   }
   if (step.give && qHave(step.give) < step.give.n) return `You need ${step.give.n} (you have ${qHave(step.give)}).`;
+  if (step.pay && S.coins < step.pay) return `You need ${fmt(step.pay)} coins (you have ${fmt(S.coins)}).`;
   return '';
 }
 function qHint(id) {
   const step = qStep(id); if (!step) return '';
   let h = step.hint;
   if (step.give) h += ` You have ${qHave(step.give)} of ${step.give.n}.`;
+  if (step.pay) h += ` You have ${fmt(S.coins)} coins.`;
   if (step.floor) h += ` Deepest so far: floor ${S.hollowMax || 0}.`;
   return h;
 }
@@ -6887,6 +7508,7 @@ function questReward(Q) {
   if (r.coins) { earn(r.coins); out.push(`${fmt(r.coins)} coins.`); }
   if (r.items) { giveItems(r.items); out.push(Object.entries(r.items).map(([k, n]) => `${n} ${itemName(k)}`).join(' and ') + '.'); }
   if (r.lit) out.push('The lighthouse shines over the river every night now.');
+  if (r.shop) { shopState(); out.push('The shop is yours. Walk in, tap a shelf to stock it, and open up from the ledger on the counter. You can also go straight there from the garden gate.'); }
   if (r.match) { const at = matchWedAt(r.match), M = MATCHES[r.match]; (S.matched = S.matched || {})[r.match] = { wed:at, went:false }; out.push(`${VILLAGERS[M.a].name} and ${VILLAGERS[M.b].name} will be married on ${dateLabel(at)}, at ${VPLACES[M.place].name}. You're invited.`); }
   if (r.memento) { (S.mementos = S.mementos || {})[r.memento] = true; out.push(`A keepsake for your shelf: ${MEMENTOS[r.memento].name}.`); }
   if (r.fr) { const g = []; for (const [v, n] of Object.entries(r.fr)) { addFr(v, n); applyGifts(v, g); } out.push(`${nameList(Object.keys(r.fr))} ${Object.keys(r.fr).length > 1 ? 'are' : 'is'} much fonder of you.`, ...g); }
@@ -6898,6 +7520,7 @@ function questDo(id, v) {
   const Q = QUESTS[id], st = qState(id), step = qStep(id); if (!step || step.floor) return;
   const why = qBlock(id, v); if (why) { toast(why); return; }
   if (step.give) qTake(step.give);
+  if (step.pay) S.coins -= step.pay;
   const who = step.v ? [v && [].concat(step.v).includes(v) ? v : [].concat(step.v).find(canMeet)] : (step.need || []);
   for (const x of who) addFr(x, 20);
   st.s++;
@@ -6938,7 +7561,7 @@ const questsFor = v => QIDS.filter(id => { const s = qStep(id); return s && s.v 
 const questsAt = p => QIDS.filter(id => { const s = qStep(id); return s && s.at === p; });
 // Walk her to a village place (from the farm, through the gate).
 function seekPlace(p) {
-  closeSheet(); const B = VB[p] || (p === 'square' ? VB.well : null); if (!B) return;
+  closeSheet(); if (rowPlace(p)) { seekRow(p); return; } const B = VB[p] || (p === 'square' ? VB.well : null); if (!B) return;
   if (S.scene === 'farm') { queue.push({ c:BUILD.gate.stand[0], r:BUILD.gate.stand[1], kind:'visit', b:'tovillage', place:p }); return; }
   if (S.scene === 'village') queue.push({ c:B.stand[0], r:B.stand[1], kind:'visit', b:'vplace', place:p });
 }
@@ -7307,7 +7930,7 @@ function renderSheet(kind, data) {
         if (st.done) { h += `<article class="card done"><div class="chead"><h4>${Q.title}</h4><span class="stars">Finished</span></div>${crowd}<p class="sub">${Q.rtext}</p></article>`; continue; }
         const step = qStep(id); let loc = '', btn = '';
         if (step.v) for (const v of [].concat(step.v)) { const mb = meetBox(v); loc += `<p class="sub where">${canMeet(v) ? `${VILLAGERS[v].name} is right here.` : `${VILLAGERS[v].name} is ${placeLabel(where(v))}.`}</p>`; if (!btn && !canMeet(v) && mb.seek) btn = `<button class="btn alt" data-act="seek" data-id="${v}" type="button">${mb.seek}</button>`; }
-        if (step.at) { const miss = (step.need || []).filter(v => where(v) !== step.at); loc += `<p class="sub where">${miss.length ? `${nameList(miss)} ${miss.length > 1 ? "aren't" : "isn't"} there right now.` : (step.need ? `${nameList(step.need)} ${step.need.length > 1 ? 'are' : 'is'} there now.` : '')}</p>`; if (S.scene === 'farm' || S.scene === 'village') btn = `<button class="btn alt" data-act="goplace" data-id="${step.at}" type="button">Go to ${VPLACES[step.at].name}</button>`; }
+        if (step.at) { const miss = (step.need || []).filter(v => where(v) !== step.at); loc += `<p class="sub where">${miss.length ? `${nameList(miss)} ${miss.length > 1 ? "aren't" : "isn't"} there right now.` : (step.need ? `${nameList(step.need)} ${step.need.length > 1 ? 'are' : 'is'} there now.` : '')}</p>`; if ((S.scene === 'farm' || S.scene === 'village' || S.scene === 'row') && !(S.scene === (VPLACES[step.at].scene || 'village') && !qBlock(id))) btn = `<button class="btn alt" data-act="goplace" data-id="${step.at}" type="button">Go to ${VPLACES[step.at].name}</button>`; }
         h += `<article class="card quest"><h4>${Q.title}</h4>${crowd}<p class="sub">Step ${st.s + 1} of ${Q.steps.length}. ${qHint(id)}</p>${loc}${btn ? `<div class="cta-row">${btn}</div>` : ''}</article>`;
       }
     } else if (journalTab === 'village') {
@@ -7479,6 +8102,7 @@ function renderSheet(kind, data) {
     h += `<p class="sub">The lane forks just past the gate. Where to?</p>`;
     h += `<button class="vrow" data-act="govillage" type="button"><div class="info"><span class="name">Down to the village</span><span class="meta">${festOn() ? `The ${FEST[S.season].name} is on! Everyone's there` : `${n ? `${n} ${n === 1 ? 'person is' : 'people are'} about right now` : 'Quiet. Everyone is home'}${S.rain ? '. Most are indoors out of the rain' : ''}`}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
     h += `<button class="vrow" data-act="gowood" type="button"><div class="info"><span class="name">Into the Old Wood</span><span class="meta">${finds ? `${finds} find${finds === 1 ? '' : 's'} glinting today` : 'Picked clean for today'}</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+    if (shopReady()) { const d = shopDay(); h += `<button class="vrow" data-act="gorow" type="button"><div class="info"><span class="name">Up to Old Market Row</span><span class="meta">Your shop, Brambleroot${d.coins ? `: ${fmt(d.coins)} coins taken today` : ''}</span></div><span class="chev" aria-hidden="true">›</span></button>`; }
     h += `<button class="btn alt" data-act="close" type="button">Stay in the garden</button>`;
   } else if (kind === 'place') {
     const p = data.p, P = VPLACES[p]; vPlace = p;
@@ -7489,7 +8113,9 @@ function renderSheet(kind, data) {
     h += matchCard(p);
     for (const id of questsAt(p)) h += questCard(id);
     if (p === 'cart') h += cartWares();
-    const here = folkAt(p);
+    if (rowPlace(p)) h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
+    const here = rowPlace(p) ? null : folkAt(p);
+    if (here) {
     if (here.length) h += `<h4 class="sec">Here now</h4>`;
     else h += `<p class="sub">Nobody's here right now.</p>`;
     for (const v of here) h += vRow(v, 'place');
@@ -7498,6 +8124,7 @@ function renderSheet(kind, data) {
     if (later.length) h += `<p class="sub">Later today: ${later.join(', ')}.</p>`;
     if (p === 'square') h += `<button class="btn alt" data-act="calopen" type="button">Read the noticeboard calendar</button>`;
     h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
+    }
   } else if (kind === 'calendar') {
     const si = calSeason, known = arrivedBy;
     title = `${SEASONS[si]} calendar`;
@@ -7630,7 +8257,7 @@ function renderSheet(kind, data) {
   } else if (kind === 'gift') {
     title = 'A gift!';
     h += `<ul class="lines">${data.map(t => `<li class="gift">${t}</li>`).join('')}</ul><div class="cta-row"><button class="btn" data-act="close" type="button">Lovely</button></div>`;
-  }
+  } else if (kind === 'shop' || kind === 'shelf' || kind === 'shopday') { const o = shopSheet(kind, data); h += o.h; title = o.title; }
   const key = kind + '|' + (kind === 'market' ? marketTab : kind === 'journal' ? journalTab : kind === 'cauldron' ? brewTab : '') + '|' + ((data && (data.v || data.p)) || '');
   const keep = key === lastSheetKey ? body.scrollTop : 0;
   $('shTitle').textContent = title; body.innerHTML = h; body.scrollTop = keep; lastSheetKey = key;
@@ -7695,6 +8322,7 @@ function giftName(g) { return { sprinkler:`${g.n} sprinklers`, rod:'a fishing ro
 $('shBody').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const act = b.dataset.act, id = b.dataset.id;
+  if (shopAct(act, b)) return;
   if (act === 'sel') { S.sel = id; closeSheet(); if (id === 'trowel') toast('Tap a plant to dig it up. Pick seeds again to go back to planting.'); }
   else if (act === 'tab') { marketTab = id; renderSheet('market'); }
   else if (act === 'pace') { if (PACES[id]) { S.pace = id; save(); } renderSheet('clock'); return; }
