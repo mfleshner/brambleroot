@@ -55,7 +55,7 @@ Claude's choices (Matt said "you decide"):
 
 ## The parts
 
-### Part 1: Old Market Row and the restoration
+### Part 1: Old Market Row and the restoration (shipped Nov 11, 2026)
 - **The shop story** (`QUESTS.shop`, host Odile, cast Odile, Rowan, Mara), opening from summer of year 1 (or the next morning on a later save):
   1. Odile has found a key in Bramble's handwriting: "the shop". She sends her to Old Market Row.
   2. At the boarded shop: she unlocks it. Dust, fallen shelves, the counter, the old ledger with Bramble's last entry, and the faded BRAMBLEROOT sign.
@@ -68,7 +68,7 @@ Claude's choices (Matt said "you decide"):
 - Story steps at row places work like village places (`VPLACES[p].scene = 'row'`), including the Journal's Go buttons.
 - Tests: `shoptest.js` (headless: the story, shelves, prices, customers, serving, closing, saves, old saves), `shopsim.js` (balance), `shopphone.js` (iPhone 13 and Pixel 7: story to the open shop, stock a shelf, open up, serve by tapping, close, screenshots).
 
-### Part 2: Leaving it open
+### Part 2: Leaving it open (shipped Nov 11, 2026)
 - **Helpers**: Pip (after school, all day on rest days; a small daily wage), then her spouse or a best friend at 10 hearts (all day, a smaller cut). Picked on the ledger.
 - **Idle selling**: with a helper, the shop sells while she's away, at a slower rate and minus the helper's cut. Takings arrive in the evening; a morning note says how it went ("Pip sold 9 things and 40 coins of sweets have gone missing").
 - The shop shown as open on the row with the helper behind the counter; walking in lets her take over.

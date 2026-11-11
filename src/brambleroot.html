@@ -4807,11 +4807,11 @@ function genVisits() {
   S.visitKey = dayKey(); S.visits = [];
   if (isFestDay()) return;
   // 1 to 3 visitors a day from everyone in the valley today; no two share a spot or a standing tile
-  const pool = VIDS.filter(inValley), r = Math.random(), n = r < .35 ? 1 : (r < .8 ? 2 : 3);
+  const hp = helperToday(), pool = VIDS.filter(v => inValley(v) && v !== hp), r = Math.random(), n = r < .35 ? 1 : (r < .8 ? 2 : 3);
   for (let i = pool.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
   const used = new Set(), key = p => p[0] + ',' + p[1];
   // Her spouse is out in the garden most days, from breakfast to supper, on top of the usual visitors.
-  if (S.spouse && VISIT_SPOT[S.spouse] && Math.random() < .8 && !(evNow() && evNow().who.includes(S.spouse))) { const v = S.spouse, sp = VISIT_SPOT[v], st = VISIT_STAND[v]; used.add(key(sp)); used.add(key(st)); S.visits.push({ v, c:sp[0], r:sp[1], from:420, to:1200, spouse:true }); }
+  if (S.spouse && S.spouse !== hp && VISIT_SPOT[S.spouse] && Math.random() < .8 && !(evNow() && evNow().who.includes(S.spouse))) { const v = S.spouse, sp = VISIT_SPOT[v], st = VISIT_STAND[v]; used.add(key(sp)); used.add(key(st)); S.visits.push({ v, c:sp[0], r:sp[1], from:420, to:1200, spouse:true }); }
   const si = pool.indexOf(S.spouse); if (si >= 0) pool.splice(si, 1);
   const ev = evNow(); if (ev) { for (let i = pool.length - 1; i >= 0; i--) if (ev.who.includes(pool[i])) pool.splice(i, 1); }
   for (const v of pool) {
@@ -5039,6 +5039,7 @@ function where(v, t, d, wet) {
   if (V.market && !sp && !(d % 7 === 5 || d === FEST_DAY)) return 'away';
   if (d === S.day && S.evToday) { const e = evNow(); if (e && e.who.includes(v)) { const E = EVENTS[e.id]; if (t >= E.from && t < E.to) return evPlace(E, wet); } }
   { const mw = matchWhere(v, t, d); if (mw) return mw; }
+  { const hw = helperWhere(v, t, d); if (hw) return hw; }
   if (d === S.day) for (const x of S.visits || []) if (x.v === v && t >= x.from && t < x.to) return 'garden';
   if (d === FEST_DAY && t >= FEST_OPEN && t < FEST_CLOSE) return 'fest';
   const sc = SCHED[v], list = (restDay(d) && sc.rest) || sc.day;
@@ -5058,6 +5059,7 @@ function placeLabel(p) {
 function canMeet(v) {
   const p = where(v);
   if (p === 'garden' || p === 'cottage') return S.scene === 'farm';
+  if (rowPlace(p)) return S.scene === 'row' || S.scene === 'shop';
   return !!VPLACES[p] && S.scene === 'village';
 }
 // What the villager page says about where someone is, and how to go and find them.
@@ -5172,7 +5174,7 @@ function vBuildingAt(c, r) {
 // Who's in the village right now, and where they stand. Indoor places hold everyone when it rains.
 function villageFolk() {
   const out = [], by = {};
-  for (const v of VIDS) { const p = where(v); if (VPLACES[p]) (by[p] = by[p] || []).push(v); }
+  for (const v of VIDS) { const p = where(v); if (VPLACES[p] && !rowPlace(p)) (by[p] = by[p] || []).push(v); }
   for (const p in by) {
     if (p === 'fest') { const fs = festSpots(); by[p].forEach(v => { const q = fs[v]; out.push(q ? { v, p, c:q[0], r:q[1], wc:q[2], wr:q[3] } : { v, p, inside:true }); }); continue; }
     const spots = S.rain && VPLACES[p].indoor ? [] : VSPOTS[p];
@@ -5467,8 +5469,10 @@ const shopIsOpen = () => !!(SV && SV.open);
 const activeCusts = () => SV ? SV.custs.filter(c => c.st !== 'out') : [];
 function shopOpenUp() {
   if (S.scene !== 'shop' || shopIsOpen() || !shopHours() || !shelvesStocked()) return false;
+  const hs = helperSettle(S.time);
   SV = { open:true, custs:[], nextAt:S.time + 8, gifts:[], learned:[] };
   shopDay().opened = true; SND.gift();
+  if (hs) toast(`${VILLAGERS[hs.v].name} hands over the till: ${hs.sold} thing${hs.sold === 1 ? '' : 's'} sold while you were out, ${fmt(hs.net)} coins.`, 5000);
   return true;
 }
 const SHOP_LINES = {
@@ -5569,7 +5573,7 @@ function shopCloseUp(quiet) {
     else if (c.st === 'in' && c.q !== undefined && !c.ask && c.n) { c.st = 'wait'; shopServe(c, true); }
     else if (c.st !== 'out' && c.n && !c.ask && c.slot !== undefined) { const s = st.shelf[c.slot]; if (s.id === c.id) s.n += c.n; }
   }
-  SV.open = false; SV.custs = SV.custs.filter(c => c.st === 'out');
+  SV.open = false; SV.custs = SV.custs.filter(c => c.st === 'out'); d.idleDone = Math.max(d.idleDone || 0, S.time);
   st.days = (st.days || 0) + (d.counted ? 0 : 1); d.counted = true;
   if (d.coins > (st.best || 0)) st.best = d.coins;
   const sum = { coins:d.coins, sold:d.sold, people:d.people, folk:d.folk.slice(), gifts:SV.gifts.splice(0), learned:SV.learned.splice(0) };
@@ -5608,6 +5612,92 @@ function shopEndDay(lines) {
   const sum = shopCloseUp(true);
   if (sum && sum.coins && lines) lines.push({ t:`You closed up the shop on your way home: ${sum.people} customer${sum.people === 1 ? '' : 's'}, ${fmt(sum.coins)} coins.`, c:'gift' });
   SV = null;
+  const hs = S.shop && helperSettle(SHOP_CLOSE);
+  if (hs && lines) lines.push({ t:helperNote(hs), c:'gift', v:hs.v, mood:'happy' });
+}
+
+// ---- Part 2: helpers mind the shop while she's away ----
+// Pip (after school, all day on rest days) from the start; her spouse, or a best friend at 10 hearts, all day.
+// The helper sells at the shelf prices but more slowly (IDLE_SLOW), keeps a cut, and asks for nothing from her basket.
+// Sales are settled (helperSettle) when she takes over, and at bedtime, from S.shop.day.idleDone onwards.
+const IDLE_SLOW = 1.6, HELPER_CUT = { pip:.08, partner:.03 };
+const HELPER_LINES = {
+  pip:["Pip minded the shop after school. There's a drawing of the cat on the ledger now.", "Pip sold things very seriously and only ate a few of the sweets. A few.", "Pip told every customer a fact about frogs. Sales were good anyway.", "Pip rearranged the shelf by colour. It looks lovely. Nobody can find anything.", "Pip says the bell rings in E. Pip has been ringing it to check."],
+  partner:["%N kept the shop for you, and left the till in perfect order.", "%N minded the counter all day and says the customers were lovely. Mostly.", "%N sold things, chatted to everyone, and kept a little back for supper.", "%N says it was a quiet day at the shop, and a nice one."]
+};
+const helperKind = v => v === 'pip' ? 'pip' : 'partner';
+function helperChoices() {
+  const out = [];
+  if (arrived('pip')) out.push('pip');
+  if (S.spouse && VILLAGERS[S.spouse]) out.push(S.spouse);
+  for (const v of VIDS) if (!out.includes(v) && isBff(v) && heartsOf(v) >= 10) out.push(v);
+  return out;
+}
+function helperHoursOn(v, d) {
+  if (d === FEST_DAY) return null;
+  if (v === 'pip') return restDay(d) ? [SHOP_OPEN, SHOP_CLOSE] : [900, SHOP_CLOSE];
+  return [SHOP_OPEN, SHOP_CLOSE];
+}
+const helperHoursTxt = v => v === 'pip' ? 'after school (3 to 6 pm), and all day on rest days' : 'all day, 9 am to 6 pm';
+// Today's helper, if one is hired and can work today (not a festival, in the valley).
+function helperToday() {
+  if (!S || !S.shop || !S.shop.helper || !shopReady()) return null;
+  const v = S.shop.helper;
+  if (!VILLAGERS[v] || !helperChoices().includes(v) || !inValley(v)) return null;
+  return helperHoursOn(v, S.day) ? v : null;
+}
+// Is the helper behind the counter at minute t today? Not while she's running the shop herself.
+function helperOn(t) {
+  const v = helperToday(); if (!v) return null;
+  const h = helperHoursOn(v, S.day); if (t < h[0] || t >= h[1]) return null;
+  if (shopIsOpen()) return null;
+  return v;
+}
+// where() for the helper on duty (checked early in where()).
+function helperWhere(v, t, d) {
+  if (d !== S.day || !S.shop || S.shop.helper !== v || helperToday() !== v) return null;
+  const h = helperHoursOn(v, d); return h && t >= h[0] && t < h[1] && !shopIsOpen() ? 'shopfront' : null;
+}
+// The helper sells from the shelves for the minutes between `from` and `to`.
+function helperSales(v, from, to) {
+  const st = shopState(), d = shopDay(), r = { coins:0, sold:0, people:0, cut:0 };
+  if (to <= from || !shelvesStocked()) return r;
+  const k = dayKey();
+  for (let t = from + SHOP_GAP * IDLE_SLOW * Math.random() * .7; t < to; t += SHOP_GAP * IDLE_SLOW * (S.rain ? 1.25 : 1) * (.6 + Math.random() * .8)) {
+    const pool = VIDS.filter(x => x !== v && inValley(x) && st.came[x] !== k && where(x, t) !== 'fest');
+    const who = pool.length && Math.random() < SHOP_VILLAGER_P ? pool[(Math.random() * pool.length) | 0] : null;
+    if (who) st.came[who] = k;
+    r.people++; d.people++; if (who && !d.folk.includes(who)) d.folk.push(who);
+    const sh = st.shelf, have = sh.map((s, i) => i).filter(i => sh[i].id && sh[i].n > 0); if (!have.length) break;
+    let slot = null;
+    if (who) for (const list of ['loves', 'likes']) { const m = have.filter(i => VILLAGERS[who][list].includes(sh[i].id)); if (m.length) { slot = m[(Math.random() * m.length) | 0]; break; } }
+    if (slot === null) slot = have[(Math.random() * have.length) | 0];
+    const s = sh[slot]; if (s.p === 'dear' && Math.random() < DEAR_P) continue;
+    let n = 1 + (Math.random() < .5 ? 1 : 0) + (Math.random() < .2 ? 1 : 0);
+    if (POTIONS[s.id] || (ITEMS[s.id] && ITEMS[s.id].dish) || itemValue(s.id) >= 150) n = Math.min(n, 2);
+    n = Math.min(n, s.n); s.n -= n;
+    let c = shopPrice(s.id, s.p) * n;
+    if (who) { const V = VILLAGERS[who], love = V.loves.includes(s.id), like = !love && V.likes.includes(s.id); c += love ? Math.round(c * SHOP_TIP_LOVE) : like ? Math.round(c * SHOP_TIP_LIKE) : 0; addFr(who, 3); }
+    r.coins += c; r.sold += n;
+  }
+  r.cut = Math.round(r.coins * HELPER_CUT[helperKind(v)]);
+  return r;
+}
+// Settle the helper's takings up to minute `until` (when she takes over, and at bedtime).
+function helperSettle(until) {
+  const v = helperToday(); if (!v) return null;
+  const d = shopDay(), h = helperHoursOn(v, S.day), from = Math.max(h[0], d.idleDone || 0), to = Math.min(h[1], until);
+  if (to <= from) return null;
+  d.idleDone = to;
+  const r = helperSales(v, from, to); if (!r.sold) return null;
+  const st = shopState(), net = r.coins - r.cut;
+  earn(net); d.coins += net; d.sold += r.sold; d.helped = (d.helped || 0) + net; st.total += net; st.sold += r.sold;
+  st.helperDays = (st.helperDays || 0) + (d.helpCounted ? 0 : 1); d.helpCounted = true;
+  return Object.assign({ v }, r, { net });
+}
+function helperNote(r) {
+  const V = VILLAGERS[r.v], pool = HELPER_LINES[helperKind(r.v)];
+  return `${pool[(Math.random() * pool.length) | 0].replace(/%N/g, V.name)} ${r.sold} thing${r.sold === 1 ? '' : 's'} sold, ${fmt(r.net)} coins in the till${r.cut ? ` (${V.name} kept ${fmt(r.cut)})` : ''}.`;
 }
 
 // ---- scenes ----
@@ -5625,6 +5715,7 @@ function enterShop() {
   shopState();
   if (!SV) SV = { open:false, custs:[], nextAt:0, gifts:[], learned:[] };
   if (!S.shopSeen) { S.shopSeen = true; toast('Your shop! Tap a shelf to stock it, then tap the ledger on the counter to open up.', 6000); }
+  else { const h = helperOn(S.time); if (h) toast(`${VILLAGERS[h].name} is minding the shop. Tap the ledger to take over, or ${VILLAGERS[h].name} to say hello.`, 4800); }
 }
 function leaveShop() {
   const sum = shopCloseUp(true);
@@ -5647,6 +5738,7 @@ function shopperAt(c, r, any) {
 }
 function enqueueShop(t, fromDrag) {
   if (fromDrag) return;
+  { const hv = helperOn(S.time); if (hv && t.r <= 1 && (t.c === 2 || t.c === 3)) { openSheet('villager', { v:hv, from:'village' }); return; } }
   const cu = shopperAt(t.c, t.r);
   if (cu) { if (Math.hypot(witch.x - SHOP_ME[0], witch.y - SHOP_ME[1]) < .2 && !queue.length) shopServe(cu); else { queue = []; shopGo(SHOP_ME[0], SHOP_ME[1], { b:'serve', cust:cu }); } return; }
   const busy = shopperAt(t.c, t.r, true);
@@ -5772,7 +5864,7 @@ function drawRowDynamic() {
   const u = T / 16, b = RB.shop;
   if (shopReady()) {
     // the little card in the door: Open while the shop's open, Closed otherwise
-    const dx = ox + (b.c + b.w / 2) * T, dy = oy + (b.r + b.h) * T - 9 * u, open = shopIsOpen();
+    const dx = ox + (b.c + b.w / 2) * T, dy = oy + (b.r + b.h) * T - 9 * u, open = shopIsOpen() || !!helperOn(S.time);
     R(ctx, dx - 4 * u, dy, 8 * u, 3.6 * u, open ? '#f4ead9' : '#c8bfb4');
     ctx.font = `700 ${Math.max(6, 2.4 * u)}px "Atkinson Hyperlegible", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = open ? '#3f6a4a' : '#7a6a6a'; ctx.fillText(open ? 'OPEN' : 'CLOSED', dx, dy + 1.9 * u);
@@ -5891,6 +5983,7 @@ function drawShopper(c) {
 function drawShopDynamic() {
   const u = T / 16;
   drawShopShelves();
+  { const hv = helperOn(S.time); if (hv) drawShopper({ v:hv, x:2.6, y:1, st:'helper' }); }
   if (SV) for (const c of SV.custs.slice().sort((a, b) => a.y - b.y)) drawShopper(c);
   // the ledger glows when it's time to open up, and there's something on a shelf to sell
   if (!shopIsOpen() && shopHours()) {
@@ -5915,13 +6008,14 @@ function shopSheet(kind, data) {
     h += `<p class="sub">${open ? `Open until ${fmtTime(SHOP_CLOSE)}. Tap a customer waiting at the counter to serve them.` : shopHours() ? 'Closed. You can open up any time until 6 pm.' : S.time < SHOP_OPEN ? 'Closed. You can open up from 9 am.' : 'Closed for the day. The shop opens from 9 am to 6 pm.'} While the shop is open, the clock keeps going.</p>`;
     if (d.people || d.coins) h += `<p class="sub">Today so far: ${d.people} customer${d.people === 1 ? '' : 's'}, ${d.sold} thing${d.sold === 1 ? '' : 's'} sold, <b>${fmt(d.coins)}</b> coins.</p>`;
     if (open) h += `<div class="cta-row"><button class="btn" data-act="shopshut" type="button">Close up</button></div>`;
-    else { const why = !shopHours() ? '' : !shelvesStocked() ? 'Put something on a shelf first.' : ''; h += `<div class="cta-row"><button class="btn" data-act="shopopen" type="button" ${!shopHours() || why ? 'disabled' : ''}>Open up</button></div>${why ? `<p class="sub why">${why}</p>` : ''}`; }
+    else { const why = !shopHours() ? '' : !shelvesStocked() ? 'Put something on a shelf first.' : ''; const hv = helperOn(S.time); h += `<div class="cta-row"><button class="btn" data-act="shopopen" type="button" ${!shopHours() || why ? 'disabled' : ''}>${hv ? `Take over from ${VILLAGERS[hv].name}` : 'Open up'}</button></div>${why ? `<p class="sub why">${why}</p>` : ''}`; }
     h += `<h4 class="sec">Shelves</h4>`;
     st.shelf.forEach((s, i) => {
       if (!s.id) { h += row('#6a4a2c', `Shelf ${i + 1}`, 'Empty', `<button class="btn alt" data-act="shelfopen" data-id="${i}" type="button">Stock</button>`); return; }
       const T0 = PRICE_TIERS[s.p || 'fair'];
       h += row(itemCol(s.id), `${itemName(s.id)} ×${s.n}`, `${T0.name} · ${shopPrice(s.id, s.p)} each${s.n ? '' : ' · sold out'} · have ${S.inv[s.id] || 0} more`, `<button class="btn alt" data-act="shelfopen" data-id="${i}" type="button">Change</button>`, s.n ? '' : 'dim');
     });
+    h += helperBox();
     const more = st.shelf.some(s => s.id && s.n < SLOT_MAX && (S.inv[s.id] || 0) > 0);
     h += `<div class="cta-row"><button class="btn alt" data-act="shoprestock" type="button" ${more ? '' : 'disabled'}>Top up every shelf from your basket</button></div>`;
     h += `<p class="sub">At a fair price, customers pay a fifth more than the market stall. Villagers head for things they love, tip for them, and grow fonder of you. ${st.days ? `Since you reopened: ${st.days} day${st.days === 1 ? '' : 's'} open, ${fmt(st.total)} coins, best day ${fmt(st.best)}.` : ''}</p>`;
@@ -5958,9 +6052,28 @@ function shopSheet(kind, data) {
   }
   return { h, title };
 }
+// The ledger's helper section: who minds the shop when she's not behind the counter.
+function helperBox() {
+  const st = shopState(), ch = helperChoices(), cur = st.helper && ch.includes(st.helper) ? st.helper : null, today = helperToday(), d = shopDay();
+  let h = `<h4 class="sec">Minding the shop</h4>`;
+  if (cur) {
+    const V = VILLAGERS[cur], hrs = helperHoursOn(cur, S.day);
+    h += `<p class="sub">${today ? `${V.name} minds the shop today ${cur === 'pip' && !restDay(S.day) ? 'after school, ' : ''}from ${fmtTime(hrs[0])} until 6 pm whenever you're not behind the counter yourself.` : `${V.name} can't mind the shop today${isFestDay() ? ': everyone is at the festival' : ''}.`} They sell a little more slowly than you, and keep ${Math.round(HELPER_CUT[helperKind(cur)] * 100)}% of what they take. The takings come to you in the evening.${d.helped ? ` So far today: ${fmt(d.helped)} coins.` : ''}</p>`;
+  } else h += `<p class="sub">Nobody minds the shop when you're out. Ask someone, and the shop keeps selling while you farm.</p>`;
+  for (const v of ch) {
+    const V = VILLAGERS[v], on = v === cur;
+    h += `<div class="vrow">${portrait(v, on ? 'happy' : 'neutral', 44)}<div class="info"><span class="name">${V.name}</span><span class="meta">${helperHoursTxt(v)} · keeps ${Math.round(HELPER_CUT[helperKind(v)] * 100)}%</span></div><button class="btn ${on ? '' : 'alt'}" data-act="shophelp" data-id="${v}" type="button" ${on ? 'disabled' : ''}>${on ? 'Minding it' : 'Ask'}</button></div>`;
+  }
+  if (cur) h += `<div class="cta-row"><button class="btn alt" data-act="shophelp" data-id="none" type="button">Nobody, thanks</button></div>`;
+  if (!ch.some(v => v !== 'pip')) h += `<p class="sub">Once you're married, or have a best friend at 10 hearts, they can mind it all day.</p>`;
+  return h;
+}
+// Hiring mid-morning: the new helper leaves today's garden visit list.
+function genVisitsFix() { const hp = helperToday(); if (hp && S.visits) S.visits = S.visits.filter(x => x.v !== hp); }
 // Sheet buttons (from the click handler). Returns true if it handled the act.
 function shopAct(act, b) {
   const id = b.dataset.id, item = b.dataset.item;
+  if (act === 'shophelp') { const st = shopState(); if (id === 'none') { helperSettle(S.time); st.helper = null; } else if (helperChoices().includes(id)) { helperSettle(S.time); st.helper = id; shopDay().idleDone = Math.max(shopDay().idleDone || 0, S.time); toast(id === 'pip' ? 'Pip is thrilled. "Can I wear an apron? Can I ring the bell?"' : `${VILLAGERS[id].name} will mind the shop when you're out.`); } genVisitsFix(); renderSheet('shop'); return true; }
   if (act === 'shopopen') { if (shopOpenUp()) { closeSheet(); toast('Open! Customers will start coming in. Tap someone at the counter to serve them.', 4200); } else renderSheet('shop'); return true; }
   if (act === 'shopshut') { closeSheet(); shopCloseUp(); return true; }
   if (act === 'shopledger') { sheetOpen = 'shop'; renderSheet('shop'); return true; }
