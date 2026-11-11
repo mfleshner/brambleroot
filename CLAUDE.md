@@ -38,7 +38,7 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
   - `POTIONS` (base, wild forage and Hollow potions)
   - `FISH`, `FORAGE`, `MISC`, `ITEMS`
   - `UPGRADES`: watering cans can, can2, can3 (gold can, gated on the Hollow), cauldron upgrades pot2 to pot4, rod, sprinkler, sprhead
-- **Growing crops (Nov 10, 2026):** `drawGrowing(cx, base, u, id, cr, prog)` draws each crop its own way while it grows (sprout, young, budding from about two thirds, with a bud or young fruit in the crop colour); `drawCrop` uses it until `p.ready`. Her feedback was that every plant looked the same until ripe.
+- **Growing crops (Nov 10, redrawn Nov 11, 2026):** `drawGrowing(cx, base, u, id, cr, prog)` draws each crop its own way while it grows; `drawCrop` uses it until `p.ready`. Size grows every day (`g` from .45 to 1), and each crop shows its colour from the first sprout (moon bud, thorn buds, star flecks, gourd flower, pepper flower, melon flower, wolf spike, frost sparkles). Look-alikes have different shapes: Thornberry is thorny canes, Starfruit a little tree, Bellmelon round pale leaves, Hollowgourd spiky dark leaves with a tendril. Planting day shows seeds in the crop colour plus a tiny shoot. She said twice that every plant looked the same until ripe; the first pass (Build 24) was too small and too green.
 - **Garden tools (Nov 8, 2026):**
   - Silver sprinkler heads (`UPGRADES.sprhead`, 1,000 coins, from summer year 1, `S.up.sprhead`): every sprinkler waters all 8 beds around it instead of 4. `sprReach()`, `sprBeds()` (text), drawn with a silver top and a wider spray. The brass sprinkler's `desc` is a getter so its text follows.
   - Trowel (`S.sel === 'trowel'`, a row at the top of the seed pouch): tap a plant to dig it up (`dig` in `predict`/`doField`). A seed with `d === 0` goes back in the pouch; otherwise it's just cleared. The bed stays tilled and watered. Ripe crops are harvested instead, sprinklers still pick up, empty soil gives a toast (`nodig`). Dragging never digs. No energy cost.
@@ -265,3 +265,4 @@ A cozy witch farming game (Stardew-like), built for Matt's wife. She plays it on
 26. Heart quests: a four-step story for every villager at 8 hearts, each ending with a keepsake for the shelf (Nov 10, 2026).
 27. Matchmaking: five couples brought together through their own stories, with village weddings she's invited to (Nov 10, 2026).
 28. Three newcomers in year 2: Rosa the postmistress, Corin the surveyor and Marigold, Bramble's old Guild rival, each with the full set (Nov 10, 2026).
+29. Growing crops redrawn: bigger every day, coloured from the first sprout, and distinct shapes for the look-alikes (Nov 11, 2026).
