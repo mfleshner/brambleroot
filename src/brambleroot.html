@@ -120,7 +120,8 @@ h4.band{margin:16px 0 8px;font-family:var(--display);font-weight:400;font-size:2
 .row .meta{font-size:12.5px;color:var(--muted);line-height:1.35}
 .row .have{display:block;font-weight:700;color:var(--gold)}
 .row .thumb{flex:none;width:48px;height:48px;border-radius:8px;background:#2a1d36;object-fit:contain}
-.row.wrap{flex-wrap:wrap}.row.wrap .acts{flex-wrap:wrap}
+.row.wrap{flex-wrap:wrap}
+.cosy{display:inline-flex;gap:3px;vertical-align:middle;margin-right:4px}.cosy i{width:9px;height:9px;border-radius:50%;background:#3a2b46;border:1px solid var(--line)}.cosy i.on{background:var(--gold);border-color:var(--gold)}.row.wrap .acts{flex-wrap:wrap}
 .row .acts{display:flex;gap:6px;flex:none}
 .row.sel{border-color:var(--gold)}
 .row.dim{opacity:.55}
@@ -1767,6 +1768,8 @@ function endDay(passedOut) {
   if (S.day >= DAYS) { seasonChange(lines); newSeason = true; }
   else S.day++;
   S.time = 360; S.energy = passedOut ? Math.round(S.maxEnergy * .6) : S.maxEnergy; S.mana = S.manaMax || 0;
+  if (S.home) { const cb = COSY_BONUS[cosyLevel()]; if (cb) { S.energy += cb; lines.push({ t:`You wake up somewhere ${cosyName(cosyLevel()).toLowerCase()}: +${cb} energy today.` }); }
+    const H = S.home; if (H.newGift && H.newGift.length) { for (const id of H.newGift) lines.push({ t:`New for the cottage: ${HOME_ITEMS[id].name}. ${HOME_ITEMS[id].desc}`, c:'gift' }); H.newGift = []; } }
   // weather
   S.rain = S.nextRain; S.snow = S.season === 3 && Math.random() < .45;
   if ((S.day === 1 && S.year === 1 && S.season === 0) || S.day === FEST_DAY) S.rain = false;
@@ -2205,6 +2208,7 @@ function talkTo(v) {
   if (key === v && DEEP_TALK[v] && (S.hollowMax || 0) >= 31 && Math.random() < .35) line = DEEP_TALK[v](S.hollowMax);
   if (key === v && S.hew && S.hew.met && !S.hew.wed && V.look.age !== 'kid' && Math.random() < .15) line = sayLine('gossip', HEW_GOSSIP);
   { const mk = matchOf(v); if (key === v && mk && Math.random() < .25) line = sayLine(v + ':p', MATCH_TEXT[mk].talk[v]); }
+  if (key === v && S.home && cosyLevel() >= 1 && Math.random() < .12) line = homeTalk(v);
   if (isBday(v)) line = "It's my birthday today! " + line;
   blip(500, 650, .08, 'sine', .04);
   celebrate(v, isPartner(v) ? 'love' : (h >= 3 || isBday(v) ? 'happy' : 'neutral'), line);
@@ -2739,6 +2743,7 @@ function prizeStock() {
   if (sd) out.push({ id:'seeds', name:`${CROPS[sd].name} seeds ×5`, col:CROPS[sd].col, cost:10, left:2 - (got.seeds || 0), desc:'The best seeds of the season. Two packets each festival' });
   for (const k of FEST_DISHES()) if (DISHES[k].fest === S.season) out.push({ id:'r:' + k, name:`Recipe: ${DISHES[k].name}`, col:DISHES[k].col, cost:10, left:dishKnown(k) ? 0 : 1, desc:`Only at the ${FEST[S.season].name}. ${dishNeedTxt(k)}` });
   for (const k of FEST_WEAR_IDS()) if (FEST_WEAR[k].fest === S.season) out.push({ id:'w:' + k, name:FEST_WEAR[k].name, col:FEST_WEAR[k].col, cost:FEST_WEAR[k].cost, left:prizeOwned(k) ? 0 : 1, desc:FEST_WEAR[k].desc });
+  for (const k of HIDS) if (HOME_ITEMS[k].from === 'fest' && HOME_ITEMS[k].fest === S.season) out.push({ id:'h:' + k, name:`${HOME_ITEMS[k].name} (for the cottage)`, col:HOME_ITEMS[k].col, cost:HOME_ITEMS[k].cost, left:homeOwn(k) ? 0 : 1, desc:HOME_ITEMS[k].desc });
   for (const k of KEEPSAKE_IDS()) if (KEEPSAKES[k].fest === S.season) out.push({ id:'k:' + k, name:KEEPSAKES[k].name, col:KEEPSAKES[k].col, cost:KEEPSAKES[k].cost, left:prizeOwned(k) ? 0 : 1, desc:KEEPSAKES[k].desc });
   return out;
 }
@@ -2755,6 +2760,7 @@ function prizeBuy(id) {
   if (id === 'starshard') S.inv.starshard = (S.inv.starshard || 0) + 1;
   else if (id === 'seeds') { const sd = festSeed(); S.seeds[sd] = (S.seeds[sd] || 0) + 5; }
   else if (id.startsWith('r:')) (S.recipes = S.recipes || {})[id.slice(2)] = true;
+  else if (id.startsWith('h:')) { const H = homeState(); H.own[id.slice(2)] = 1; }
   else (S.prizes = S.prizes || {})[id.slice(2)] = true;
   return true;
 }
@@ -4884,7 +4890,7 @@ function genVisits() {
     const from = 480 + Math.round(Math.random() * 420); S.visits.push({ v, c:sp[0], r:sp[1], from, to:from + 240 });
   }
 }
-const visitPresent = x => S.scene === 'farm' && S.time >= x.from && S.time < x.to;
+const visitPresent = x => S.scene === 'farm' && S.time >= x.from && S.time < x.to && !(S.tea && S.tea.v === x.v && teaWhere(x.v, S.time, S.day));
 const visitorAt = (c, r) => (S.visits || []).find(x => x.c === c && x.r === r && visitPresent(x));
 const porImg = {};
 function porImage(v) {
@@ -5102,6 +5108,7 @@ function where(v, t, d, wet) {
   if (d === S.day && S.evToday) { const e = evNow(); if (e && e.who.includes(v)) { const E = EVENTS[e.id]; if (t >= E.from && t < E.to) return evPlace(E, wet); } }
   { const mw = matchWhere(v, t, d); if (mw) return mw; }
   { const hw = helperWhere(v, t, d); if (hw) return hw; }
+  { const tw = teaWhere(v, t, d); if (tw) return tw; }
   if (d === S.day) for (const x of S.visits || []) if (x.v === v && t >= x.from && t < x.to) return 'garden';
   if (d === FEST_DAY && t >= FEST_OPEN && t < FEST_CLOSE) return 'fest';
   const sc = SCHED[v], list = (restDay(d) && sc.rest) || sc.day;
@@ -5115,13 +5122,14 @@ function where(v, t, d, wet) {
 function untilOf(v) { const p = where(v); for (let t = Math.floor(S.time / 10) * 10 + 10; t < passOut(); t += 10) if (where(v, t) !== p) return t; return 0; }
 function placeLabel(p) {
   if (VPLACES[p]) return 'at ' + VPLACES[p].name;
-  return { garden:'in your garden', cottage:'at home with you', home:'at home', away:'away' }[p] || p;
+  return { garden:'in your garden', cottage:'at home with you', tea:'at your cottage for tea', home:'at home', away:'away' }[p] || p;
 }
 // Talk and gifts only work when she's where they are: the village for village places, the farm for her garden and cottage.
 function canMeet(v) {
   const p = where(v);
   if (p === 'garden') return S.scene === 'farm';
   if (p === 'cottage') return S.scene === 'farm' || S.scene === 'home';
+  if (p === 'tea') return S.scene === 'home';
   if (rowPlace(p)) return S.scene === 'row' || S.scene === 'shop';
   return !!VPLACES[p] && S.scene === 'village';
 }
@@ -5133,16 +5141,16 @@ function meetBox(v) {
   if (p === 'away') return { ok:false, note:`${V.name} isn't in the valley yet.` };
   if (p === 'home') return { ok:false, note:`${V.name} is at home${u ? `, and out again at ${fmtTime(u)}` : (S.time >= 1020 ? ' for the night. Back out tomorrow' : '')}.` };
   const go = S.scene === 'farm' || S.scene === 'village' || S.scene === 'row' || S.scene === 'home';
-  const hint = p === 'garden' || p === 'cottage' ? (go ? 'Head home to say hello.' : 'Head home to find them.') : (go ? 'Go and find them there to chat or give a gift.' : 'Head home, then down to the village to find them.');
-  return { ok:false, note:`${V.name} is ${placeLabel(p)}${till}. ${hint}`, seek:go ? (p === 'garden' || p === 'cottage' ? 'Go home' : `Go to ${VPLACES[p].name}`) : '' };
+  const hint = p === 'garden' || p === 'cottage' || p === 'tea' ? (go ? 'Head home to say hello.' : 'Head home to find them.') : (go ? 'Go and find them there to chat or give a gift.' : 'Head home, then down to the village to find them.');
+  return { ok:false, note:`${V.name} is ${placeLabel(p)}${till}. ${hint}`, seek:go ? (p === 'garden' || p === 'cottage' || p === 'tea' ? 'Go home' : `Go to ${VPLACES[p].name}`) : '' };
 }
 // Send her walking to someone: through the farm gate to the village, or home to the garden.
 function seekVillager(v) {
   const p = where(v);
   closeSheet();
   if (S.scene === 'row') { queue.push({ c:ROW_EXIT[0], r:ROW_EXIT[1], kind:'visit', b:'rowexit', seek:v }); return; }
-  if (p === 'cottage' && S.scene !== 'home') { if (S.scene === 'village') leaveVillage(); if (S.scene === 'farm') queue.push({ c:BUILD.cottage.stand[0], r:BUILD.cottage.stand[1], kind:'visit', b:'tohome' }); return; }
-  if (S.scene === 'home' && p !== 'cottage') leaveHome();
+  if ((p === 'cottage' || p === 'tea') && S.scene !== 'home') { if (S.scene === 'village') leaveVillage(); if (S.scene === 'farm') queue.push({ c:BUILD.cottage.stand[0], r:BUILD.cottage.stand[1], kind:'visit', b:'tohome' }); return; }
+  if (S.scene === 'home' && p !== 'cottage' && p !== 'tea') leaveHome();
   if (p === 'garden' || p === 'cottage') {
     if (S.scene === 'village') leaveVillage();
     if (S.scene !== 'farm') return;
@@ -5493,6 +5501,36 @@ const HOME_ITEMS = {
   shoe:     { name:'Lucky horseshoe',     kind:'wall',  from:'rowan', cost:120,  w:1, h:1, d:'shoe', col:'#8a8a94', style:'rustic', desc:'Points up, so the luck stays in.' },
   pots:     { name:'Copper pans',         kind:'wall',  from:'rowan', cost:380,  w:1, h:1, d:'pots', col:'#c8703a', style:'rustic', desc:'Too nice to cook with. You cook with them anyway.' },
   hooks:    { name:'Coat hooks',          kind:'wall',  from:'rowan', cost:160,  w:1, h:1, d:'hooks', col:'#3a3440', style:'witchy', desc:'Your spare hat and the cat\'s scarf.' },
+  armchair: { name:'Fat armchair',        kind:'piece', from:'isolde',cost:900,  w:1, h:1, d:'armchair', col:'#9a4a5a', turn:true, style:'cosy', desc:'Retired from the inn. It still knows every story told in it.' },
+  roserug:  { name:'Rose rug',            kind:'rug',   from:'isolde',cost:450,  w:2, h:2, d:'rug', col:'#c87a8a', col2:'#f4ead9', style:'cosy', desc:'Soft as a cat, and nearly as warm.' },
+  hearthrug:{ name:'Hearth rug',          kind:'rug',   from:'isolde',cost:300,  w:2, h:1, d:'rug', col:'#c8703a', col2:'#f2d36b', style:'rustic', desc:'For toes in front of the fire.' },
+  starrug:  { name:'Night-sky rug',       kind:'rug',   from:'isolde',cost:650,  w:3, h:2, d:'ovalrug', col:'#2e3a6a', col2:'#5a6aa0', style:'witchy', desc:'Navy wool with a sprinkle of stars.' },
+  bunting:  { name:'Bunting',             kind:'wall',  from:'isolde',cost:180,  w:1, h:1, d:'bunting', col:'#ef9aac', style:'cosy', desc:'Left over from a wedding at the inn. Every wedding at the inn.' },
+  globe:    { name:'Old globe',           kind:'piece', from:'zara',  cost:1400, w:1, h:1, d:'globe', col:'#4a7aa0', style:'seaside', desc:'Half the countries on it have changed their names.' },
+  screen:   { name:'Painted screen',      kind:'piece', from:'zara',  cost:1600, w:2, h:1, d:'screen', col:'#7a2a3a', tall:true, style:'fancy', desc:'Herons and plum blossom, from very far east.' },
+  telescope:{ name:'Brass telescope',     kind:'piece', from:'zara',  cost:2200, w:1, h:1, d:'telescope', col:'#c8a24a', turn:true, tall:true, style:'seaside', desc:'Point it at the lighthouse. Bertram waves.' },
+  seascape: { name:'Seascape painting',   kind:'wall',  from:'zara',  cost:1200, w:1, h:1, d:'painting', col:'#3a6a8a', col2:'#e8dcc4', style:'seaside', desc:'A grey sea, a tiny boat, a huge sky.' },
+  oldmap:   { name:'Map of the coast',    kind:'wall',  from:'zara',  cost:900,  w:1, h:1, d:'map', col:'#e0c890', style:'seaside', desc:'Corin says it is wrong in eleven places.' },
+  birdcage: { name:'Gilded birdcage',     kind:'top',   from:'zara',  cost:700,  w:1, h:1, d:'cage', col:'#c8a24a', style:'fancy', desc:'Empty. The bird is a painted tin one, and it sings if you wind it.' },
+  conch:    { name:'Great conch shell',   kind:'top',   from:'zara',  cost:400,  w:1, h:1, d:'shell', col:'#f2c8b0', style:'seaside', desc:'Hold it up and you hear the sea, or the cat.' },
+  kilim:    { name:'Kilim rug',           kind:'rug',   from:'zara',  cost:1500, w:3, h:2, d:'rug', col:'#a83a2a', col2:'#2e5a7a', style:'fancy', desc:'Woven in the hills past the mountains. It took a whole winter.' },
+  garland:  { name:'Blossom garland',     kind:'wall',  from:'fest',  fest:0, cost:20, w:1, h:1, d:'garland', col:'#ef9aac', style:'cosy', desc:'From the Flower Dance. It never wilts.' },
+  lstring:  { name:'String of lanterns',  kind:'wall',  from:'fest',  fest:1, cost:20, w:1, h:1, d:'lstring', col:'#f2b84b', light:true, style:'witchy', desc:'From Lantern Night. They glow all by themselves.' },
+  gourds:   { name:'Pile of gourds',      kind:'piece', from:'fest',  fest:2, cost:20, w:1, h:1, d:'pumpkins', col:'#f08c2a', style:'rustic', desc:'From the Harvest Fair. Isolde says not to eat them.' },
+  starmobile:{ name:'Star mobile',        kind:'wall',  from:'fest',  fest:3, cost:20, w:1, h:1, d:'mobile', col:'#f2d36b', style:'witchy', desc:'From the Star Feast. It turns when nobody is looking.' },
+  relicab:  { name:'Relic cabinet',       kind:'piece', from:'gift',  cost:0,    w:1, h:1, d:'cabinet', col:'#5a3d26', tall:true, style:'witchy', desc:'Rowan made it for the things you bring up from the Hollow.' },
+  kshelf:   { name:'Keepsake shelf',      kind:'wall',  from:'gift',  cost:0,    w:1, h:1, d:'kshelf', col:'#8a6440', style:'cosy', desc:"Mara's lads put it up for your friends' keepsakes." },
+  ribbonbd: { name:'Ribbon board',        kind:'wall',  from:'gift',  cost:0,    w:1, h:1, d:'ribbons', col:'#3a6ab8', style:'cosy', desc:'Every festival ribbon you have won.' },
+  dressform:{ name:'Dress form',          kind:'piece', from:'gift',  cost:0,    w:1, h:1, d:'dummy', col:'#e8dcc4', tall:true, style:'fancy', desc:'Isolde brought it up to show off your treasures and finery.' },
+  q_none:   { name:"The bed's own quilt",  kind:'quilt', from:'start', cost:0,    col:'#c87a8a', desc:'Whatever came with the bed.' },
+  q_patch:  { name:'Patchwork quilt',     kind:'quilt', from:'isolde',cost:500,  col:'#e0a050', col2:'#5a8aaa', desc:'Every square a different summer.' },
+  q_moss:   { name:'Moss-green quilt',    kind:'quilt', from:'isolde',cost:450,  col:'#6a8a5a', col2:'#8aaa7a', desc:'Like sleeping on a lawn, but warm.' },
+  q_rose:   { name:'Rosebud quilt',       kind:'quilt', from:'isolde',cost:550,  col:'#e8a8b8', col2:'#f4ead9', desc:'Tiny embroidered roses. Isolde did every one.' },
+  q_stars:  { name:'Starry quilt',        kind:'quilt', from:'isolde',cost:600,  col:'#2e3a6a', col2:'#f2d36b', desc:'For a witch who likes to dream.' },
+  c_none:   { name:'No curtains',         kind:'curtain',from:'start',cost:0,    col:'#5a3d26', desc:'Just the window.' },
+  c_lace:   { name:'Lace curtains',       kind:'curtain',from:'isolde',cost:300, col:'#f4ead9', desc:'Light comes through in little flowers.' },
+  c_check:  { name:'Gingham curtains',    kind:'curtain',from:'isolde',cost:350, col:'#c94a5a', desc:'Red and white, very farmhouse.' },
+  c_velvet: { name:'Velvet curtains',     kind:'curtain',from:'isolde',cost:600, col:'#6a2a4a', desc:'Heavy, plum and dramatic. Marigold approves.' },
   p_plum:   { name:'Plum panelling',      kind:'paper', from:'start', cost:0,    col:'#6a4a5a', col2:'#5a3a4a', d:'panel', desc:'How Bramble left it.' },
   p_cream:  { name:'Cream plaster',       kind:'paper', from:'mara',  cost:300,  col:'#e8dcc4', col2:'#d4c4a8', d:'plain', desc:'Fresh and bright.' },
   p_sage:   { name:'Sage stripe',         kind:'paper', from:'mara',  cost:450,  col:'#8aa58a', col2:'#a8c0a0', d:'stripe', desc:'Like a kitchen garden.' },
@@ -5508,11 +5546,18 @@ const HOME_ITEMS = {
   b_carved: { name:'Carved bed',          kind:'bed',   from:'mara',  cost:900,  col:'#5a3d26', col2:'#6a8aaa', desc:'Oak leaves carved all over the headboard.' },
   b_brass:  { name:'Brass bed',           kind:'bed',   from:'rowan', cost:1500, col:'#c8a24a', col2:'#f4ead9', desc:'Shiny rails, a white quilt, and a squeak only you know about.' }
 };
+for (const id in CROPS) HOME_ITEMS['pot_' + id] = { name:`Potted ${CROPS[id].name}`, kind:'piece', from:'pot', cost:40, w:1, h:1, d:'pot', col:CROPS[id].col, crop:id, light:id === 'glow', style:id === 'glow' || id === 'moon' || id === 'wolf' ? 'witchy' : 'cosy', desc:`Grown from one of your own ${CROPS[id].name.toLowerCase()} plants.` };
 const HIDS = Object.keys(HOME_ITEMS);
 const HOME_MAKERS = {
   mara: { name:"Mara's Woodworks", place:'mill', hi:"My lads make furniture in the slow months. Pick anything, and they'll carry it up to the cottage.", bought:"Right you are. The lads'll have it up at yours before you're home." },
-  rowan:{ name:"Rowan's ironwork", place:'smithy', hi:"Lamps, hooks, a stove if you want one. Things that'll outlast us both.", bought:"It's done. I'll drop it at yours on my way past. Don't thank me." }
+  rowan:{ name:"Rowan's ironwork", place:'smithy', hi:"Lamps, hooks, a stove if you want one. Things that'll outlast us both.", bought:"It's done. I'll drop it at yours on my way past. Don't thank me." },
+  isolde:{ name:"Isolde's linens", place:'inn', hi:"Quilts, rugs, curtains, and a chair I've been meaning to retire. A cottage wants softening, love.", bought:"Lovely choice. Silas will carry it up after the lunch rush." },
+  zara:{ name:"Zara's far-off things", place:'cart', hi:'', bought:"Mind the corners, darling. It came a very long way." },
+  fest:{ name:'the festival prize stall', place:'square', hi:'', bought:'' },
+  pot:{ name:'your own garden', place:'', hi:'', bought:'' },
+  gift:{ name:'a gift', place:'', hi:'', bought:'' }
 };
+const HOME_STYLES = { rustic:'rustic', cosy:'cosy', witchy:'witchy', fancy:'fancy', seaside:'seaside' };
 let DECO = null; // decorate mode: { lift: index into S.home.at, or null }
 
 function homeState() {
@@ -5521,13 +5566,22 @@ function homeState() {
     paper:'p_plum', floor:'f_oak', bed:'b_plain' };
   const H = S.home; H.own = H.own || {}; H.at = (H.at || []).filter(a => HOME_ITEMS[a.id]);
   if (!HOME_ITEMS[H.paper]) H.paper = 'p_plum'; if (!HOME_ITEMS[H.floor]) H.floor = 'f_oak'; if (!HOME_ITEMS[H.bed]) H.bed = 'b_plain';
+  if (!H.own.q_none) H.own.q_none = 1; if (!H.own.c_none) H.own.c_none = 1; if (!HOME_ITEMS[H.quilt]) H.quilt = 'q_none'; if (!HOME_ITEMS[H.curtain]) H.curtain = 'c_none';
+  for (const [id, has] of homeDisplays()) if (has && !H.own[id]) { H.own[id] = 1; (H.newGift = H.newGift || []).push(id); }
   return H;
+}
+// The display pieces arrive once she has something to show in them.
+function homeDisplays() {
+  const relics = Object.keys((S.hollow && S.hollow.relics) || {}).length, mem = Object.keys(S.mementos || {}).length, rib = Object.keys(S.ribbons || {}).length;
+  const tre = (typeof treasuresOwned === 'function' ? treasuresOwned().length : 0) + Object.keys(S.prizes || {}).filter(k => FEST_WEAR[k]).length;
+  return [['relicab', relics > 0], ['kshelf', mem > 0], ['ribbonbd', rib > 0], ['dressform', tre > 0]];
 }
 const homeOwn = id => (homeState().own[id] || 0);
 const homePlaced = id => homeState().at.filter(a => a.id === id).length;
 const homeFree = id => homeOwn(id) - homePlaced(id);
 const homeStored = () => HIDS.filter(id => ['piece', 'rug', 'wall', 'top'].includes(HOME_ITEMS[id].kind) && homeFree(id) > 0);
-const homeBgKey = () => { const H = homeState(); return 'H' + H.paper + H.floor + H.bed + H.at.map(a => a.id + a.c + a.r + (a.f ? 'f' : '')).join('') + (DECO ? 'D' : ''); };
+const homeBgKey = () => { const H = homeState(); return 'H' + H.paper + H.floor + H.bed + H.quilt + homeShowKey() + H.at.map(a => a.id + a.c + a.r + (a.f ? 'f' : '')).join('') + (DECO ? 'D' : ''); };
+const homeShowKey = () => Object.keys((S.hollow && S.hollow.relics) || {}).length + '.' + Object.keys(S.mementos || {}).length + '.' + Object.values(S.ribbons || {}).reduce((n, y) => n + y.length, 0) + '.' + (typeof treasuresOwned === 'function' ? treasuresOwned().length : 0);
 const tilesOf = a => { const it = HOME_ITEMS[a.id], out = []; for (let i = 0; i < (it.w || 1); i++) for (let j = 0; j < (it.h || 1); j++) out.push([a.c + i, a.r + j]); return out; };
 // What stands where: piece footprints block walking; rugs and tops don't.
 function homeGrid(skip) {
@@ -5601,22 +5655,30 @@ function homeAway(i) {
   if (HOME_ITEMS[a.id].surf) for (const b of H.at) if (HOME_ITEMS[b.id].kind === 'top' && tilesOf(a).some(([x, y]) => x === b.c && y === b.r)) gone.push(b);
   H.at = H.at.filter(b => !gone.includes(b)); return gone;
 }
+const HOME_ONCE = ['paper', 'boards', 'bed', 'quilt', 'curtain'];
 const homeAt = (c, r) => { const g = homeGrid(); return ['top', 'piece', 'rug', 'wall'].map(k => g[k][c + ',' + r]).filter(i => i !== undefined); };
 function homeBuy(id) {
   const it = HOME_ITEMS[id]; if (!it || it.from === 'start' || S.coins < it.cost) return false;
-  if (['paper', 'boards', 'bed'].includes(it.kind) && homeOwn(id)) return false;
+  if (HOME_ONCE.includes(it.kind) && homeOwn(id)) return false;
+  if (it.from === 'pot' || it.from === 'gift' || it.from === 'fest') return false;
   S.coins -= it.cost; const H = homeState(); H.own[id] = (H.own[id] || 0) + 1; return true;
 }
+// Pot one of her own plants: one crop from the basket and 40 coins.
+function homePot(crop) {
+  const id = 'pot_' + crop; if (!HOME_ITEMS[id] || !(S.inv[crop] > 0) || S.coins < POT_COST) return false;
+  S.inv[crop]--; S.coins -= POT_COST; const H = homeState(); H.own[id] = (H.own[id] || 0) + 1; return true;
+}
+const POT_COST = 40;
 function homeSet(id) {
   const it = HOME_ITEMS[id], H = homeState(); if (!it || !homeOwn(id)) return false;
-  if (it.kind === 'paper') H.paper = id; else if (it.kind === 'boards') H.floor = id; else if (it.kind === 'bed') H.bed = id; else return false;
+  if (it.kind === 'paper') H.paper = id; else if (it.kind === 'boards') H.floor = id; else if (it.kind === 'bed') H.bed = id; else if (it.kind === 'quilt') H.quilt = id; else if (it.kind === 'curtain') H.curtain = id; else return false;
   return true;
 }
 // Who's home: her spouse, in the evenings and on days they aren't in the garden.
 function homeSpouse() {
   if (!S.spouse || where(S.spouse) !== 'cottage') return null;
   const g = homeGrid();
-  for (const [c, r] of [[2, 2], [1, 2], [2, 3], [1, 3], [3, 3], [6, 3], [0, 3], [2, 8], [6, 8]]) if (g.piece[c + ',' + r] === undefined && !inHearth(c, r)) return { v:S.spouse, c, r };
+  const gs = teaGuest(); for (const [c, r] of [[2, 2], [1, 2], [2, 3], [1, 3], [3, 3], [6, 3], [0, 3], [2, 8], [6, 8]]) if (g.piece[c + ',' + r] === undefined && !inHearth(c, r) && !(gs && gs.c === c && gs.r === r)) return { v:S.spouse, c, r };
   return null;
 }
 // The cat naps in her basket if there is one, otherwise on a rug.
@@ -5626,6 +5688,105 @@ function homeCatSpot() {
   const rug = H.at.find(a => HOME_ITEMS[a.id].kind === 'rug'); if (!rug) return null;
   const g = homeGrid(); for (const [c, r] of tilesOf(rug)) if (g.piece[c + ',' + r] === undefined) return [c, r];
   return null;
+}
+
+// ---- cosiness ----
+// Each piece out adds a little (the third and later of the same thing count half), a style with four or more pieces out adds 5,
+// and a room that isn't Bramble's old one adds up to 13.
+const COSY_LEVELS = [['Bare', 0], ['Homely', 15], ['Snug', 35], ['Cosy', 60], ['Perfectly cosy', 90]], COSY_BONUS = [0, 2, 4, 7, 10];
+function homeCosy() {
+  if (!S.home) return 12;
+  const H = homeState(), seen = {}, styles = {}; let n = 0;
+  for (const a of H.at) {
+    const it = HOME_ITEMS[a.id], k = (seen[a.id] = (seen[a.id] || 0) + 1);
+    let p = { piece:2, rug:3, wall:2, top:1 }[it.kind] + (it.tall ? 1 : 0) + (it.light ? 1 : 0) + (it.from === 'gift' || it.from === 'fest' ? 1 : 0);
+    if (k > 2) p /= 2; n += p; if (it.style && it.from !== 'start') styles[it.style] = (styles[it.style] || 0) + 1;
+  }
+  n += 5 * Object.values(styles).filter(x => x >= 4).length;
+  n += (H.paper !== 'p_plum' ? 3 : 0) + (H.floor !== 'f_oak' ? 3 : 0) + (H.bed !== 'b_plain' ? 3 : 0) + (H.quilt !== 'q_none' ? 2 : 0) + (H.curtain !== 'c_none' ? 2 : 0);
+  return Math.round(n);
+}
+const cosyLevel = (n) => { n = n === undefined ? homeCosy() : n; let l = 0; COSY_LEVELS.forEach(([, m], i) => { if (n >= m) l = i; }); return l; };
+const cosyName = l => COSY_LEVELS[l][0];
+function cosyLine() {
+  const n = homeCosy(), l = cosyLevel(n), next = COSY_LEVELS[l + 1];
+  return `The cottage feels <b>${cosyName(l).toLowerCase()}</b>${COSY_BONUS[l] ? `: +${COSY_BONUS[l]} energy when you wake` : ''}.${next ? ` A little more and it'll be ${next[0].toLowerCase()}${COSY_BONUS[l + 1] ? ` (+${COSY_BONUS[l + 1]})` : ''}.` : ''}`;
+}
+const cosyDots = () => { const l = cosyLevel(); return `<span class="cosy">${COSY_LEVELS.slice(1).map((x, i) => `<i class="${i < l ? 'on' : ''}"></i>`).join('')}</span>`; };
+// ---- what the villagers say about the room ----
+const DECO_LIKES = { mara:'rustic', fen:'seaside', pip:'cosy', odile:'cosy', wren:'cosy', rowan:'rustic', silas:'fancy', theo:'witchy', isolde:'cosy', juno:'seaside', hettie:'witchy', aldous:'fancy', zara:'fancy', bertram:'seaside', tilly:'cosy', rosa:'cosy', corin:'seaside', marigold:'witchy' };
+const STYLE_NAME = { rustic:'good plain country things', cosy:'cushions and soft things', witchy:'proper witchy things', fancy:'fine things', seaside:'things from the sea' };
+const HOME_TALK = {
+  mara:"The lads say your cottage is the best-dressed in the valley. They're biased. They built half of it.",
+  fen:"Saw your lamp from the ferry last night. Looked warm. Good.",
+  pip:"Can I come and see your cottage? Ma says I have to be invited. Consider this me hinting.",
+  odile:"I told the class about your cottage. Now they all want a cat basket. Thank you so much.",
+  wren:"Your windows glow like a hive at dusk. I noticed on the walk home.",
+  rowan:"How's the ironwork holding up? ...Good. I'd have come and tightened it otherwise.",
+  silas:"There's a song in that cottage of yours. I can hear it from the lane.",
+  theo:"Your aunt's cottage always smelled of rosemary and smoke. I hear it still does. Good.",
+  isolde:"Is the armchair behaving? It's a bit of a flirt. Sits everyone down for hours.",
+  juno:"I'll bring you something from the deep for your shelves. Something that glows.",
+  hettie:"Bramble would weep to see the cottage so loved, dear. Then she'd move everything.",
+  aldous:"I may add your cottage to the valley's walking tour. Very tastefully. With a small plaque.",
+  zara:"Darling, a room tells the truth about a person. Yours says 'come in'.",
+  bertram:"Nothing finer than a warm room after a cold watch. You've made one.",
+  tilly:"Pip says your cat has her own BED now. Is that true? Does she have a pillow?",
+  rosa:"I deliver to every house, so I'm an expert. Yours is the cosiest. Officially.",
+  corin:"I've drawn your cottage on the map with a little smoke curl. It felt right.",
+  marigold:"I hear you've redone the cottage. Bramble never could decide on wallpaper. Neither could I."
+};
+const STYLE_TALK = { rustic:["Someone said you've good honest furniture up at the cottage. That's the best kind.", "Plain wood, well made. That's how a house should be."],
+  cosy:["I hear your cottage is all soft corners now. That's my favourite kind of room.", "A cushion on every chair, they say. Bliss."],
+  witchy:["Candles and old books, I'm told. A proper witch's cottage at last.", "Is it true you've a cabinet full of things from the Hollow? I'd love to see."],
+  fancy:["Word is the cottage has gone very fine. Good for you.", "They say you've a brass telescope. How terribly elegant."],
+  seaside:["A bit of the sea in your cottage, I heard. Very wise.", "Shells and maps, someone said. You've good taste."] };
+const homeStyleCount = st => homeState().at.filter(a => HOME_ITEMS[a.id].style === st).length;
+function homeTalk(v) {
+  const st = DECO_LIKES[v]; if (st && homeStyleCount(st) >= 2 && Math.random() < .5) return STYLE_TALK[st][(Math.random() * 2) | 0];
+  return HOME_TALK[v] || 'I hear your cottage is looking lovely.';
+}
+// ---- tea ----
+// Invite someone from their page; they come to the cottage (at 4 pm, or an hour from now if that's later) for two hours.
+const TEA_FROM = 960, TEA_LEN = 120;
+function teaSeats() {
+  const H = homeState(), g = homeGrid(); let tables = 0, seats = 0;
+  for (const a of H.at) { const d = HOME_ITEMS[a.id].d; if (d === 'rtable' || d === 'ltable') tables++; if (d === 'chair' || d === 'stool' || d === 'armchair') seats++; if (d === 'bench') seats += 2; }
+  return { tables, seats };
+}
+function teaWhy(v) {
+  if (!S.home) return 'Set out a table and two chairs in the cottage first.';
+  const { tables, seats } = teaSeats(); if (!tables || seats < 2) return 'Set out a table and two seats in the cottage first.';
+  if (heartsOf(v) < 2) return `Get to know ${VILLAGERS[v].name} a little better first.`;
+  if (v === S.spouse) return '';
+  if (S.tea && S.tea.k === dayKey()) return S.tea.v === v ? '' : `${VILLAGERS[S.tea.v].name} is coming for tea today.`;
+  if (isFestDay()) return 'Everyone is at the festival today.';
+  if (S.time >= 1200) return "It's a bit late for tea today.";
+  return '';
+}
+function teaInvite(v) {
+  if (teaWhy(v) || v === S.spouse || (S.tea && S.tea.k === dayKey())) return null;
+  const from = S.time < TEA_FROM - 60 ? TEA_FROM : Math.ceil((S.time + 60) / 30) * 30;
+  S.tea = { v, k:dayKey(), from, to:from + TEA_LEN, done:false };
+  genVisitsFix2(v);
+  return S.tea;
+}
+function genVisitsFix2(v) { if (S.visits) S.visits = S.visits.filter(x => !(x.v === v && x.to > S.tea.from)); }
+function teaWhere(v, t, d) { const q = S.tea; return q && q.v === v && d === S.day && q.k === dayKey() && t >= q.from && t < q.to ? 'tea' : null; }
+// Where the guest sits: a seat beside a table, or by the fire.
+function teaGuest() {
+  const q = S.tea; if (!q || q.k !== dayKey() || S.time < q.from || S.time >= q.to) return null;
+  const H = homeState();
+  for (const a of H.at) { const it = HOME_ITEMS[a.id]; if (!['chair', 'stool', 'armchair', 'bench'].includes(it.d)) continue;
+    if (H.at.some(b => ['rtable', 'ltable'].includes(HOME_ITEMS[b.id].d) && Math.abs(b.r - a.r) <= 1 && a.c >= b.c - 1 && a.c <= b.c + (HOME_ITEMS[b.id].w || 1))) return { v:q.v, c:a.c, r:a.r, seat:true }; }
+  return { v:q.v, c:2, r:3 };
+}
+const TEA_LINES = ['"This is lovely. I could stay all evening." They very nearly do.', 'You pour, they talk. The cat sits on their foot the whole time.', '"I always wondered what it was like in here," they admit, and look at everything twice.', 'Two cups each, the last of the biscuits, and an hour that goes by too fast.', '"Your aunt made terrible tea," they say fondly. "Yours is much better. Don\'t tell her."', 'They tell you a secret over the second cup. You promise to keep it. You will.'];
+function teaServe() {
+  const g = teaGuest(); if (!g || S.tea.done) return null;
+  const v = g.v, liked = DECO_LIKES[v] && homeStyleCount(DECO_LIKES[v]) >= 2, fr = liked ? 60 : 40;
+  S.tea.done = true; addFr(v, fr); S.time = Math.min(S.time + 60, passOut() - 10);
+  return { v, fr, line:TEA_LINES[(hash(S.day, S.season, v.length) * TEA_LINES.length) | 0] + (liked ? ` They love the ${STYLE_NAME[DECO_LIKES[v]]}.` : '') };
 }
 
 // ---- scenes ----
@@ -5664,6 +5825,8 @@ function enqueueHome(t, fromDrag) {
   if (DECO) { decoTap(t); return; }
   const sp = homeSpouse();
   if (sp && t.c === sp.c && (t.r === sp.r || t.r === sp.r - 1)) { openSheet('villager', { v:sp.v, from:'garden', mood:'love' }); return; }
+  const tg = teaGuest();
+  if (tg && t.c === tg.c && (t.r === tg.r || t.r === tg.r - 1)) { if (S.tea.done) { openSheet('villager', { v:tg.v, from:'garden', mood:'happy' }); return; } const r = teaServe(); if (r) { SND.gift(); openSheet('villager', { v:r.v, from:'garden', mood:'happy', line:r.line, gifts:[`Tea together: +${r.fr} friendship.`] }); } return; }
   if (Math.hypot(cat.x - t.c, cat.y - t.r) < .7) { toast(['The cat purrs, and pretends not to.', 'The cat opens one eye. That will do.', 'The cat rolls over. It is a trap.'][(Math.random() * 3) | 0]); return; }
   if (t.r >= 12) { if (t.c >= 3 && t.c <= 5) homeGo(HOME_DOOR[0], HOME_DOOR[1], { b:'homeout' }); return; }
   if (t.r === 0) {
@@ -5708,6 +5871,8 @@ function homeThumb(id) {
     if (it.kind === 'paper') { drawPaper(g, id, 0, 0, sz, sz, sz / 3); }
     else if (it.kind === 'boards') { for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) drawFloorTile(g, id, c * 32, r * 32, 32, c, r); }
     else if (it.kind === 'bed') drawBed(g, id, 8, 4, 40);
+    else if (it.kind === 'quilt') drawBed(g, (S.home && S.home.bed) || 'b_plain', 8, 4, 40, id);
+    else if (it.kind === 'curtain') { R(g, 26, 14, 44, 56, '#5a3d26'); R(g, 28, 16, 40, 52, '#9fd0f0'); R(g, 28, 50, 40, 18, '#5b8a37'); drawCurtain(g, id, 28, 16, 40, 52); }
     else if (it.kind === 'wall') drawPiece(g, id, 16, 34, 64, 0);
     else if (it.kind === 'top') { const u = 64 / 16; R(g, 8, 70, 80, 8, '#8a6440'); drawPiece(g, id, 16, 66 - 6 * u, 64, 0); }
     else { const T0 = Math.floor(sz / Math.max(it.w || 1, (it.h || 1) + (it.tall ? .9 : .25))); drawPiece(g, id, (sz - (it.w || 1) * T0) / 2, sz - (it.h || 1) * T0 - 2, T0, 0); }
@@ -5724,6 +5889,7 @@ function homeSheet(kind, data) {
   const H = homeState();
   if (kind === 'deco') {
     const { c, r } = data; title = 'Decorate'; lastDeco = data;
+    h += `<p class="sub">${cosyDots()} ${cosyLine()}</p>`;
     const here = homeAt(c, r);
     if (here.length) {
       h += `<h4 class="sec">Here</h4>`;
@@ -5740,24 +5906,28 @@ function homeSheet(kind, data) {
       for (const id of list) { const it = HOME_ITEMS[id], s = homeSpot(id, c, r);
         h += hrow(id, `${it.name}${homeFree(id) > 1 ? ` ×${homeFree(id)}` : ''}`, s.why ? s.why : `${sizeTxt(it)} · ${it.desc}`, `<button class="btn" data-act="decoput" data-id="${id}" data-c="${c}" data-r="${r}" type="button" ${s.why ? 'disabled' : ''}>Put here</button>`, s.why ? 'dim' : ''); }
     }
+    if (r > 0) { const crops = Object.keys(CROPS).filter(k => S.inv[k] > 0);
+      if (crops.length) { h += `<h4 class="sec">Pot a plant</h4><p class="sub">One from your basket and ${POT_COST} coins for the pot.</p>`;
+        for (const k of crops) { const id = 'pot_' + k, sp = homeSpot(id, c, r), why = sp.why || (S.coins < POT_COST ? 'Not enough coins.' : '');
+          h += hrow(id, HOME_ITEMS[id].name, why || `You have ${S.inv[k]} ${CROPS[k].name}${k === 'glow' ? ' · glows at night' : ''}`, `<button class="btn alt" data-act="decopot" data-id="${k}" data-c="${c}" data-r="${r}" type="button" ${why ? 'disabled' : ''}>Pot one here</button>`, why ? 'dim' : ''); } } }
     h += `<div class="cta-row"><button class="btn alt" data-act="decoroom" type="button">Walls, floor and bed</button><button class="btn" data-act="decodone" type="button">Done decorating</button></div>`;
   } else if (kind === 'decoroom') {
     title = 'Walls, floor and bed';
-    for (const [k, label] of [['paper', 'Walls'], ['boards', 'Floor'], ['bed', 'The bed']]) {
+    for (const [k, label] of [['paper', 'Walls'], ['boards', 'Floor'], ['bed', 'The bed'], ['quilt', 'Quilt'], ['curtain', 'Curtains']]) {
       h += `<h4 class="sec">${label}</h4>`;
-      for (const id of HIDS.filter(x => HOME_ITEMS[x].kind === k)) { const it = HOME_ITEMS[id], on = H.paper === id || H.floor === id || H.bed === id, own = homeOwn(id) > 0;
+      for (const id of HIDS.filter(x => HOME_ITEMS[x].kind === k)) { const it = HOME_ITEMS[id], on = H.paper === id || H.floor === id || H.bed === id || H.quilt === id || H.curtain === id, own = homeOwn(id) > 0;
         h += hrow(id, it.name, own ? it.desc : `From ${HOME_MAKERS[it.from].name} · ${fmt(it.cost)} coins`, on ? '<span class="meta">In use</span>' : own ? `<button class="btn" data-act="decoset" data-id="${id}" type="button">Use</button>` : '', own ? (on ? 'sel' : '') : 'dim'); }
     }
     h += `<div class="cta-row"><button class="btn alt" data-act="decoback" type="button">Back</button></div>`;
   } else if (kind === 'decoshop') {
-    const m = data.shop, M = HOME_MAKERS[m], who = m === 'mara' ? 'mara' : 'rowan';
+    const m = data.shop, M = HOME_MAKERS[m], who = m;
     title = M.name;
     h += `<div class="vhead">${portrait(who, 'happy', 64)}<div class="info"><span class="role">${VILLAGERS[who].name} · things for the cottage</span></div></div><div class="bubble">${data.line || M.hi}</div>`;
     h += `<p class="sub">You have ${fmt(S.coins)} coins. Everything is carried up to the cottage. Tap Decor inside to put it out.</p>`;
-    for (const [k, label] of [['piece', 'Furniture'], ['rug', 'Rugs'], ['top', 'For a table'], ['wall', 'For the wall'], ['paper', 'Walls'], ['boards', 'Floors'], ['bed', 'Beds']]) {
+    for (const [k, label] of [['piece', 'Furniture'], ['rug', 'Rugs'], ['top', 'For a table'], ['wall', 'For the wall'], ['paper', 'Walls'], ['boards', 'Floors'], ['bed', 'Beds'], ['quilt', 'Quilts'], ['curtain', 'Curtains']]) {
       const list = HIDS.filter(id => HOME_ITEMS[id].from === m && HOME_ITEMS[id].kind === k); if (!list.length) continue;
       h += `<h4 class="sec">${label}</h4>`;
-      for (const id of list) { const it = HOME_ITEMS[id], one = ['paper', 'boards', 'bed'].includes(k), n = homeOwn(id);
+      for (const id of list) { const it = HOME_ITEMS[id], one = HOME_ONCE.includes(k), n = homeOwn(id);
         h += hrow(id, it.name, `${fmt(it.cost)} coins · ${one ? '' : sizeTxt(it) + ' · '}${it.desc}${n ? `<span class="have">${one ? 'Yours' : `You have ${n}`}</span>` : ''}`, one && n ? '' : `<button class="btn" data-act="decobuy" data-id="${id}" data-shop="${m}" type="button" ${S.coins < it.cost ? 'disabled' : ''}>Buy · ${fmt(it.cost)}</button>`); }
     }
     h += `<div class="cta-row"><button class="btn alt" data-act="placeopen" data-id="${M.place}" type="button">Back</button><button class="btn alt" data-act="close" type="button">Close</button></div>`;
@@ -5777,14 +5947,38 @@ function homeAct(act, b) {
   if (act === 'decoback') { if (decoLast) { sheetOpen = 'deco'; renderSheet('deco', decoLast); } else closeSheet(); return true; }
   if (act === 'decodone') { closeSheet(); if (DECO) decoToggle(); return true; }
   if (act === 'decoshop') { sheetOpen = 'decoshop'; renderSheet('decoshop', { shop:id, p:'ds' + id }); return true; }
-  if (act === 'decobuy') { const m = b.dataset.shop; if (homeBuy(id)) { SND.coin(); updateHUD(); renderSheet('decoshop', { shop:m, p:'ds' + m, line:HOME_MAKERS[m].bought }); } return true; }
+  if (act === 'decobuy') { const m = b.dataset.shop;
+    if (m === 'zara') { const cur = sheetOpen === 'curios'; if ((cur || zaraAtCart()) && zaraDeco().includes(id) && homeBuy(id)) { SND.coin(); updateHUD(); toast(`Zara: "${HOME_MAKERS.zara.bought}"`); } renderSheet(cur ? 'curios' : 'place', cur ? { p:'curio' } : { p:'cart' }); return true; }
+    if (homeBuy(id)) { SND.coin(); updateHUD(); renderSheet('decoshop', { shop:m, p:'ds' + m, line:HOME_MAKERS[m].bought }); } return true; }
+  if (act === 'decopot') { const c = +b.dataset.c, r = +b.dataset.r; if (homePot(id)) { SND.plant ? SND.plant() : SND.place(); updateHUD(); if (homePut('pot_' + id, c, r)) closeSheet(); else renderSheet('deco', { c, r, p:'d' + c + ',' + r }); } return true; }
+  if (act === 'teainv') { const q = teaInvite(id); if (q) { SND.gift(); toast(`${VILLAGERS[id].name}: "Tea? I'd love to. I'll come up at ${fmtTime(q.from)}."`, 4200); } renderSheet('villager', { v:id }); return true; }
   return false;
 }
 let lastDeco = null;
+function teaBox(v, mb) {
+  if (v === S.spouse || !S.home) return '';
+  const q = S.tea && S.tea.k === dayKey() && S.tea.v === v ? S.tea : null;
+  if (q) return `<p class="sub rom">${q.done ? 'You had tea together today.' : `Coming to the cottage for tea, ${fmtTime(q.from)} to ${fmtTime(q.to)}. Tap them at the table.`}</p>`;
+  if (!mb.ok || teaWhy(v)) return '';
+  return `<div class="cta-row"><button class="btn alt" data-act="teainv" data-id="${v}" type="button">Invite round for tea</button></div>`;
+}
+// Zara brings two far-off pieces a week (the same at her cart and her shop).
+const ZARA_DECO = () => HIDS.filter(id => HOME_ITEMS[id].from === 'zara');
+function zaraDeco() {
+  const pool = ZARA_DECO().slice(), wk = Math.floor((S.day - 1) / 7);
+  for (let i = pool.length - 1; i > 0; i--) { const j = (hash(S.year * 7 + wk, S.season, i) * (i + 1)) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return pool.slice(0, 2);
+}
+function zaraDecoBox() {
+  let h = `<h4 class="sec">For the cottage</h4><p class="sub">Two far-off pieces this week. They'll be carried up to the cottage.</p>`;
+  for (const id of zaraDeco()) { const it = HOME_ITEMS[id], n = homeOwn(id);
+    h += hrow(id, it.name, `${fmt(it.cost)} coins · ${sizeTxt(it)} · ${it.desc}${n ? `<span class="have">You have ${n}</span>` : ''}`, `<button class="btn" data-act="decobuy" data-id="${id}" data-shop="zara" type="button" ${S.coins < it.cost ? 'disabled' : ''}>Buy · ${fmt(it.cost)}</button>`); }
+  return h;
+}
 // The mill and the smithy sheets offer the catalogues.
 function decoShopRow(p) {
-  const m = p === 'mill' ? 'mara' : p === 'smithy' ? 'rowan' : null; if (!m) return '';
-  return `<button class="vrow" data-act="decoshop" data-id="${m}" type="button"><div class="info"><span class="name">${HOME_MAKERS[m].name}</span><span class="meta">Furniture and things for the cottage</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+  const m = p === 'mill' ? 'mara' : p === 'smithy' ? 'rowan' : p === 'inn' ? 'isolde' : null; if (!m) return '';
+  return `<button class="vrow" data-act="decoshop" data-id="${m}" type="button"><div class="info"><span class="name">${HOME_MAKERS[m].name}</span><span class="meta">${m === 'isolde' ? 'Quilts, rugs and curtains' : 'Furniture and things'} for the cottage</span></div><span class="chev" aria-hidden="true">›</span></button>`;
 }
 
 // ---- drawing ----
@@ -5807,8 +6001,8 @@ function drawFloorTile(g, id, x, y, T0, c, r) {
   R(g, x + ((r * 7 + c * 3) % 4) * 4 * u, y, .5 * u, T0, it.col2);
 }
 // The bed, 2 × 2 tiles, head against the wall. x, y is its top-left; T0 a tile.
-function drawBed(g, id, x, y, T0) {
-  const it = HOME_ITEMS[id], u = T0 / 16, w = 2 * T0, h = 2 * T0;
+function drawBed(g, id, x, y, T0, quilt) {
+  const it0 = HOME_ITEMS[id], Q = quilt && quilt !== 'q_none' ? HOME_ITEMS[quilt] : null, it = Q ? Object.assign({}, it0, { col2:Q.col }) : it0, u = T0 / 16, w = 2 * T0, h = 2 * T0;
   g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + 2 * u, y + h - 2 * u, w - 2 * u, 3 * u);
   if (id === 'b_brass') { for (let i = 0; i < 5; i++) R(g, x + 2 * u + i * (w - 5 * u) / 4, y - 4 * u, u, 10 * u, it.col); R(g, x + 2 * u, y - 5 * u, w - 4 * u, 1.4 * u, it.col); circ(g, x + 2.5 * u, y - 5 * u, 1.6 * u, it.col); circ(g, x + w - 2.5 * u, y - 5 * u, 1.6 * u, it.col); }
   else { R(g, x + u, y - 4 * u, w - 2 * u, 9 * u, it.col); R(g, x + 2 * u, y - 3 * u, w - 4 * u, 7 * u, shade(it.col, 14)); if (id === 'b_carved') for (let i = 0; i < 6; i++) circ(g, x + (5 + i * 4.4) * u, y + .5 * u, 1.5 * u, shade(it.col, 34)); }
@@ -5816,6 +6010,7 @@ function drawBed(g, id, x, y, T0) {
   R(g, x + 2 * u, y + 5 * u, w - 4 * u, 6 * u, '#f4ead9'); g.fillStyle = '#e4d8c4'; g.beginPath(); g.ellipse(x + w / 2, y + 7.5 * u, 6 * u, 2.4 * u, 0, 0, 7); g.fill();
   R(g, x + 2 * u, y + 11 * u, w - 4 * u, h - 13 * u, it.col2); for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2) R(g, x + 2 * u + i * (w - 4 * u) / 6, y + 11 * u + j * (h - 13 * u) / 4, (w - 4 * u) / 6, (h - 13 * u) / 4, shade(it.col2, -14));
   R(g, x + 2 * u, y + 11 * u, w - 4 * u, 1.2 * u, shade(it.col2, 20));
+  if (Q && Q.col2) for (let i = 0; i < 9; i++) circ(g, x + (4 + hash(i, 1, 3) * 24) * u, y + (13 + hash(i, 2, 3) * 16) * u, (quilt === 'q_stars' ? .7 : 1) * u, Q.col2);
   if (id === 'b_brass') { R(g, x + 2 * u, y + h - 6 * u, w - 4 * u, 1.2 * u, it.col); R(g, x + 2 * u, y + h - 6 * u, u, 6 * u, it.col); R(g, x + w - 3 * u, y + h - 6 * u, u, 6 * u, it.col); }
   else R(g, x + u, y + h - 4 * u, w - 2 * u, 3 * u, it.col);
 }
@@ -5869,12 +6064,57 @@ function drawPiece(g, id, x, y, T0, f) {
   }
   if (f && it.turn) g.restore();
 }
-function drawPieceMore() {} // later parts draw more kinds here
+function drawCurtain(g, id, x, y, w, h) {
+  if (!id || id === 'c_none') return;
+  const it = HOME_ITEMS[id], u = w / 12;
+  R(g, x - 2 * u, y - 2 * u, w + 4 * u, 2.4 * u, shade(it.col, -25));
+  for (const side of [0, 1]) { const cx = side ? x + w - 3 * u : x - u; g.fillStyle = it.col; g.beginPath(); g.moveTo(cx, y); g.lineTo(cx + 4 * u, y); g.quadraticCurveTo(cx + (side ? 0 : 4) * u, y + h * .6, cx + (side ? 1 : 3) * u, y + h + u); g.lineTo(cx + (side ? 4 : 0) * u, y + h + u); g.closePath(); g.fill();
+    if (id === 'c_check') for (let k = 0; k < 4; k++) R(g, cx + .5 * u, y + k * h / 4 + u, 3 * u, .6 * u, '#f4ead9');
+    if (id === 'c_lace') for (let k = 0; k < 5; k++) circ(g, cx + 2 * u, y + (k + .5) * h / 5, .5 * u, '#d8c8b0'); }
+}
+const GEMS = ['#7fd39a', '#cdbbff', '#ff8a4a', '#5ff0d8', '#f2d36b', '#ef9aac', '#8fb8ff', '#c94a5a'];
+function drawPieceMore(g, id, x, y, T0, f, it, u, c, W0, cx) {
+  switch (it.d) {
+    case 'armchair': sh0(g, cx, y + 14 * u, 6.5 * u); R(g, cx - 6 * u, y - 3 * u, 4 * u, 15 * u, shade(c, -15)); R(g, cx - 6 * u, y + 5 * u, 12 * u, 7 * u, c); R(g, cx - 3 * u, y + 4 * u, 9 * u, 3 * u, shade(c, 18));
+      R(g, cx + 4 * u, y + 3 * u, 2.6 * u, 9 * u, shade(c, -8)); R(g, cx - 5 * u, y + 12 * u, 1.4 * u, 2 * u, '#3a2a1c'); R(g, cx + 4 * u, y + 12 * u, 1.4 * u, 2 * u, '#3a2a1c'); circ(g, cx - 4 * u, y - 3 * u, 2 * u, shade(c, -15)); break;
+    case 'bunting': g.strokeStyle = '#8a6440'; g.lineWidth = .6 * u; g.beginPath(); g.moveTo(x, y - 3 * u); g.quadraticCurveTo(cx, y + 2 * u, x + T0, y - 3 * u); g.stroke();
+      for (let k = 0; k < 5; k++) { const bx = x + (1.5 + k * 3.2) * u, by = y - 3 * u + Math.sin((k + .5) / 5 * Math.PI) * 4 * u; g.fillStyle = ['#ef9aac', '#f2d36b', '#8fb8ff', '#9fe0b0', '#cdbbff'][k]; g.beginPath(); g.moveTo(bx - 1.4 * u, by); g.lineTo(bx + 1.4 * u, by); g.lineTo(bx, by + 3.4 * u); g.fill(); } break;
+    case 'globe': sh0(g, cx, y + 14 * u, 4 * u); R(g, cx - .7 * u, y + 6 * u, 1.4 * u, 8 * u, '#5a3d26'); R(g, cx - 3.5 * u, y + 13 * u, 7 * u, 1.4 * u, '#5a3d26'); circ(g, cx, y + 2 * u, 5 * u, c); circ(g, cx - 1.5 * u, y + u, 2 * u, '#7aa05a'); circ(g, cx + 2 * u, y + 3.5 * u, 1.4 * u, '#7aa05a');
+      g.strokeStyle = '#c8a24a'; g.lineWidth = .8 * u; g.beginPath(); g.arc(cx, y + 2 * u, 6 * u, Math.PI * .6, Math.PI * 2.4); g.stroke(); break;
+    case 'screen': sh0(g, cx, y + 14.5 * u, W0 * .45); for (let k = 0; k < 3; k++) { const px = x + u + k * (W0 - 2 * u) / 3, pw = (W0 - 2 * u) / 3 - .6 * u; R(g, px, y - 12 * u, pw, 26 * u, '#2a1a1a'); R(g, px + .8 * u, y - 11 * u, pw - 1.6 * u, 24 * u, c);
+      circ(g, px + pw * .5, y - 6 * u + k * 4 * u, 1.2 * u, '#f4c8d8'); circ(g, px + pw * .3, y - 8 * u + k * 3 * u, .9 * u, '#f4c8d8'); R(g, px + pw * .45, y + 4 * u - k * u, .5 * u, 5 * u, '#f4ead9'); circ(g, px + pw * .5, y + 3.5 * u - k * u, 1 * u, '#f4ead9'); } break;
+    case 'telescope': sh0(g, cx, y + 14 * u, 4.5 * u); g.strokeStyle = '#5a3d26'; g.lineWidth = u; g.beginPath(); g.moveTo(cx, y + 2 * u); g.lineTo(cx - 4 * u, y + 14 * u); g.moveTo(cx, y + 2 * u); g.lineTo(cx + 4 * u, y + 14 * u); g.moveTo(cx, y + 2 * u); g.lineTo(cx, y + 14 * u); g.stroke();
+      g.save(); g.translate(cx, y + u); g.rotate(-.5); R(g, -6 * u, -1.4 * u, 12 * u, 2.8 * u, c); R(g, 6 * u, -1.8 * u, 2 * u, 3.6 * u, shade(c, -20)); R(g, -8 * u, -1 * u, 2 * u, 2 * u, shade(c, 20)); g.restore(); break;
+    case 'painting': R(g, x + 2 * u, y - 4 * u, T0 - 4 * u, 10 * u, '#c8a24a'); R(g, x + 3 * u, y - 3 * u, T0 - 6 * u, 8 * u, it.col2); R(g, x + 3 * u, y + 1 * u, T0 - 6 * u, 4 * u, c); g.fillStyle = '#4a3a2a'; g.beginPath(); g.moveTo(cx - 2 * u, y + 1 * u); g.lineTo(cx + 1.5 * u, y + u); g.lineTo(cx, y - 1.6 * u); g.fill(); break;
+    case 'map': R(g, x + 2.5 * u, y - 4 * u, T0 - 5 * u, 9 * u, c); g.strokeStyle = '#5a7aa0'; g.lineWidth = .7 * u; g.beginPath(); g.moveTo(x + 4 * u, y - 3 * u); g.quadraticCurveTo(x + 9 * u, y, x + 6 * u, y + 4 * u); g.stroke(); circ(g, x + 10 * u, y - u, .7 * u, '#c94a5a'); R(g, x + 11 * u, y + 2 * u, 2 * u, .5 * u, '#8a6440'); break;
+    case 'cage': R(g, cx - 3 * u, y + 5 * u, 6 * u, u, c); g.strokeStyle = c; g.lineWidth = .5 * u; for (let k = -2; k <= 2; k++) { g.beginPath(); g.moveTo(cx + k * 1.3 * u, y + 5 * u); g.quadraticCurveTo(cx + k * 1.6 * u, y - 3 * u, cx, y - 4 * u); g.stroke(); } circ(g, cx, y - 4.6 * u, .8 * u, c); circ(g, cx, y + 2 * u, 1.3 * u, '#8fcf6a'); break;
+    case 'shell': g.fillStyle = c; g.beginPath(); g.moveTo(cx - 4 * u, y + 5 * u); g.quadraticCurveTo(cx - 4 * u, y - 2 * u, cx + 2 * u, y - u); g.lineTo(cx + 4 * u, y + 5 * u); g.fill(); g.strokeStyle = shade(c, -40); g.lineWidth = .5 * u; for (let k = 0; k < 3; k++) { g.beginPath(); g.arc(cx - u, y + 3 * u, (1 + k * 1.2) * u, Math.PI, Math.PI * 1.8); g.stroke(); } break;
+    case 'garland': g.strokeStyle = '#4a8a4a'; g.lineWidth = u; g.beginPath(); g.moveTo(x + u, y - 3 * u); g.quadraticCurveTo(cx, y + 4 * u, x + T0 - u, y - 3 * u); g.stroke(); for (let k = 0; k < 7; k++) { const t = k / 6, bx = x + u + t * (T0 - 2 * u), by = y - 3 * u + Math.sin(t * Math.PI) * 3.6 * u; circ(g, bx, by, 1.3 * u, k % 2 ? '#f4ead9' : c); } break;
+    case 'lstring': g.strokeStyle = '#3a3440'; g.lineWidth = .5 * u; g.beginPath(); g.moveTo(x, y - 4 * u); g.quadraticCurveTo(cx, y + 1 * u, x + T0, y - 4 * u); g.stroke(); for (let k = 0; k < 4; k++) { const t = (k + .5) / 4, bx = x + t * T0, by = y - 4 * u + Math.sin(t * Math.PI) * 2.6 * u; R(g, bx - 1 * u, by, 2 * u, 2.6 * u, ['#f2b84b', '#ef7a8c', '#8fcf6a', '#8fb8ff'][k]); } break;
+    case 'pumpkins': sh0(g, cx, y + 14 * u, 6 * u); for (const [dx, dy, r, col] of [[-3, 11, 4, '#f08c2a'], [3, 11.5, 3.4, '#e0b040'], [0, 7, 3.2, '#c86a2a']]) { g.fillStyle = col; g.beginPath(); g.ellipse(cx + dx * u, y + dy * u, r * 1.2 * u, r * u, 0, 0, 7); g.fill(); R(g, cx + dx * u - .4 * u, y + (dy - r - 1) * u, .8 * u, 1.6 * u, '#4a6a2a'); } break;
+    case 'mobile': R(g, x + 3 * u, y - 4 * u, T0 - 6 * u, .6 * u, '#c8a24a'); for (let k = 0; k < 3; k++) { const bx = x + (4 + k * 4) * u, by = y + (k % 2 ? 1 : 3) * u; R(g, bx - .2 * u, y - 4 * u, .4 * u, by - y + 4 * u, '#c8a24a'); g.fillStyle = c; g.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, rr = (i % 2 ? .8 : 2) * u; g.lineTo(bx + Math.cos(a) * rr, by + 2 * u + Math.sin(a) * rr); } g.fill(); } break;
+    case 'cabinet': { sh0(g, cx, y + 14.5 * u, 6 * u); R(g, x + u, y - 12 * u, W0 - 2 * u, 26 * u, c); R(g, x + 2 * u, y - 11 * u, W0 - 4 * u, 20 * u, 'rgba(200,230,240,.25)'); for (let k = 0; k < 3; k++) R(g, x + 2 * u, y + (-11 + (k + 1) * 6.6) * u, W0 - 4 * u, .8 * u, shade(c, 20));
+      const n = Math.min(12, Object.keys((S && S.hollow && S.hollow.relics) || {}).length); for (let k = 0; k < n; k++) circ(g, x + (4 + (k % 4) * 2.7) * u, y + (-6.6 + Math.floor(k / 4) * 6.6) * u, 1.1 * u, GEMS[k % GEMS.length]);
+      R(g, x + 2 * u, y + 10 * u, W0 - 4 * u, 3 * u, shade(c, -15)); R(g, cx - .5 * u, y - 11 * u, u, 20 * u, shade(c, -10)); } break;
+    case 'kshelf': { R(g, x + u, y + 2 * u, T0 - 2 * u, 1.4 * u, c); R(g, x + 3 * u, y + 3.4 * u, u, 2 * u, shade(c, -25)); R(g, x + T0 - 4 * u, y + 3.4 * u, u, 2 * u, shade(c, -25));
+      const ms = Object.keys((S && S.mementos) || {}).slice(0, 6); ms.forEach((v, k) => { const col = (VILLAGERS[v] || {}).col || '#f2d36b'; R(g, x + (1.8 + k * 2.2) * u, y - (1 + (k % 2)) * u, 1.8 * u, (3 + (k % 2)) * u, col); }); if (!ms.length) circ(g, cx, y, .6 * u, '#5a3d26'); } break;
+    case 'ribbons': { R(g, x + 2 * u, y - 4 * u, T0 - 4 * u, 10 * u, '#8a6440'); R(g, x + 3 * u, y - 3 * u, T0 - 6 * u, 8 * u, '#c8a070'); const n = Math.min(9, Object.values((S && S.ribbons) || {}).reduce((a, y0) => a + y0.length, 0));
+      for (let k = 0; k < n; k++) { const bx = x + (4.5 + (k % 3) * 3.5) * u, by = y + (-1.5 + Math.floor(k / 3) * 2.6) * u; circ(g, bx, by, 1.2 * u, ['#3a6ab8', '#c94a3a', '#f2b84b'][k % 3]); circ(g, bx, by, .5 * u, '#f4ead9'); } } break;
+    case 'dummy': { sh0(g, cx, y + 14.5 * u, 4 * u); R(g, cx - .6 * u, y + 4 * u, 1.2 * u, 10 * u, '#5a3d26'); R(g, cx - 3 * u, y + 13 * u, 6 * u, 1.2 * u, '#5a3d26'); g.fillStyle = c; g.beginPath(); g.moveTo(cx - 4 * u, y - 8 * u); g.lineTo(cx + 4 * u, y - 8 * u); g.lineTo(cx + 3 * u, y + 5 * u); g.lineTo(cx - 3 * u, y + 5 * u); g.fill(); circ(g, cx, y - 9.5 * u, 1.6 * u, shade(c, -15));
+      const tr = typeof treasuresOwned === 'function' ? treasuresOwned() : [], fw = Object.keys((S && S.prizes) || {}).filter(k => FEST_WEAR[k]);
+      if (tr.includes('cloak')) { g.fillStyle = '#3a2a5a'; g.beginPath(); g.moveTo(cx - 4.5 * u, y - 7 * u); g.lineTo(cx - 6 * u, y + 6 * u); g.lineTo(cx - 3 * u, y + 5 * u); g.fill(); }
+      if (fw.length) { R(g, cx - 4 * u, y - 3 * u, 8 * u, 1.6 * u, FEST_WEAR[fw[0]].col); }
+      if (tr.length) { R(g, cx - 2.4 * u, y - 12.5 * u, 4.8 * u, 1.2 * u, '#f2d36b'); for (const dx of [-1.6, 0, 1.6]) circ(g, cx + dx * u, y - 12.8 * u, .6 * u, '#ef9aac'); } } break;
+    case 'pot': { sh0(g, cx, y + 14 * u, 4 * u); g.fillStyle = '#b8653a'; g.beginPath(); g.moveTo(cx - 4 * u, y + 8 * u); g.lineTo(cx + 4 * u, y + 8 * u); g.lineTo(cx + 3 * u, y + 14 * u); g.lineTo(cx - 3 * u, y + 14 * u); g.fill(); R(g, cx - 4.5 * u, y + 7 * u, 9 * u, 2 * u, '#c8754a');
+      for (let k = 0; k < 6; k++) { g.fillStyle = k % 2 ? '#4a8a4a' : '#5aa05a'; g.beginPath(); g.ellipse(cx + (k - 2.5) * 1.6 * u, y + (4 - Math.abs(k - 2.5) * .5) * u, 1.3 * u, 3.6 * u, (k - 2.5) * .35, 0, 7); g.fill(); }
+      for (let k = 0; k < 4; k++) circ(g, cx + (k - 1.5) * 2.2 * u, y + (1 + (k % 2) * 1.5) * u, 1.5 * u, c); } break;
+  }
+}
 // Where a light's flame is, for the night glow and the flicker.
 function homeFlame(a) {
   const it = HOME_ITEMS[a.id], u = T / 16, cx = ox + (a.c + (it.w || 1) / 2) * T, y = oy + a.r * T;
   const top = it.kind === 'top' ? homeTopY(a) * u : 0;
-  return { lantern:[cx, y - 4 * u], candles:[cx, y - 5 * u], stove:[cx, y + 4 * u], lamp:[cx, y - 1 * u + top], sticks:[cx, y - 4 * u + top] }[it.d] || [cx, y];
+  return { lantern:[cx, y - 4 * u], candles:[cx, y - 5 * u], stove:[cx, y + 4 * u], lamp:[cx, y - 1 * u + top], sticks:[cx, y - 4 * u + top], pot:[cx, y + 3 * u], lstring:[cx, oy - T * .05] }[it.d] || [cx, y];
 }
 function buildHome(g, season) {
   const u = T / 16, HM = homeState();
@@ -5892,7 +6132,7 @@ function buildHome(g, season) {
   R(g, ox + 3 * T, oy + T, 3 * T, T, '#7a7268'); for (let i = 0; i < 3; i++) R(g, ox + (3 + i) * T + u, oy + T + u, T - 2 * u, T - 2 * u, i % 2 ? '#8a8278' : '#827a70');
   // the mantel: a few of Bramble's things
   circ(g, fx + .6 * T, fy + T * .26, 2 * u, '#c8a24a'); R(g, fx + 2.2 * T, fy + T * .14, 3 * u, 4.5 * u, '#3a6a5a'); R(g, fx + 2.45 * T, fy + T * .1, 2.5 * u, 5 * u, '#7a3a4a');
-  drawBed(g, HM.bed, ox + 6 * T, oy + T, T);
+  drawBed(g, HM.bed, ox + 6 * T, oy + T, T, HM.quilt);
   // the door and its mat
   const dx = ox + HOME_DOOR[0] * T, dy = oy + HOME_DOOR[1] * T;
   R(g, ox, dy + 4 * u, COLS * T, T - 4 * u, '#3a2430'); R(g, ox, dy + 4 * u, COLS * T, 1.5 * u, '#5a3d26'); // the front wall
@@ -5923,16 +6163,18 @@ function drawHomeDynamic() {
   if (night > .3) for (let i = 0; i < 5; i++) circ(ctx, wx + hash(i, 1, 2) * ww, wy + hash(i, 2, 2) * wh * .6, .6 * u, '#f4ead9');
   if (S.rain) { ctx.strokeStyle = 'rgba(220,235,255,.7)'; ctx.lineWidth = .6 * u; ctx.beginPath(); for (let i = 0; i < 6; i++) { const yy = wy + ((clock * 40 + i * 13) % wh); ctx.moveTo(wx + (i + .5) * ww / 6, yy); ctx.lineTo(wx + (i + .5) * ww / 6 - u, yy + 3 * u); } ctx.stroke(); }
   R(ctx, wx + ww / 2 - .5 * u, wy, u, wh, '#5a3d26'); R(ctx, wx, wy + wh / 2 - .5 * u, ww, u, '#5a3d26');
+  drawCurtain(ctx, homeState().curtain, wx, wy, ww, wh);
   // the fire
   const fx = ox + 4.5 * T, fy = oy + T * .9;
   for (let i = 0; i < 5; i++) { const ph = reduceMotion ? 0 : Math.sin(clock * 7 + i * 1.7), hh = (5 + i % 3 * 2 + ph * 1.5) * u; ctx.fillStyle = ['#ff6a2a', '#ffa04a', '#ffd06a', '#ffa04a', '#ff6a2a'][i]; ctx.beginPath(); ctx.moveTo(fx + (i - 2.5) * 3 * u, fy); ctx.lineTo(fx + (i - 2) * 3 * u, fy); ctx.lineTo(fx + (i - 2.25) * 3 * u + ph * .5 * u, fy - hh); ctx.fill(); }
   R(ctx, fx - 7 * u, fy - u, 14 * u, 2 * u, '#5a3d26');
   // candle flames
-  for (const a of homeState().at) if (HOME_ITEMS[a.id].light && HOME_ITEMS[a.id].d !== 'stove') { const [x, y] = homeFlame(a), ph = reduceMotion ? 0 : Math.sin(clock * 9 + a.c * 3 + a.r) * .4 * u;
+  for (const a of homeState().at) if (HOME_ITEMS[a.id].light && !['stove', 'pot', 'lstring'].includes(HOME_ITEMS[a.id].d)) { const [x, y] = homeFlame(a), ph = reduceMotion ? 0 : Math.sin(clock * 9 + a.c * 3 + a.r) * .4 * u;
     if (HOME_ITEMS[a.id].d === 'candles') for (const dx of [-3.7, .2, 4.3]) circ(ctx, x + dx * u, y + (dx === .2 ? -.6 : 1.5) * u + ph, 1 * u, '#ffd06a');
     else if (HOME_ITEMS[a.id].d === 'sticks') for (const dx of [-3, 3]) circ(ctx, x + dx * u, y + ph, 1 * u, '#ffd06a');
     else if (HOME_ITEMS[a.id].d !== 'lamp') circ(ctx, x, y + ph, 1.3 * u, '#ffe08a'); }
   const sp = homeSpouse(); if (sp) drawShopper({ v:sp.v, x:sp.c, y:sp.r, st:'helper' });
+  const tg = teaGuest(); if (tg) drawShopper({ v:tg.v, x:tg.c, y:tg.r - (tg.seat ? .15 : 0), st:'helper' }); if (tg && !S.tea.done) { const bx = ox + (tg.c + .5) * T + 6 * u, by = oy + (tg.r - .45) * T - (reduceMotion ? 0 : Math.abs(Math.sin(clock * 3)) * u); circ(ctx, bx, by, 3.4 * u, '#f4ead9'); R(ctx, bx - 1.6 * u, by - .6 * u, 3.2 * u, 2.4 * u, '#c87a8a'); R(ctx, bx + 1.6 * u, by, .8 * u, 1.2 * u, '#c87a8a'); }
   if (DECO && DECO.lift !== null) { const a = homeState().at[DECO.lift]; if (a) { const it = HOME_ITEMS[a.id], y0 = it.kind === 'wall' ? oy - T * .3 : oy + a.r * T; ctx.strokeStyle = '#f2b84b'; ctx.lineWidth = Math.max(2, u); ctx.setLineDash([u * 2, u * 1.5]); ctx.strokeRect(ox + a.c * T + u, y0 + u, (it.w || 1) * T - 2 * u, (it.kind === 'wall' ? T * 1.1 : (it.h || 1) * T) - 2 * u); ctx.setLineDash([]); } }
 }
 function homeTopY(a) { const s = homeGrid().piece[a.c + ',' + a.r]; return s === undefined ? 0 : (SURF_Y[HOME_ITEMS[homeState().at[s].id].d] || 0); }
@@ -6872,6 +7114,7 @@ function shopSheet(kind, data) {
     h += `<div class="vhead">${portrait('zara', 'happy', 64)}<div class="info"><span class="role">Zara's shop, open every day</span></div></div><div class="bubble">${marketDay() ? "I'm out at the cart today, darling, but the shop's the same stock. Leave the coins in the honesty box." : 'Roots, darling. Little portable ones. Have a browse.'}</div><p class="sub">The same things as her cart, every day. What you buy here or at the cart comes out of the same stock.</p>`;
     for (const w of cartStock()) { const it = ITEMS[w.id];
       h += row(it.col, it.name, `${fmt(w.price)} coins · have ${S.inv[w.id] || 0}${w.left ? ` · ${w.left} left` : ''}`, w.left ? `<button class="btn" data-act="curiobuy" data-id="${w.id}" type="button" ${S.coins < w.price ? 'disabled' : ''}>Buy · ${fmt(w.price)}</button>` : '<span class="meta">Sold out</span>', w.left ? '' : 'dim'); }
+    h += zaraDecoBox();
     h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
   } else if (kind === 'buyer') {
     const bid = buyerToday(), B = BUYERS[bid] || { name:'A traveller', line:'Ah, I\'ve missed my chance. Another day!', label:'things' }, d = shopDay(), left = bid ? BUYER_MAX - (d.buyerGot || 0) : 0;
@@ -9077,6 +9320,7 @@ function renderSheet(kind, data) {
     if (S.almanac) h += `<li class="gold">The almanac says tomorrow will be ${S.nextRain ? 'rainy' : 'dry'}.</li>`;
     if (S.spouse) h += `<li>${VILLAGERS[S.spouse].name} has left the lamp on for you.</li>`;
     if (S.wedding && !S.spouse && S.wedding.at === absDay() + 1) h += `<li class="gold">Tomorrow is your wedding day.</li>`;
+    if (S.home) h += `<li>${cosyLine()}</li>`;
     h += `<li>You'll wake at 6:00 am with full energy.</li></ul>`;
     h += `<div class="cta-row"><button class="btn" data-act="sleep" type="button">Sleep</button><button class="btn alt" data-act="close" type="button">Not yet</button></div>${S.scene === 'farm' ? '<button class="btn alt" data-act="gohome" type="button">Go inside the cottage</button>' : ''}<button class="btn alt" data-act="mirror" type="button">Look in the mirror</button>${S.hollowMax || Object.keys(S.mementos || {}).length ? `<button class="btn alt" data-act="relics" type="button">The relic shelf${Object.keys(HS().relics || {}).length ? ` (${Object.keys(HS().relics).length})` : ''}</button>` : ''}<button class="btn alt" data-act="backup" type="button">Back up my save</button><button class="btn alt" data-act="clockopen" type="button">Clock speed</button>${S.hew && S.hew.met && !S.hew.wed ? `<button class="btn alt" data-act="hewease" type="button">Hew's curses: ${S.hew.ease ? 'eased (no effects)' : 'on'}</button>` : ''}<p class="build">${buildLabel()}</p>`;
   } else if (kind === 'clock') {
@@ -9152,6 +9396,7 @@ function renderSheet(kind, data) {
     if (!mb.ok) { if (mb.seek) h += `<div class="cta-row"><button class="btn" data-act="seek" data-id="${v}" type="button">${mb.seek}</button></div>`; }
     else h += `<div class="cta-row"><button class="btn" data-act="talk" data-id="${v}" type="button" ${talked ? 'disabled' : ''}>${talked ? 'Chatted today' : 'Chat'}</button><button class="btn alt" data-act="vgift" data-id="${v}" type="button" ${gifted || !anyItem ? 'disabled' : ''}>${gifted ? 'Gift given today' : (anyItem ? 'Give a gift' : 'Nothing to give')}</button></div>`;
     if (v === 'zara' && mb.ok && zaraAtCart()) h += `<div class="cta-row"><button class="btn alt" data-act="placeopen" data-id="cart" type="button">See her wares</button></div>`;
+    h += teaBox(v, mb);
     for (const id of questsFor(v)) h += questCard(id, v);
     h += notebook(v);
     const rb = romanceBox(v);
@@ -9205,7 +9450,7 @@ function renderSheet(kind, data) {
       h += `<article class="card fest"><h4>${E.name}</h4><p class="sub">${on ? `It's on now, until ${fmtTime(E.to)}. Everyone here will be glad to see you.` : (S.time < E.from ? `It starts at ${fmtTime(E.from)}.` : "It's over for this year.")}</p>${on ? `<div class="foot"><span class="due">Joining takes a couple of hours.</span><button class="btn" data-act="evjoin" type="button" style="margin-left:auto">Join in</button></div>` : ''}</article>`; } }
     h += matchCard(p);
     for (const id of questsAt(p)) h += questCard(id);
-    if (p === 'cart') h += cartWares();
+    if (p === 'cart') { h += cartWares(); if (zaraAtCart()) h += zaraDecoBox(); }
     h += decoShopRow(p);
     if (rowPlace(p)) h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
     const here = rowPlace(p) ? null : folkAt(p);

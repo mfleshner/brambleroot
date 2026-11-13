@@ -72,7 +72,7 @@ t.openSheet('decoroom', {}); ok(/In use/.test(body()) && /Midnight stars/.test(b
 t.buildStatic(); t.draw(); ok(/p_stars/.test(t.bgKeyNow()) && /b_brass/.test(t.bgKeyNow()), 'key follows the room');
 t.decoToggle(); ok(!t.DECO, 'done');
 // the makers' sheets, from the mill and the smithy
-ok(/decoshop/.test(t.decoShopRow('mill')) && /decoshop/.test(t.decoShopRow('smithy')) && t.decoShopRow('inn') === '', 'catalogue rows on the mill and smithy');
+ok(/decoshop/.test(t.decoShopRow('mill')) && /decoshop/.test(t.decoShopRow('smithy')) && t.decoShopRow('square') === '', 'catalogue rows on the mill and smithy');
 t.openSheet('decoshop', { shop:'mara' }); { const m = body().match(/.{80}(undefined|NaN).{40}/); if (m) console.log(m[0]); } ok(/Kitchen dresser/.test(body()) && /Yours/.test(body()) && clean(body()), "Mara's sheet"); close();
 t.openSheet('decoshop', { shop:'rowan' }); ok(/Wood stove/.test(body()) && /Brass bed/.test(body()) && clean(body()), "Rowan's sheet"); close();
 ok(t.HIDS.filter(id => t.HOME_ITEMS[id].from === 'mara').length >= 20 && t.HIDS.filter(id => t.HOME_ITEMS[id].from === 'rowan').length >= 9, 'about 30 pieces to buy');

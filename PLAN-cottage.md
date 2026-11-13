@@ -67,7 +67,8 @@ Pieces sit in **styles** (Rustic, Witchy, Cosy, Fancy, Seaside, Seasonal) for vi
 - State `S.home = homeState()` (null in `newState`, filled at use; no migrate).
 - Tests: `hometest.js` (headless: fit rules, the path from the door always clear, move/turn/put-away, counts, saves and old saves), `homephone.js` (iPhone 13 and Pixel 7 by tapping: Sleep sheet → inside → buy at the mill → place → move → put away → sleep from the bed, + screenshots).
 
-### Part 2: Filling it up
+### Part 2: Filling it up (shipped Nov 12, 2026)
+- As built: Isolde sells an armchair, three rugs, bunting, four quilts and three curtains (quilts and curtains are new room kinds); Zara's two pieces a week show at her cart and in her Curios; the cosiness bonus lands on top of full energy, like a spouse's help; tea guests stay for the two hours and can be chatted to after tea.
 - Isolde's linens, Zara's rotating pieces, festival prize pieces, potted plants from her own crops.
 - The relic cabinet, keepsake mantel, ribbon board and treasure stand.
 - Cosiness and the morning bonus; villager comments; tea.

@@ -12,7 +12,7 @@ function run(season,start,o){
   for(let d=1; d<=DAYS; d++){
     for(const p of plots){ if(p.ready<=d && !p.done){ const c=C[p.c]; const n=(c.yield||1)*(p.b?2:1); p.b=false; coins+=c.sell*n; earned+=c.sell*n; if(c.regrow) p.ready=d+c.regrow; else p.done=true; } }
     plots=plots.filter(p=>!p.done);
-    let energy=100*o.eff + (o.spells?30:0);
+    let energy=100*o.eff + (o.spells?30:0) + (o.cosy||0);
     let mana=o.spells?o.mana:0;
     const rain=o.spells && mana>=o.rainCost; if(rain) mana-=o.rainCost;
     if(!rain) energy-=plots.filter(p=>!C[p.c].noWater).length;
@@ -40,6 +40,8 @@ for(const [s,st] of rows){
     console.log(s.padEnd(7),'  whole-season curses: Sluggard Hex',String(Math.round((slow/base0-1)*100))+'%',"| Haggler's",String(Math.round((cheap/base0-1)*100))+'%','| Hidden Wood',String(Math.round((few/base0-1)*100))+'%'); }
   if(cfg.fest){ const sim=o=>s==='spring'?run(s,st,{...cfg,...o,eff:1,forage:true,spells:false}):run(s,st,{...cfg,...o,eff:1,forage:true,spells:true}); const b0=sim({}), all=sim({fest:1}), half=sim({fest:1,festPlant:.5});
     console.log(s.padEnd(7),'  festival day at the fair: whole day',String(Math.round((all/b0-1)*1000)/10)+'%','| morning chores only, half the energy',String(Math.round((half/b0-1)*1000)/10)+'%'); }
+  if(cfg.cosy){ const sim=(o,e)=>s==='spring'?run(s,st,{...cfg,...o,eff:e,forage:true,spells:false}):run(s,st,{...cfg,...o,eff:e,forage:true,spells:true}); const c0=sim({cosy:0},1), c1=sim({},1), r0=sim({cosy:0},.6), r1=sim({},.6);
+    console.log(s.padEnd(7),`  cosy cottage (+${cfg.cosy} energy a morning): good`,String(Math.round((c1/c0-1)*1000)/10)+'%','| relaxed',String(Math.round((r1/r0-1)*1000)/10)+'%'); }
   if(cfg.cookE){ const ck=run(s,st,{...cfg,eff:1+cfg.cookE/100,forage:true,spells:s!=='spring'})-28*cfg.cookK; console.log(s.padEnd(7),`  cooking (+${cfg.cookE} energy/day for ${cfg.cookK} coins/day):`,String(ck).padStart(6),' (+'+Math.round((ck/spF-1)*100)+'% over Wood'+(s==='spring'?'':' + spells')+')'); }
   console.log(s.padEnd(7),'farm only good/relaxed:',String(f).padStart(6),String(fr).padStart(6),' | with Wood'+(s==='spring'?'':' + spells')+' good/relaxed:',String(spF).padStart(6),String(allr).padStart(6), ' (+'+Math.round((spF/f-1)*100)+'%)');
 }
