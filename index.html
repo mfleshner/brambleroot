@@ -131,6 +131,7 @@ h4.band{margin:16px 0 8px;font-family:var(--display);font-weight:400;font-size:2
 .row .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .row .name{font-weight:700;font-size:15px}
 .row .meta{font-size:12.5px;color:var(--muted);line-height:1.35}
+.row .have{display:block;font-weight:700;color:var(--gold)}
 .row .acts{display:flex;gap:6px;flex:none}
 .row.sel{border-color:var(--gold)}
 .row.dim{opacity:.55}
@@ -321,15 +322,42 @@ const POTIONS = {
   ward:     { name:"Wolf's Ward",     need:{ wolf:2 },          sell:210, col:'#8f80ff' },
   frostel:  { name:'Frost Elixir',    need:{ frost:3 },         sell:330, col:'#a8e6ff' }
 };
+// when: 'night' bites only from 7 pm, 'rain' only in rain or snow, 'morn' only before 10 am. rare: only on a real cast,
+// never from gifts, requests or orders. Easier reel (Nov 12, 2026): see cast().
 const FISH = {
-  minnow:   { name:'Minnow',       sell:15,  seasons:[0,1,2,3], diff:0, w:5, col:'#9fb6c4' },
-  trout:    { name:'Spring Trout', sell:50,  seasons:[0], diff:1, w:3, col:'#d6a3be' },
-  sunfish:  { name:'Sunfish',      sell:55,  seasons:[1], diff:1, w:3, col:'#f2c04b' },
-  perch:    { name:'Copper Perch', sell:45,  seasons:[2], diff:1, w:3, col:'#d0783a' },
-  mudcat:   { name:'Mudcat',       sell:75,  seasons:[2,3], diff:1, w:2, col:'#9a8a6a' },
-  iceperch: { name:'Ice Perch',    sell:70,  seasons:[3], diff:1, w:3, col:'#bfe6ff' },
-  moonfish: { name:'Moonfish',     sell:180, seasons:[0,1,2,3], diff:2, w:.6, col:'#d8d0ff' }
+  minnow:   { name:'Minnow',          sell:15,  seasons:[0,1,2,3], diff:0, w:7, col:'#9fb6c4' },
+  loach:    { name:'Whiskered Loach', sell:18,  seasons:[0,1,2,3], diff:0, w:4, col:'#8a7a5a' },
+  trout:    { name:'Spring Trout',    sell:50,  seasons:[0], diff:1, w:3, col:'#d6a3be' },
+  bluegill: { name:'Bluegill',        sell:20,  seasons:[0,1], diff:0, w:5, col:'#6f9ccc' },
+  smelt:    { name:'Dawn Smelt',      sell:28,  seasons:[0], diff:0, w:4, col:'#efe2c2', when:'morn' },
+  blossom:  { name:'Blossom Carp',    sell:45,  seasons:[0], diff:1, w:2, col:'#f0a8c0' },
+  rainloach:{ name:'Rain Loach',      sell:45,  seasons:[0,2], diff:1, w:3, col:'#7f9a86', when:'rain' },
+  pike:     { name:'Shadow Pike',     sell:90, seasons:[0,1], diff:2, w:0.5, col:'#4f6070' },
+  sunfish:  { name:'Sunfish',         sell:55,  seasons:[1], diff:1, w:3, col:'#f2c04b' },
+  bream:    { name:'Speckled Bream',  sell:22,  seasons:[1,2], diff:0, w:4, col:'#c8b08a' },
+  goldfin:  { name:'Goldfin Carp',    sell:45,  seasons:[1], diff:1, w:2, col:'#f2a03a' },
+  fireeel:  { name:'Firefly Eel',     sell:70,  seasons:[1], diff:2, w:2, col:'#c8f06a', when:'night' },
+  koi:      { name:'Lily Koi',        sell:110, seasons:[1], diff:2, w:0.5, col:'#ff8a6a' },
+  perch:    { name:'Copper Perch',    sell:45,  seasons:[2], diff:1, w:3, col:'#d0783a' },
+  chub:     { name:'Acorn Chub',      sell:20,  seasons:[2], diff:0, w:4, col:'#a8783a' },
+  emberbass:{ name:'Ember Bass',      sell:55,  seasons:[2], diff:1, w:2, col:'#c8502a' },
+  salmon:   { name:'Harvest Salmon',  sell:90, seasons:[2], diff:2, w:0.6, col:'#e87a5a' },
+  mudcat:   { name:'Mudcat',          sell:75,  seasons:[2,3], diff:1, w:2, col:'#9a8a6a' },
+  fogfish:  { name:'Fogfish',         sell:48,  seasons:[2,3], diff:1, w:3, col:'#c4c9d2', when:'rain' },
+  iceperch: { name:'Ice Perch',       sell:70,  seasons:[3], diff:1, w:3, col:'#bfe6ff' },
+  frostmin: { name:'Frost Minnow',    sell:18,  seasons:[3], diff:0, w:5, col:'#d8f0ff' },
+  snowchar: { name:'Snow Char',       sell:58,  seasons:[3], diff:1, w:2, col:'#e6ecf2' },
+  glasseel: { name:'Glass Eel',       sell:75,  seasons:[3], diff:2, w:1.5, col:'#bfe0ea', when:'night' },
+  aurora:   { name:'Aurora Trout',    sell:115, seasons:[3], diff:2, w:0.5, col:'#9fe0c8' },
+  moonfish: { name:'Moonfish',        sell:180, seasons:[0,1,2,3], diff:2, w:.6, col:'#d8d0ff' },
+  starscale:{ name:'Starscale',       sell:420, seasons:[0,1,2,3], diff:2, w:0.15, col:'#fff1a8', when:'night', rare:true },
+  bramble:  { name:'Old Bramblejaw',  sell:500, seasons:[0,1,2,3], diff:2, w:0.08, col:'#7a4a6a', rare:true }
 };
+// Fish you can always find by fishing in its season, any hour and any weather (requests and orders only ask for these).
+const plainFish = id => !FISH[id].when && !FISH[id].rare && id !== 'moonfish';
+const FISH_NOTES = { smelt:'Bites only in the early morning, before 10.', rainloach:'Bites only on rainy days.', fogfish:'Bites only on rainy or snowy days.',
+  fireeel:'Bites only at night, from 7 pm.', glasseel:'Bites only at night, from 7 pm.', starscale:'Bites only at night, in any season, and very rarely.',
+  bramble:"Your aunt's old nemesis. Any season, any hour, but hardly ever.", moonfish:'Bites any season, but much more at night.' };
 const MISC = {
   honey:     { name:'Wildflower Honey', sell:60,  col:'#f2b84b' },
   starshard: { name:'Starshard',        sell:250, col:'#fff1a8' }
@@ -1820,7 +1848,7 @@ function oddPool() {
   const pool = [];
   for (const id of Object.keys(CROPS)) if (seedForSale(id) && inSeason(id)) pool.push(id);
   for (const id of Object.keys(POTIONS)) if (!POTIONS[id].wild && potionKnown(id) && Object.keys(POTIONS[id].need).every(k => inSeason(k) || S.greenhouse)) pool.push(id);
-  if (S.rod) for (const id of Object.keys(FISH)) if (FISH[id].seasons.includes(S.season) && id !== 'moonfish') pool.push(id);
+  if (S.rod) for (const id of Object.keys(FISH)) if (FISH[id].seasons.includes(S.season) && plainFish(id)) pool.push(id);
   if (S.hives && S.season !== 3) pool.push('honey');
   for (const id of Object.keys(FORAGE)) if (FORAGE[id].seasons.includes(S.season) && !FORAGE[id].rare && !FORAGE[id].grove && ((S.found || {})[id] || 0) > 0) pool.push(id);
   return pool;
@@ -1968,7 +1996,7 @@ function romanceBox(v) {
   if (S.dating) return { note:h >= 8 ? `You're seeing ${partnerName()}. If your heart has moved on, have a kind word with them first.` : '', acts:'' };
   if (h < 8) return { note:`${V.name} could be more than a friend. At 8 hearts, a Moonpetal Bouquet from the Market asks them out.`, acts:'' };
   if (!has('bouquet')) return { note:`${V.name} is at 8 hearts. Buy a Moonpetal Bouquet at the Market (${BOUQUET_COST} coins) and give it to ask them out.`, acts:'' };
-  return { note:`${V.name} is at 8 hearts, and you have a Moonpetal Bouquet.`, acts:`<button class="btn" data-act="bouquet" data-id="${v}" type="button" ${canMeet(v) ? '' : 'disabled'}>Give the bouquet</button>` };
+  return { note:`${V.name} is at 8 hearts, and you have a Moonpetal Bouquet.`, acts:`<button class="btn" data-act="bouqask" data-id="${v}" type="button" ${canMeet(v) ? '' : 'disabled'}>Give the bouquet</button>` };
 }
 // Married life: about 60% of mornings the spouse helps, each in their own way.
 const SPOUSE_HELP_P = .6;
@@ -2008,7 +2036,7 @@ function romanceScene(v, title, text, extra) {
 }
 function giveBouquet(v) {
   if (!canRomance(v) || S.dating || S.spouse || S.wedding || heartsOf(v) < 8 || !(S.inv.bouquet > 0) || !inValley(v)) return;
-  S.inv.bouquet--; S.dating = v;
+  S.inv.bouquet--; S.dating = v; S.datingAt = absDay();
   romanceScene(v, `${VILLAGERS[v].name} · dating`, ROMANCE[v].yes, [`You're dating ${VILLAGERS[v].name}. Hearts 9 and 10 are open now.`]);
 }
 
@@ -2119,10 +2147,15 @@ function bffBox(v) {
   if (!has) return { note:`At 8 hearts, a Friendship Bracelet from the Market (${BRACELET_COST} coins) makes ${V.name} your best friend.`, acts:'' };
   return { note:`${V.name} is at 8 hearts, and you have a Friendship Bracelet.`, acts:`<button class="btn alt" data-act="bracelet" data-id="${v}" type="button" ${canMeet(v) ? '' : 'disabled'}>Give the friendship bracelet</button>` };
 }
+const BOUQUET_BACK = 7;
+const bouquetBack = () => !!S.dating && (S.datingAt == null || absDay() - S.datingAt <= BOUQUET_BACK);
 function kindGoodbye(v) {
   if (S.dating !== v || S.wedding) return;
-  S.dating = null; // friendship points are kept; hearts 9 and 10 simply lock again
-  romanceScene(v, `${VILLAGERS[v].name} · a kind word`, ROMANCE[v].bye, ['You part as friends. No friendship lost.']);
+  // A bouquet given by mistake: within BOUQUET_BACK days they hand it back (saves from before S.datingAt count as recent).
+  const back = bouquetBack();
+  S.dating = null; S.datingAt = null; // friendship points are kept; hearts 9 and 10 simply lock again
+  if (back) S.inv.bouquet = (S.inv.bouquet || 0) + 1;
+  romanceScene(v, `${VILLAGERS[v].name} · a kind word`, ROMANCE[v].bye, ['You part as friends. No friendship lost.'].concat(back ? [`${VILLAGERS[v].name} hands the Moonpetal Bouquet back with a small smile. "Give it to whoever it was really meant for."`] : []));
 }
 function propose(v) {
   if (S.dating !== v || S.wedding || heartsOf(v) < 10 || !(S.inv.ring > 0) || !inValley(v)) return;
@@ -5836,7 +5869,7 @@ function orderPool() {
   const crops = Object.keys(CROPS).filter(k => CROPS[k].seasons.includes(sn));
   return {
     crop:crops,
-    fish:Object.keys(FISH).filter(k => inSn(FISH[k]) && k !== 'moonfish'),
+    fish:Object.keys(FISH).filter(k => inSn(FISH[k]) && plainFish(k)),
     forage:Object.keys(FORAGE).filter(k => inSn(FORAGE[k]) && !FORAGE[k].grove),
     potion:Object.keys(POTIONS).filter(k => !POTIONS[k].wild && Object.keys(POTIONS[k].need).every(x => crops.includes(x)))
   };
@@ -6678,6 +6711,10 @@ const DUEL_SPELLS = {
 const DUEL_HINT = 'Water puts out fire, earth stops a wave, wind blows away rock, and fire burns through wind.';
 const DUEL_NAMES = { fire:'Fire', water:'Water', earth:'Earth', wind:'Wind' };
 const hewDuelOpen = () => { const H = HW(); return H.dating && !H.wed && hewHearts() >= 10 && !H.duel; };
+// Stay friends with Hew (dating, not yet married): he keeps his hearts, 9 and 10 lock again, and within BOUQUET_BACK
+// days of the bouquet (or on a save from before H.datingAt) he hands it back.
+const hewBouquetBack = () => { const H = HW(); return H.dating && (H.datingAt == null || absDay() - H.datingAt <= BOUQUET_BACK); };
+function hewBye() { const H = HW(); if (!H.dating || H.wed) return null; const back = hewBouquetBack(); H.dating = false; H.datingAt = null; if (back) S.inv.bouquet = (S.inv.bouquet || 0) + 1; return back; }
 const hewDateReady = () => { const H = HW(); return !H.dating && !H.wed && !hewTaken() && hewHearts() >= 8 && H.broken >= 4; };
 function hewMorning(lines, send) {
   if (!hewArrived()) return;
@@ -6736,7 +6773,7 @@ function hewTalk() {
 }
 function hewGift(id) {
   const H = HW(); if (!(S.inv[id] > 0)) return null;
-  if (id === 'bouquet') { if (!hewDateReady()) return null; S.inv.bouquet--; H.dating = true; addHew(50); return 'date'; }
+  if (id === 'bouquet') { if (!hewDateReady()) return null; S.inv.bouquet--; H.dating = true; H.datingAt = absDay(); addHew(50); return 'date'; }
   if (id === 'ring') { if (!H.dating || H.wed || !H.duel || hewHearts() < 10) return null; S.inv.ring--; H.wed = true; H.wedDay = { y:S.year, s:S.season, d:S.day }; return 'wed'; }
   if (H.gifted === dayKey()) return 'once';
   H.gifted = dayKey(); S.inv[id]--;
@@ -6830,7 +6867,7 @@ UPGRADES.can3 = { name:'Gold watering can', desc:'Holds 120 waterings.', cost:80
 VILLAGERS.fen.likes.push('shell', 'ironshell'); VILLAGERS.pip.likes.push('jelly', 'bounce'); VILLAGERS.odile.likes.push('crystal');
 VILLAGERS.theo.likes.push('spore', 'sporebrew'); VILLAGERS.zara.likes.push('prism', 'prismel'); VILLAGERS.juno.likes.push('prismel');
 VILLAGERS.juno.likes.push('pearl', 'pearlbalm'); VILLAGERS.hettie.likes.push('heartwood', 'roottonic'); VILLAGERS.rowan.likes.push('emberglass', 'embercord'); VILLAGERS.bertram.likes.push('rime', 'rimetea');
-VILLAGERS.isolde.likes.push('risotto'); VILLAGERS.juno.likes.push('troutsup'); VILLAGERS.silas.likes.push('melonice');
+VILLAGERS.isolde.likes.push('risotto'); VILLAGERS.juno.likes.push('troutsup', 'goldfin', 'snowchar'); VILLAGERS.fen.likes.push('pike', 'salmon'); VILLAGERS.silas.likes.push('melonice');
 VILLAGERS.aldous.likes.push('oldcoin', 'gildtonic'); VILLAGERS.odile.likes.push('stardust', 'dustel'); VILLAGERS.fen.likes.push('heartstone', 'heartcord');
 // Every creature is still "tap to throw a Firebolt". Each has one body shape (drawn by drawMob) and at most one trait:
 // hops, zigzags, slow, sleepy (dozes until she's close or it's hit), hides (only hittable while it glows),
@@ -7671,7 +7708,7 @@ const HEART_QUESTS = {
     steps:[
       { v:'fen', btn:'Ask about the map', hint:'Old Fen has been muttering about a map. Ask him.',
         text:`Fen unrolls a sheet of old sailcloth across the ferry bench. It's blank. "Sixty years I've known this river, and it's all up here." He taps his head. "Heads don't last. Cloth does. I want to write her down: every pool, every eddy, where the fish sit when. For whoever comes next." He looks at you sideways. "Bring me two fish, and I'll show you where each kind bites."` },
-      { v:'fen', give:{ pick:['minnow', 'trout', 'sunfish', 'perch', 'mudcat', 'iceperch', 'moonfish'], n:2 }, btn:'Give Fen 2 fish', hint:'Bring Old Fen 2 fish from the river, so he can mark where each kind bites.',
+      { v:'fen', give:{ pick:Object.keys(FISH), n:2 }, btn:'Give Fen 2 fish', hint:'Bring Old Fen 2 fish from the river, so he can mark where each kind bites.',
         text:`Fen turns each fish over and marks the cloth: a trout under the willows, a perch by the old mooring, a circle round the deep pool with a question mark. "That's Juno's water," he says. "Divers know the bottom. Ferrymen only know the top. Ask her what's down there."` },
       { v:'juno', btn:'Ask about the deep pools', hint:'Ask Juno what lies at the bottom of the river.',
         text:`Juno draws on your hand with a stick of charcoal, too fast to follow: the sunken cart, the cold spring, the eel's hole, the place where the river bed glitters. "Don't let Fen draw the eel too big," she says. "He always does. It's a perfectly normal eel."` },
@@ -8185,14 +8222,19 @@ function evCalLine(id) {
 
 /* ================= fishing ================= */
 let fishing = null, fishRAF = 0;
-function pickFish() {
-  const night = S.time >= 1140 || S.time < 400;
-  const opts = Object.entries(FISH).filter(([, f]) => f.seasons.includes(S.season));
-  const tot = opts.reduce((a, [id, f]) => a + (id === 'moonfish' ? (night ? 2 : f.w) : f.w), 0);
+function fishOk(id, night, wet, morn) { const f = FISH[id]; return !(f.when === 'night' && !night || f.when === 'rain' && !wet || f.when === 'morn' && !morn); }
+// realCast: a cast at the pond. Gifts (the cat, Fen, Juno) never bring the rare legends.
+function pickFish(realCast) {
+  const night = S.time >= 1140 || S.time < 400, wet = !!(S.rain || S.snow), morn = S.time < 600;
+  const opts = Object.entries(FISH).filter(([id, f]) => f.seasons.includes(S.season) && fishOk(id, night, wet, morn) && (realCast || !f.rare));
+  const wt = (id, f) => id === 'moonfish' ? (night ? 2 : f.w) : f.w;
+  const tot = opts.reduce((a, [id, f]) => a + wt(id, f), 0);
   let r = Math.random() * tot;
-  for (const [id, f] of opts) { r -= id === 'moonfish' ? (night ? 2 : f.w) : f.w; if (r <= 0) return id; }
+  for (const [id, f] of opts) { r -= wt(id, f); if (r <= 0) return id; }
   return 'minnow';
 }
+// Reel sizes by difficulty: the green zone, the marker's speed, and a little forgiveness either side of the zone.
+const REEL_ZONE = [.42, .3, .2], REEL_SPEED = [.55, .75, 1], REEL_GRACE = .03, REEL_WAIT = 12000;
 function cast() {
   if (S.energy < 3) { fishing = { phase:'msg', msg:'Too tired to fish. Sleep first.' }; renderSheet('fish'); return; }
   S.energy -= 3; S.time += 20; updateHUD();
@@ -8200,8 +8242,8 @@ function cast() {
   const delay = 700 + Math.random() * 1500;
   fishing.timer = setTimeout(() => {
     if (!fishing || fishing.phase !== 'wait') return;
-    const id = pickFish(), f = FISH[id];
-    const zw = [.32, .2, .11][f.diff] * (curseOn('shyfish') ? .7 : 1), speed = [.9, 1.3, 1.8][f.diff];
+    const id = pickFish(true), f = FISH[id];
+    const zw = REEL_ZONE[f.diff] * (curseOn('shyfish') ? .7 : 1), speed = REEL_SPEED[f.diff];
     fishing = { phase:'reel', id, zl:.08 + Math.random() * (.84 - zw), zw, pos:0, dir:1, speed, t0:performance.now() };
     renderSheet('fish'); blip(500, 900, .08, 'square', .03);
     const step = now => {
@@ -8210,7 +8252,7 @@ function cast() {
       fishing.pos += fishing.dir * fishing.speed * dt;
       if (fishing.pos > 1) { fishing.pos = 1; fishing.dir = -1; } if (fishing.pos < 0) { fishing.pos = 0; fishing.dir = 1; }
       const m = document.getElementById('fishMark'); if (m) m.style.left = (fishing.pos * 100) + '%';
-      if (now - fishing.t0 > 6000) { fishing = { phase:'msg', msg:'The fish slipped the hook while you hesitated.' }; renderSheet('fish'); return; }
+      if (now - fishing.t0 > REEL_WAIT) { fishing = { phase:'msg', msg:'The fish slipped the hook while you hesitated.' }; renderSheet('fish'); return; }
       fishRAF = requestAnimationFrame(step);
     };
     fishRAF = requestAnimationFrame(step);
@@ -8219,10 +8261,24 @@ function cast() {
 function reel() {
   if (!fishing || fishing.phase !== 'reel') return;
   cancelAnimationFrame(fishRAF);
-  const hit = fishing.pos >= fishing.zl && fishing.pos <= fishing.zl + fishing.zw;
-  if (hit) { const f = FISH[fishing.id]; S.inv[fishing.id] = (S.inv[fishing.id] || 0) + 1; S.fishCaught++; SND.harvest(); fishing = { phase:'msg', msg:`Caught a ${f.name}! It sells for ${f.sell}.`, good:true, col:f.col }; }
+  const hit = fishing.pos >= fishing.zl - REEL_GRACE && fishing.pos <= fishing.zl + fishing.zw + REEL_GRACE;
+  if (hit) { const id = fishing.id, f = FISH[id], log = S.fishLog || (S.fishLog = {}), first = !log[id]; log[id] = (log[id] || 0) + 1; S.inv[id] = (S.inv[id] || 0) + 1; S.fishCaught++; SND.harvest(); fishing = { phase:'msg', msg:`${first ? 'A new kind! ' : ''}Caught ${aN(f.name)}! It sells for ${f.sell}.${f.rare && first ? ' A legend of the valley.' : ''}`, good:true, col:f.col }; }
   else { fishing = { phase:'msg', msg:'Too early or too late. It got away.' }; blip(400, 200, .15); }
   renderSheet('fish'); updateHUD();
+}
+const fishKinds = () => Object.keys(FISH).filter(k => (S.fishLog || {})[k]).length;
+function fishWhen(id) { const f = FISH[id]; return FISH_NOTES[id] || (f.seasons.length === 4 ? 'Bites in every season.' : `Bites in ${f.seasons.map(x => SEASONS[x].toLowerCase()).join(' and ')}.`); }
+function fishLogRender() {
+  const log = S.fishLog || {}, n = fishKinds();
+  let h = `<p class="sub">Every kind of fish in the pond. ${n} of ${Object.keys(FISH).length} caught so far. Some only bite at night, in the rain, or early in the morning.</p>`;
+  const R = (col, name, meta) => row(col, name, meta, '');
+  SEASONS.forEach((sn, si) => {
+    const ids = Object.keys(FISH).filter(k => FISH[k].seasons.length < 4 && FISH[k].seasons[0] === si);
+    h += `<h4 class="band">${sn}</h4>` + ids.map(k => log[k] ? R(FISH[k].col, FISH[k].name, `${fishWhen(k)} Sells for ${FISH[k].sell}. Caught ${log[k]}.`) : R('#5a4a6a', '???', fishWhen(k))).join('');
+  });
+  const all = Object.keys(FISH).filter(k => FISH[k].seasons.length === 4);
+  h += `<h4 class="band">All year</h4>` + all.map(k => log[k] ? R(FISH[k].col, FISH[k].name + (FISH[k].rare ? ' · legend' : ''), `${fishWhen(k)} Sells for ${FISH[k].sell}. Caught ${log[k]}.`) : R('#5a4a6a', FISH[k].rare ? '??? · a legend' : '???', fishWhen(k))).join('');
+  return h + `<button class="btn alt" data-act="fbback" type="button">Back to the almanac</button>`;
 }
 function stopFishing() { if (fishing && fishing.timer) clearTimeout(fishing.timer); cancelAnimationFrame(fishRAF); fishing = null; }
 
@@ -8419,7 +8475,8 @@ function renderSheet(kind, data) {
       if (!potionKnown(id)) continue;
       const can = free > 0 && Object.entries(po.need).every(([k, n]) => (S.inv[k] || 0) >= n);
       const need = Object.entries(po.need).map(([k, n]) => `${n} ${itemName(k)} (${S.inv[k] || 0})`).join(' + ');
-      h += row(po.col, po.name, `${need} · sells for ${po.sell}`, `<button class="btn" data-act="brew" data-id="${id}" type="button" ${can ? '' : 'disabled'}>Brew</button>`, can ? '' : 'dim');
+      const have = S.inv[id] || 0, cooking = S.brewing.filter(b => b === id).length;
+      h += row(po.col, po.name, `<span class="have">You have ${have}${cooking ? ` · ${cooking} brewing` : ''}</span>${need} · sells for ${po.sell}`, `<button class="btn" data-act="brew" data-id="${id}" type="button" ${can ? '' : 'disabled'}>Brew</button>`, can ? '' : 'dim');
     }
     const hewRing = S.hew && S.hew.dating && !S.hew.wed;
     if ((S.dating && !S.spouse && !S.wedding) || hewRing) {
@@ -8497,14 +8554,14 @@ function renderSheet(kind, data) {
         const bd = VIDS.filter(arrivedBy).filter(v => VILLAGERS[v].bday[0] === si).map(v => `${VILLAGERS[v].name}'s birthday · day ${VILLAGERS[v].bday[1]}`);
         h += `<div class="${si === S.season ? 'now' : ''}"><b>${sn}</b>${list.join(', ')}<br>${FEST[si].name} · day ${FEST_DAY}${bd.length ? '<br>' + bd.join('<br>') : ''}</div>`;
       });
-      h += `</div><button class="vrow" data-act="festbook" type="button"><div class="info"><span class="name">Festivals</span><span class="meta">Games, hosts' best scores, your ribbons and prizes · ${S.tickets || 0} ticket${S.tickets === 1 ? '' : 's'}</span></div><span class="chev" aria-hidden="true">›</span></button><ul class="lines"><li>Requests filled: ${S.helped} · missed: ${S.missed}</li><li>Fish caught: ${S.fishCaught}</li>${S.hollowMax ? `<li>Deepest floor of the Hollow: ${S.hollowMax}${endless(S.hollowMax) ? ' (the Endless Below)' : ''}${HS().wardens[HOLLOW_BOTTOM] ? ' · the Heart is calm' : ''}</li>` : ''}${S.almanac ? `<li class="gold">Tomorrow: ${S.nextRain ? 'rain, no watering needed' : (S.season === 3 ? 'cold and dry' : 'dry, bring the can')}</li>` : ''}</ul>`;
+      h += `</div><button class="vrow" data-act="festbook" type="button"><div class="info"><span class="name">Festivals</span><span class="meta">Games, hosts' best scores, your ribbons and prizes · ${S.tickets || 0} ticket${S.tickets === 1 ? '' : 's'}</span></div><span class="chev" aria-hidden="true">›</span></button><button class="vrow" data-act="fishlog" type="button"><div class="info"><span class="name">Fish journal</span><span class="meta">${fishKinds()} of ${Object.keys(FISH).length} kinds caught · ${S.fishCaught} fish in all</span></div><span class="chev" aria-hidden="true">›</span></button><ul class="lines"><li>Requests filled: ${S.helped} · missed: ${S.missed}</li>${S.hollowMax ? `<li>Deepest floor of the Hollow: ${S.hollowMax}${endless(S.hollowMax) ? ' (the Endless Below)' : ''}${HS().wardens[HOLLOW_BOTTOM] ? ' · the Heart is calm' : ''}</li>` : ''}${S.almanac ? `<li class="gold">Tomorrow: ${S.nextRain ? 'rain, no watering needed' : (S.season === 3 ? 'cold and dry' : 'dry, bring the can')}</li>` : ''}</ul>`;
     }
   } else if (kind === 'fish') {
     title = 'Fishing at the pond';
     const f = fishing || { phase:'idle' };
     if (f.phase === 'idle' || f.phase === 'msg') {
       if (f.phase === 'msg') h += `<ul class="lines"><li class="${f.good ? 'gold' : 'bad'}">${f.msg}</li></ul>`;
-      else h += `<p class="sub">Each cast costs 3 energy and 20 minutes. When a fish bites, a marker sweeps the bar. Tap Reel while it's inside the green zone.${S.season === 3 ? ' You fish through a hole in the ice.' : ''} Moonfish bite more at night.</p>`;
+      else h += `<p class="sub">Each cast costs 3 energy and 20 minutes. When a fish bites, a marker sweeps the bar. Tap Reel while it's inside the green zone, or close to it. There's no rush: the fish waits about ten seconds.${S.season === 3 ? ' You fish through a hole in the ice.' : ''} Different fish bite at night, in the rain, and early in the morning. ${fishKinds()} of ${Object.keys(FISH).length} kinds in your fish journal.</p>`;
       h += `<div class="cta-row"><button class="btn" data-act="fishcast" type="button">${f.phase === 'msg' ? 'Cast again' : 'Cast'}</button><button class="btn alt" data-act="close" type="button">Done</button></div>`;
     } else if (f.phase === 'wait') {
       h += `<p class="sub">The float bobs on the still water. Waiting for a bite.</p><div class="pond"></div><button class="btn alt reel" type="button" disabled>Waiting</button>`;
@@ -8551,13 +8608,17 @@ function renderSheet(kind, data) {
     h += `<div class="vhead">${hewPortrait(data.mood || (sc ? 'flustered' : hewMood()), 72)}<div class="info"><span class="name">Hew the Almighty</span><span class="meta">${role} · ${H.broken} curse${H.broken === 1 ? '' : 's'} broken</span>${hs}</div></div>`;
     if (sc) h += `<h4 class="sec">${sc} hearts</h4><p class="scene">${HEW_SCENES[sc]}</p>`;
     else if (data.line) h += `<p class="scene">"${data.line}"</p>`;
-    if (data.give) {
+    if (data.ask === 'bouquet') {
+      h += `<p class="sub">Give the bouquet to <b>Hew</b>? It means asking him to date you. You can only date one person at a time.</p><div class="cta-row"><button class="btn" data-act="hewgift" data-id="bouquet" type="button">Yes, give it to Hew</button><button class="btn alt" data-act="hewgive" type="button">Not now</button></div>`;
+    } else if (data.ask === 'bye') {
+      h += `<p class="sub">Tell Hew gently that you'd like to stay friends? He keeps all his hearts, and 9 and 10 lock again.${hewBouquetBack() ? ' You gave him the bouquet only recently, so he will hand it back.' : ''}</p><div class="cta-row"><button class="btn" data-act="hewbye" type="button">Have the talk</button><button class="btn alt" data-act="hewback" type="button">Not now</button></div>`;
+    } else if (data.give) {
       const ids = Object.keys(S.inv).filter(k => S.inv[k] > 0 && (DISHES[k] || POTIONS[k]) || (k === 'bouquet' && S.inv[k] > 0 && hewDateReady()) || (k === 'ring' && S.inv[k] > 0 && H.dating && H.duel && hh >= 10));
       h += `<p class="sub">Hew only takes one gift a day. He's hard to impress: dishes are your best bet.${H.gifted === dayKey() ? ' He has had one today already.' : ''}</p>`;
       if (!ids.length) h += `<p class="sub">You have nothing he'd take. Try cooking something.</p>`;
       for (const k of ids.sort((a, b) => (b === 'ring' || b === 'bouquet') - (a === 'ring' || a === 'bouquet'))) { const kn = H.known[k], note = k === 'bouquet' ? 'ask him out' : k === 'ring' ? 'propose' : kn === 'love' ? 'he secretly loves this' : kn === 'meh' ? 'he was not impressed' : '';
         const dis = k !== 'bouquet' && k !== 'ring' && H.gifted === dayKey();
-        h += row(itemCol(k), `${itemName(k)} ×${S.inv[k]}`, note, `<button class="btn" data-act="hewgift" data-id="${k}" type="button" ${dis ? 'disabled' : ''}>Give</button>`, dis ? 'dim' : ''); }
+        h += row(itemCol(k), `${itemName(k)} ×${S.inv[k]}`, note, `<button class="btn" data-act="${k === 'bouquet' ? 'hewbouq' : 'hewgift'}" data-id="${k}" type="button" ${dis ? 'disabled' : ''}>Give</button>`, dis ? 'dim' : ''); }
       h += `<div class="cta-row"><button class="btn alt" data-act="hewback" type="button">Back</button></div>`;
     } else {
       const c = H.cur;
@@ -8569,6 +8630,7 @@ function renderSheet(kind, data) {
       } else if (c && c.key === seasonKey() && HEW_CURSES[c.id] && c.broken) h += `<p class="sub">You broke ${HEW_CURSES[c.id].name} this season. Hew is sulking about it.</p>`;
       else if (!H.wed) h += `<p class="sub">No curse on you right now. Hew is "saving his strength" for next season.</p>`;
       const acts = [`<button class="btn" data-act="hewtalk" type="button" ${H.talked === dayKey() ? 'disabled' : ''}>${H.talked === dayKey() ? 'Chatted today' : 'Chat'}</button>`, `<button class="btn alt" data-act="hewgive" type="button">Give a gift</button>`];
+      if (H.dating && !H.wed) acts.push(`<button class="btn alt" data-act="hewbyeask" type="button">Just friends</button>`);
       if (hewDuelOpen()) acts.push(`<button class="btn" data-act="hewduel" type="button" ${H.duelTry === dayKey() ? 'disabled' : ''}>${H.duelTry === dayKey() ? 'Duel again tomorrow' : 'Challenge him to a duel'}</button>`);
       h += `<div class="cta-row">${acts.join('')}</div>`;
       const tips = [];
@@ -8724,6 +8786,8 @@ function renderSheet(kind, data) {
     h += `<div class="cta-row"><button class="btn" data-act="close" type="button">Done</button></div>`;
   } else if (kind === 'festbook') {
     title = 'Festivals'; h += festBookRender();
+  } else if (kind === 'fishlog') {
+    title = 'Fish journal'; h += fishLogRender();
   } else if (kind === 'cave') {
     title = 'The Hollow';
     const Hs = HS(), stops = liftStops();
@@ -8790,10 +8854,15 @@ function renderSheet(kind, data) {
   } else if (kind === 'cloudname') {
     title = 'Your cloud save';
     h += `<p class="sub">Your game now saves to the cloud by itself. If you ever lose it, on a new phone or if your browser forgets it, tap "Restore a backup" on the title screen and type this save name:</p><div class="cname">${S.cloud.name}</div><p class="sub">Take a screenshot or write it down somewhere safe. You can always find it again under Sleep, then "Back up my save".</p><div class="cta-row"><button class="btn" data-act="close" type="button">Got it</button></div>`;
+  } else if (kind === 'bouqask') {
+    const V = VILLAGERS[data.v]; title = 'The Moonpetal Bouquet';
+    h += `<div class="vhead">${portrait(data.v, 'happy', 72)}<div class="info"><span class="name">${V.name}</span>${hearts(heartsOf(data.v), data.v)}</div></div>`;
+    h += `<p class="sub">Give the bouquet to <b>${V.name}</b>? It means asking ${V.name} to date you. You can only date one person at a time.</p>`;
+    h += `<div class="cta-row"><button class="btn" data-act="bouquet" data-id="${data.v}" type="button">Yes, give it to ${V.name}</button><button class="btn alt" data-act="vopen" data-id="${data.v}" type="button">Not now</button></div>`;
   } else if (kind === 'goodbye') {
     const V = VILLAGERS[data.v]; title = 'A kind word';
     h += `<div class="vhead">${portrait(data.v, 'neutral', 72)}<div class="info"><span class="name">${V.name}</span>${hearts(heartsOf(data.v), data.v)}</div></div>`;
-    h += `<p class="sub">Tell ${V.name} gently that you'd like to stay friends? You'll keep all your friendship, and hearts 9 and 10 will lock again. Afterwards you can give a bouquet to someone else, or to ${V.name} again one day.</p>`;
+    h += `<p class="sub">Tell ${V.name} gently that you'd like to stay friends? You'll keep all your friendship, and hearts 9 and 10 will lock again. Afterwards you can give a bouquet to someone else, or to ${V.name} again one day.${bouquetBack() ? ` You gave the bouquet only recently, so ${V.name} will hand it back.` : ''}</p>`;
     h += `<div class="cta-row"><button class="btn" data-act="byeyes" data-id="${data.v}" type="button">Have the talk</button><button class="btn alt" data-act="vopen" data-id="${data.v}" type="button">Not now</button></div>`;
   } else if (kind === 'gift') {
     title = 'A gift!';
@@ -8889,6 +8958,9 @@ $('shBody').addEventListener('click', e => {
   else if (act === 'hewtalk') { const l = hewTalk(); renderSheet('hew', l ? { line:l } : {}); }
   else if (act === 'hewgive') renderSheet('hew', { give:true });
   else if (act === 'hewback') renderSheet('hew', {});
+  else if (act === 'hewbouq') renderSheet('hew', { ask:'bouquet' });
+  else if (act === 'hewbyeask') renderSheet('hew', { ask:'bye' });
+  else if (act === 'hewbye') { const back = hewBye(); if (back !== null) { save(); renderSheet('hew', { mood:'fond', line:`Friends, then. Fine. Good. I am a magnanimous wizard.${back ? ' Here, take your flowers back. Give them to someone who deserves the fuss.' : ''}` }); } else renderSheet('hew', {}); }
   else if (act === 'hewbreak') { const C = HEW_CURSES[HW().cur.id]; if (hewBreak()) { openSheet('gift', [`You set the ${itemName(HW().cur.counter)} on Hew's table. He sniffs it, goes pale, and ${C.name} unravels like a dropped stitch.`, `"Fine," he says. "FINE. Take this and go away." He pushes a purse of ${HEW_BREAK_COINS} coins across the table. He seems almost pleased.`]); } else renderSheet('hew', {}); }
   else if (act === 'hewgift') { const r = hewGift(id);
     if (r === 'date') openSheet('gift', [`Hew stares at the bouquet as if it might explode. "For me?" he says. "Nobody has ever... I mean. Obviously people give me things constantly. Yes. Yes, all right. Yes."`, "You're dating Hew the Almighty. He'll be insufferable about it."]);
@@ -8931,6 +9003,7 @@ $('shBody').addEventListener('click', e => {
   }
   else if (act === 'bouq') { if (S.coins >= BOUQUET_COST) { S.coins -= BOUQUET_COST; S.inv.bouquet = (S.inv.bouquet || 0) + 1; SND.coin(); } renderSheet('market'); }
   else if (act === 'brewring') { if (potSlots() - S.brewing.length > 0 && Object.entries(RING_NEED).every(([k, n]) => (S.inv[k] || 0) >= n)) { for (const [k, n] of Object.entries(RING_NEED)) S.inv[k] -= n; S.brewing.push('ring'); blip(300, 900, .35, 'sine', .05); } renderSheet('cauldron'); }
+  else if (act === 'bouqask') { sheetOpen = 'bouqask'; renderSheet('bouqask', { v:id }); return; }
   else if (act === 'bouquet') { giveBouquet(id); return; }
   else if (act === 'bracelet') { giveBracelet(id); return; }
   else if (act === 'mwed') { if (!joinMatchWedding(id)) renderSheet('place', { p:MATCHES[id].place }); return; }
@@ -8947,6 +9020,7 @@ $('shBody').addEventListener('click', e => {
   else if (['dance', 'wish', 'fairenter', 'feastgive'].includes(act)) { festAct(act, id); SND.gift(); updateHUD(); renderSheet('booth', { p:FEST_MAIN[S.season] }); }
   else if (act === 'fplay') { openGame(id); return; }
   else if (act === 'festbook') { sheetOpen = 'festbook'; renderSheet('festbook'); return; }
+  else if (act === 'fishlog') { sheetOpen = 'fishlog'; renderSheet('fishlog'); return; }
   else if (act === 'fbback') { journalTab = 'almanac'; sheetOpen = 'journal'; renderSheet('journal'); return; }
   else if (act === 'tbuy') { if (prizeBuy(id)) { SND.coin(); toast(id.startsWith('r:') ? `New recipe: ${DISHES[id.slice(2)].name}. Cook it in the Kitchen.` : 'Yours!'); updateHUD(); } renderSheet('booth', { p:'prizes' }); }
   else if (act === 'mirror') { sheetOpen = 'wardrobe'; renderSheet('wardrobe'); return; }
@@ -9071,7 +9145,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 34, BUILD_DATE = 'Nov 12'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 35, BUILD_DATE = 'Nov 12'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();
