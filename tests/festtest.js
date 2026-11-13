@@ -138,7 +138,8 @@ const BOTS = {
   ducks:(st, g, lv) => { if (busy(st, lv)) return; for (const d of st.dk) if (d.x > 10 && d.x < W - 10 && reacts(st, d.id, lv) && (d.star || Math.random() < lv.slip * .3)) { g.tap(st, d.x, g.lanes[d.lane] * H, W, H); tapped(st, lv); break; } },
   turnip:(st, g, lv) => { if (st.ph !== 'eat') { st._e = null; return; } if (busy(st, lv)) return; if (reacts(st, 'e' + st.n, lv)) { if (Math.random() > lv.slip) g.tap(st, st.x * W, H * .66, W, H); tapped(st, lv); } },
   gourd:(st, g, lv) => { if (st.ph !== 'pick' || !reacts(st, 'r' + st.r, lv === LV.keen ? { react:1.2, rsd:.3 } : { react:1, rsd:.3 })) return;
-    const left = [0, 1, 2].filter(i => i !== st.ruled), pick = lv === LV.keen ? (st.g[left[0]].s >= st.g[left[1]].s ? left[0] : left[1]) : (Math.random() < .5 ? left[0] : left[1]);
+    // Judging size by eye: a keen player sees about 3% differences, a relaxed one about 7%.
+    const left = [0, 1, 2].filter(i => i !== st.ruled), sd = lv === LV.keen ? .03 : .07, seen = i => st.g[i].s * (1 + gauss() * sd), pick = seen(left[0]) >= seen(left[1]) ? left[0] : left[1];
     const p = g.pos(pick, W, H); g.tap(st, p.x, p.y, W, H); },
   starmap:(st, g, lv) => { if (busy(st, lv) || st.wait > 0 || !st.stars.length) return; const q = st.stars.find(z => z.i === st.next); if (!q || !reacts(st, 's' + st.made + '-' + st.next, lv)) return; g.tap(st, q.x + gauss() * 6, q.y + gauss() * 6, W, H); tapped(st, lv); },
   cookies:(st, g, lv) => { if (st.ph !== 'copy' || busy(st, lv)) return; const L = st.seq.length, p = lv === LV.keen ? 1 - .012 * L : 1 - .035 * L; const d = Math.random() < p ? st.seq[st.k] : (st.seq[st.k] + 1) % 9; const q = g.dot(d, W, H); g.tap(st, q.x, q.y, W, H); tapped(st, lv); },

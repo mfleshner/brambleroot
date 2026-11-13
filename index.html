@@ -3341,43 +3341,60 @@ FGAMES.turnip = { name:'Catch Turnip', fest:2, host:['mara'], unit:'catches', ti
     fgDrawPops(g, st);
   } };
 
-// Guess the gourd (Harvest Fair, Isolde): pick the heaviest of three. Her hint rules one out; the size is a clue, not a promise.
-const GOURD_KINDS = [{ n:'orange one', col:'#f08c2a' }, { n:'striped one', col:'#5a8a3a', stripe:true }, { n:'pale one', col:'#e8d8a0' }, { n:'warty one', col:'#c8902a', warts:true }, { n:'yellow one', col:'#f2d36b' }];
-const GOURD_HINTS = ["It isn't the {}. I'd bet my best pie on it.", "Not the {}, love. It's lighter than it looks.", "Whatever you do, don't pick the {}.", "The {} is mostly air. Trust me."];
+// Guess the gourd (Harvest Fair, Isolde): pick the heaviest of three. Isolde rules one out (sometimes the biggest-looking,
+// which is hollow); of the two left, the bigger one is always the heavier, and later rounds are closer calls.
+const GOURD_KINDS = [{ n:'orange one', tag:'orange', col:'#f08c2a', dk:'#b8601a' }, { n:'green striped one', tag:'green', col:'#5a9a3a', dk:'#2f5a20', stripe:true }, { n:'white one', tag:'white', col:'#f7f2e6', dk:'#b8ad94' }, { n:'blue one', tag:'blue', col:'#7f9fba', dk:'#4e6a84' }, { n:'red one', tag:'red', col:'#c8432e', dk:'#8a2a1c' }];
+const GOURD_HINTS = ["It isn't the {}. I'd bet my best pie on it.", "Whatever you do, don't pick the {}.", "Leave the {} be. It's not your winner.", "Not the {}, love. Trust me."];
+const GOURD_HOLLOW = ["The {} is hollow as a drum. Don't let the size fool you.", "The {} looks the biggest, but it's mostly air.", "Not the {}, love. It's lighter than it looks."];
+const GOURD_GAP = [[.12, .16], [.09, .13], [.07, .1], [.05, .08], [.04, .06], [.03, .05], [.02, .04], [.015, .03]]; // size gap between the two left, by round
 FGAMES.gourd = { name:'Guess the gourd', fest:2, host:['isolde'], unit:'right', tiers:[4, 5, 6], best:7, step:0, max:9, look:['#f08c2a', '●'],
-  hostLine:'"Three gourds, one prize. Pick the heaviest. I\'ll give you a hint each time, because I like you. Don\'t tell the mayor."',
-  how:'Pick the heaviest of three gourds. Isolde rules one out each time. The bigger one is usually heavier, but not always. Eight rounds.',
+  hostLine:'"Three gourds, one prize. Pick the heaviest. I\'ll rule one out each time, because I like you. Don\'t tell the mayor."',
+  how:'Pick the heaviest of three gourds. Isolde crosses one out each round (sometimes a big hollow one). Of the two left, the bigger one is always heavier, but the later rounds are close. Eight rounds.',
   beat:'Isolde slaps the table. "You\'ve got a grocer\'s eye! Come and do my ordering at the inn."',
   hud:st => `Round ${Math.min(8, st.r + 1)} of 8 · ${st.score} right`,
+  w8(s) { return Math.round((6 + (s - .7) / .5 * 8) * 10) / 10; },
   round(st) {
-    const kinds = [0, 1, 2, 3, 4].sort(() => Math.random() - .5).slice(0, 3), wt = [rnd(6, 14), rnd(6, 14), rnd(6, 14)].map(x => Math.round(x * 10) / 10);
-    for (let i = 1; i < 3; i++) while (wt.slice(0, i).includes(wt[i])) wt[i] = Math.round((wt[i] + .3) * 10) / 10;
-    const H = wt.indexOf(Math.max(...wt)), others = [0, 1, 2].filter(i => i !== H), ruled = others[(Math.random() * 2) | 0], other = others.find(i => i !== ruled);
-    const size = wt.map(x => .7 + (x - 6) / 8 * .5); if (Math.random() < .3) { const s = size[H]; size[H] = size[other]; size[other] = s; } // usually, the heaviest looks it
-    st.g = kinds.map((k, i) => ({ k, w:wt[i], s:size[i] })); st.H = H; st.ruled = ruled; st.pick = -1; st.ph = 'pick'; st.hint = GOURD_HINTS[(Math.random() * GOURD_HINTS.length) | 0].replace('{}', GOURD_KINDS[kinds[ruled]].n);
+    const kinds = [0, 1, 2, 3, 4].sort(() => Math.random() - .5).slice(0, 3), gp = GOURD_GAP[Math.min(st.r, GOURD_GAP.length - 1)];
+    const big = rnd(.85, 1.12), small = big * (1 - rnd(gp[0], gp[1]));
+    let wb = this.w8(big), ws = this.w8(small); if (ws >= wb) ws = Math.round((wb - .2) * 10) / 10;
+    const hollow = Math.random() < .4, rs = hollow ? Math.min(1.2, big * rnd(1.06, 1.14)) : rnd(.72, Math.max(.75, small * .97));
+    const rw = Math.round(rnd(3.5, Math.max(3.8, ws - .6)) * 10) / 10;
+    const ord = [0, 1, 2].sort(() => Math.random() - .5); // ord[0] heaviest, ord[1] runner-up, ord[2] ruled out
+    st.g = []; st.g[ord[0]] = { k:kinds[ord[0]], w:wb, s:big }; st.g[ord[1]] = { k:kinds[ord[1]], w:ws, s:small }; st.g[ord[2]] = { k:kinds[ord[2]], w:rw, s:rs };
+    st.H = ord[0]; st.ruled = ord[2]; st.pick = -1; st.ph = 'pick';
+    const pool = hollow ? GOURD_HOLLOW : GOURD_HINTS; st.hint = pool[(Math.random() * pool.length) | 0].replace('{}', GOURD_KINDS[st.g[st.ruled].k].n);
   },
   init() { const st = { t:0, score:0, r:0, ph:'pick', pt:0, over:false }; this.round(st); return st; },
   update(st, dt) { fgPops(st, dt); if (st.ph === 'show') { st.pt -= dt; if (st.pt <= 0) { st.r++; if (st.r >= 8) st.over = true; else this.round(st); } } },
   pos(i, w, h) { return { x:(i + .5) * w / 3, y:h * .58 }; },
-  choose(st, i) { if (st.ph !== 'pick' || i === st.ruled) return; st.pick = i; st.ph = 'show'; st.pt = 1.5; if (i === st.H) { st.score++; blip(800, 1200, .12, 'sine', .05); } else blip(300, 200, .12, 'triangle', .03); },
+  base(w, h) { return h * .69; },
+  choose(st, i) { if (st.ph !== 'pick' || i === st.ruled) return; st.pick = i; st.ph = 'show'; st.pt = 2; if (i === st.H) { st.score++; blip(800, 1200, .12, 'sine', .05); } else blip(300, 200, .12, 'triangle', .03); },
   tap(st, x, y, w, h) { for (let i = 0; i < 3; i++) { const p = this.pos(i, w, h); if (Math.abs(x - p.x) < w / 6 && Math.abs(y - p.y) < h * .2) { this.choose(st, i); return; } } },
   draw(g, st, w, h) {
     fgSky(g, w, h, 2);
-    R(g, 0, h * .7, w, h * .3, '#e8e0d0'); R(g, 0, h * .7, w, 6, '#3a8a5a');
+    const by = this.base(w, h);
+    R(g, w * .03, h * .33, w * .94, by - h * .33, '#efe6d2'); R(g, w * .03, h * .33, w * .94, 5, '#c94a3a'); // Isolde's display board
+    R(g, 0, by, w, h - by, '#a57a4f'); R(g, 0, by, w, 6, '#7a5634'); // the table
     fgWrap(g, `Isolde: "${st.hint}"`, w / 2, h * .17, w * .86, 17, '#f4ead9');
     st.g.forEach((q, i) => {
-      const p = this.pos(i, w, h), K = GOURD_KINDS[q.k], r = Math.min(w / 7.2, 60) * q.s, dim = i === st.ruled;
-      g.globalAlpha = dim ? .35 : 1;
-      g.fillStyle = K.col; g.beginPath(); g.ellipse(p.x, p.y + (1 - q.s) * 30, r, r * .82, 0, 0, 7); g.fill();
-      if (K.stripe) { g.strokeStyle = '#3a6a2a'; g.lineWidth = 3; for (const dx of [-.5, 0, .5]) { g.beginPath(); g.ellipse(p.x + dx * r * .6, p.y + (1 - q.s) * 30, r * .2, r * .8, 0, 0, 7); g.stroke(); } }
-      if (K.warts) for (let k = 0; k < 6; k++) circ(g, p.x + Math.cos(k) * r * .55, p.y + (1 - q.s) * 30 + Math.sin(k * 1.7) * r * .45, r * .08, '#a8702a');
-      R(g, p.x - 3, p.y + (1 - q.s) * 30 - r * .82 - 8, 6, 10, '#5a3d26');
-      if (st.ph === 'show') { const ty = h * .77; if (i === st.H) R(g, p.x - 32, ty - 13, 64, 26, '#f2b84b'); fgText(g, `${q.w} lb`, p.x, ty, 17, '#2a1d36'); }
-      g.globalAlpha = 1;
-      if (st.ph === 'show' && i === st.pick) { g.strokeStyle = i === st.H ? '#f2d36b' : '#c94a3a'; g.lineWidth = 4; g.beginPath(); g.arc(p.x, p.y + (1 - q.s) * 30, r + 8, 0, 7); g.stroke(); }
+      const p = this.pos(i, w, h), K = GOURD_KINDS[q.k], r = Math.min(w / 7.6, 58) * q.s, ry = r * .82, cy = by - ry + 2, out = i === st.ruled;
+      g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(p.x, by + 2, r * .9, 5, 0, 0, 7); g.fill();
+      g.fillStyle = K.col; g.beginPath(); g.ellipse(p.x, cy, r, ry, 0, 0, 7); g.fill();
+      g.strokeStyle = K.dk; g.lineWidth = 2.5; for (const dx of [-.5, 0, .5]) { g.beginPath(); g.ellipse(p.x + dx * r * .6, cy, r * .22, ry * .97, 0, 0, 7); g.stroke(); }
+      if (K.stripe) { g.strokeStyle = '#e8f0c0'; g.lineWidth = 2; for (const dx of [-.3, .3]) { g.beginPath(); g.moveTo(p.x + dx * r, cy - ry * .8); g.quadraticCurveTo(p.x + dx * r * 1.3, cy, p.x + dx * r, cy + ry * .8); g.stroke(); } }
+      g.strokeStyle = 'rgba(42,29,54,.55)'; g.lineWidth = 2; g.beginPath(); g.ellipse(p.x, cy, r, ry, 0, 0, 7); g.stroke();
+      R(g, p.x - 3, cy - ry - 8, 6, 11, '#5a3d26');
+      if (out) {
+        g.fillStyle = 'rgba(239,230,210,.3)'; g.beginPath(); g.ellipse(p.x, cy, r + 2, ry + 2, 0, 0, 7); g.fill();
+        g.strokeStyle = '#c94a3a'; g.lineWidth = 6; g.lineCap = 'round'; const k = Math.min(r, ry) * .7;
+        g.beginPath(); g.moveTo(p.x - k, cy - k); g.lineTo(p.x + k, cy + k); g.moveTo(p.x + k, cy - k); g.lineTo(p.x - k, cy + k); g.stroke(); g.lineCap = 'butt';
+        fgText(g, 'Ruled out', p.x, h * .37, 13, '#c94a3a');
+      }
+      if (st.ph === 'show') { const ty = h * .78; if (i === st.H) R(g, p.x - 34, ty - 14, 68, 28, '#f2b84b'); fgText(g, `${q.w} lb`, p.x, ty, 17, out ? 'rgba(244,234,217,.7)' : '#2a1d36'); }
+      if (st.ph === 'show' && i === st.pick) { g.strokeStyle = i === st.H ? '#f2d36b' : '#c94a3a'; g.lineWidth = 4; g.beginPath(); g.ellipse(p.x, cy, r + 8, ry + 8, 0, 0, 7); g.stroke(); }
     });
-    if (st.ph === 'show') fgText(g, st.pick === st.H ? 'The heaviest!' : 'Not quite', w / 2, h * .9, 20, '#2a1d36');
-    else fgText(g, 'Tap the heaviest gourd', w / 2, h * .9, 16, '#5a4a3a');
+    if (st.ph === 'show') fgText(g, st.pick === st.H ? 'The heaviest!' : 'So close! The other one was heavier', w / 2, h * .9, st.pick === st.H ? 20 : 16, '#f4ead9');
+    else fgText(g, 'Tap the heavier of the two left', w / 2, h * .9, 16, '#f4ead9');
     fgDrawPops(g, st);
   } };
 
@@ -9054,7 +9071,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 33, BUILD_DATE = 'Nov 11'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 34, BUILD_DATE = 'Nov 12'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();
