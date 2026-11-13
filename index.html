@@ -1782,6 +1782,7 @@ function endDay(passedOut) {
   else S.day++;
   S.time = 360; S.energy = passedOut ? Math.round(S.maxEnergy * .6) : S.maxEnergy; S.mana = S.manaMax || 0;
   if (S.home) { const cb = COSY_BONUS[cosyLevel()]; if (cb) { S.energy += cb; lines.push({ t:`You wake up somewhere ${cosyName(cosyLevel()).toLowerCase()}: +${cb} energy today.` }); }
+    if (S.hew && S.hew.met && S.homeSeen && !S.home.own.hewpic && Math.random() < .35) { S.home.own.hewpic = 1; lines.push({ t:'A parcel from Hew the Almighty: an enormous gilded portrait of himself. The note says: "For your new walls. Hang it somewhere prominent. You\'re welcome." It\'s in the cottage.', c:'gift' }); }
     const H = S.home; if (H.newGift && H.newGift.length) { for (const id of H.newGift) lines.push({ t:`New for the cottage: ${HOME_ITEMS[id].name}. ${HOME_ITEMS[id].desc}`, c:'gift' }); H.newGift = []; } }
   // weather
   S.rain = S.nextRain; S.snow = S.season === 3 && Math.random() < .45;
@@ -5090,6 +5091,7 @@ const VPLACES = {
   docks:     { name:'the docks', title:'The docks', sub:"Fen's ferry, Juno's boat and a lot of opinions about the weather." },
   fest:      { name:'the festival', title:'The festival', sub:'The whole village, dressed up for the day.' },
   lighthouse:{ name:'the lighthouse', title:'The lighthouse', indoor:true, sub:"Bertram's lighthouse at the river mouth. The lamp turns all night." },
+  attic:     { name:'the attic', title:'The attic', indoor:true, scene:'home', sub:'Under the eaves, up the ladder by the bed. Dust, cobwebs and the shapes of things under old sheets.' },
   shopfront: { name:'your aunt\'s shop on Old Market Row', title:'Brambleroot', indoor:true, scene:'row', sub:'Bramble\'s old shop at the top of Old Market Row. Boarded windows, and a faded gold sign over the door.' }
 };
 const SCHED = {
@@ -5479,7 +5481,7 @@ function drawVillageWindows(night) {
 /* ================= the cottage, inside (PLAN-cottage.md) ================= */
 // The room is 9 × 13 like the shop. Row 0 is the back wall (window, fireplace, wall slots); rows 1–11 are floor; the door is (4,12).
 const HOME_DOOR = [4, 12], HOME_BEDSTAND = [5, 2], HOME_FIRESTAND = [4, 2], HOME_WINDOW = 1, WALL_SLOTS = [0, 2, 6, 7, 8];
-const HOME_KEEP = ['4,2', '5,2', '4,11']; // stand tiles and the way in: always clear
+const HOME_KEEP = ['4,2', '5,2', '4,11', '8,2']; // stand tiles, the way in and the foot of the attic ladder: always clear
 const inHomeBed = (c, r) => c >= 6 && c <= 7 && r >= 1 && r <= 2;
 const inHearth = (c, r) => r === 1 && c >= 3 && c <= 5;
 // Every piece. kind: piece (floor furniture), rug, wall, top (on a table or shelf), paper, boards, bed. from: mara, rowan, start.
@@ -5535,6 +5537,15 @@ const HOME_ITEMS = {
   kshelf:   { name:'Keepsake shelf',      kind:'wall',  from:'gift',  cost:0,    w:1, h:1, d:'kshelf', col:'#8a6440', style:'cosy', desc:"Mara's lads put it up for your friends' keepsakes." },
   ribbonbd: { name:'Ribbon board',        kind:'wall',  from:'gift',  cost:0,    w:1, h:1, d:'ribbons', col:'#3a6ab8', style:'cosy', desc:'Every festival ribbon you have won.' },
   dressform:{ name:'Dress form',          kind:'piece', from:'gift',  cost:0,    w:1, h:1, d:'dummy', col:'#e8dcc4', tall:true, style:'fancy', desc:'Isolde brought it up to show off your treasures and finery.' },
+  rocker:   { name:"Bramble's rocking chair", kind:'piece', from:'attic', cost:0, w:1, h:1, d:'rocker', col:'#7a5638', turn:true, style:'rustic', desc:'It creaks on the third rock, every time, like it is agreeing with you.' },
+  kettle:   { name:"Bramble's brass kettle", kind:'top', from:'attic', cost:0, w:1, h:1, d:'kettle', col:'#d8a040', style:'cosy', desc:'Rowan made it whistle again. It whistles in E.' },
+  starchart:{ name:"Bramble's star chart", kind:'wall', from:'attic', cost:0, w:1, h:1, d:'chart', col:'#2e3a6a', col2:'#f2d36b', style:'witchy', desc:'Her own constellations. One is called The Cat.' },
+  bclock:   { name:'The cauldron clock',  kind:'wall', from:'attic', cost:0, w:1, h:1, d:'cclock', col:'#3a3440', style:'witchy', desc:'It bubbles on the hour. Theo still does not know how.' },
+  lectern:  { name:"Bramble's spell-book stand", kind:'piece', from:'attic', cost:0, w:1, h:1, d:'lectern', col:'#5a3d26', style:'witchy', desc:'Open at the page she was reading. You have not turned it.' },
+  bportrait:{ name:'Bramble, young',      kind:'wall', from:'attic', cost:0, w:1, h:1, d:'portrait', col:'#c8a24a', style:'cosy', desc:'Mended down the middle where it was torn. She is laughing at someone just out of the picture.' },
+  barmchair:{ name:"Bramble's armchair",  kind:'piece', from:'attic', cost:0, w:1, h:1, d:'armchair', col:'#5a7a5a', turn:true, style:'cosy', desc:'Her chair by the fire. The cat sat in it for a week before letting you have a turn.' },
+  hewpic:   { name:'Hew the Almighty (a portrait)', kind:'wall', from:'hew', cost:0, w:1, h:1, d:'hewpic', col:'#c8a24a', style:'fancy', desc:'Enormous. Gilded. He is pointing at something important, probably himself.' },
+  q_bramble:{ name:"Bramble's patchwork quilt", kind:'quilt', from:'attic', cost:0, col:'#9a5aa0', col2:'#f2d36b', desc:'Every patch from one of her old dresses. Isolde mended the holes.' },
   q_none:   { name:"The bed's own quilt",  kind:'quilt', from:'start', cost:0,    col:'#c87a8a', desc:'Whatever came with the bed.' },
   q_patch:  { name:'Patchwork quilt',     kind:'quilt', from:'isolde',cost:500,  col:'#e0a050', col2:'#5a8aaa', desc:'Every square a different summer.' },
   q_moss:   { name:'Moss-green quilt',    kind:'quilt', from:'isolde',cost:450,  col:'#6a8a5a', col2:'#8aaa7a', desc:'Like sleeping on a lawn, but warm.' },
@@ -5568,8 +5579,12 @@ const HOME_MAKERS = {
   zara:{ name:"Zara's far-off things", place:'cart', hi:'', bought:"Mind the corners, darling. It came a very long way." },
   fest:{ name:'the festival prize stall', place:'square', hi:'', bought:'' },
   pot:{ name:'your own garden', place:'', hi:'', bought:'' },
-  gift:{ name:'a gift', place:'', hi:'', bought:'' }
+  gift:{ name:'a gift', place:'', hi:'', bought:'' },
+  attic:{ name:"Bramble's attic", place:'', hi:'', bought:'' },
+  hew:{ name:'Hew', place:'', hi:'', bought:'' }
 };
+const ATTIC_IDS = ['rocker', 'kettle', 'q_bramble', 'starchart', 'bclock', 'lectern', 'bportrait', 'barmchair'];
+const NOOK_COST = 4000;
 const HOME_STYLES = { rustic:'rustic', cosy:'cosy', witchy:'witchy', fancy:'fancy', seaside:'seaside' };
 let DECO = null; // decorate mode: { lift: index into S.home.at, or null }
 
@@ -5580,6 +5595,7 @@ function homeState() {
   const H = S.home; H.own = H.own || {}; H.at = (H.at || []).filter(a => HOME_ITEMS[a.id]);
   if (!HOME_ITEMS[H.paper]) H.paper = 'p_plum'; if (!HOME_ITEMS[H.floor]) H.floor = 'f_oak'; if (!HOME_ITEMS[H.bed]) H.bed = 'b_plain';
   if (!H.own.q_none) H.own.q_none = 1; if (!H.own.c_none) H.own.c_none = 1; if (!HOME_ITEMS[H.quilt]) H.quilt = 'q_none'; if (!HOME_ITEMS[H.curtain]) H.curtain = 'c_none';
+  if (atticOpen() && H.at.some(a => ['piece', 'top'].includes(HOME_ITEMS[a.id].kind) && tilesOf(a).some(([x, y]) => x === 8 && (y === 1 || y === 2)))) H.at = H.at.filter(a => !(['piece', 'top'].includes(HOME_ITEMS[a.id].kind) && tilesOf(a).some(([x, y]) => x === 8 && (y === 1 || y === 2))));
   for (const [id, has] of homeDisplays()) if (has && !H.own[id]) { H.own[id] = 1; (H.newGift = H.newGift || []).push(id); }
   return H;
 }
@@ -5593,7 +5609,7 @@ const homeOwn = id => (homeState().own[id] || 0);
 const homePlaced = id => homeState().at.filter(a => a.id === id).length;
 const homeFree = id => homeOwn(id) - homePlaced(id);
 const homeStored = () => HIDS.filter(id => ['piece', 'rug', 'wall', 'top'].includes(HOME_ITEMS[id].kind) && homeFree(id) > 0);
-const homeBgKey = () => { const H = homeState(); return 'H' + H.paper + H.floor + H.bed + H.quilt + homeShowKey() + H.at.map(a => a.id + a.c + a.r + (a.f ? 'f' : '')).join('') + (DECO ? 'D' : ''); };
+const homeBgKey = () => { const H = homeState(); return 'H' + H.paper + H.floor + H.bed + H.quilt + homeShowKey() + (atticOpen() ? 'L' : '') + (H.nook ? 'N' : '') + H.at.map(a => a.id + a.c + a.r + (a.f ? 'f' : '')).join('') + (DECO ? 'D' : ''); };
 const homeShowKey = () => Object.keys((S.hollow && S.hollow.relics) || {}).length + '.' + Object.keys(S.mementos || {}).length + '.' + Object.values(S.ribbons || {}).reduce((n, y) => n + y.length, 0) + '.' + (typeof treasuresOwned === 'function' ? treasuresOwned().length : 0);
 const tilesOf = a => { const it = HOME_ITEMS[a.id], out = []; for (let i = 0; i < (it.w || 1); i++) for (let j = 0; j < (it.h || 1); j++) out.push([a.c + i, a.r + j]); return out; };
 // What stands where: piece footprints block walking; rugs and tops don't.
@@ -5602,7 +5618,9 @@ function homeGrid(skip) {
   homeState().at.forEach((a, i) => { if (i === skip) return; const k = HOME_ITEMS[a.id].kind; for (const [c, r] of tilesOf(a)) g[k][c + ',' + r] = i; });
   return g;
 }
-const homeFloorTile = (c, r) => c >= 0 && c <= 8 && r >= 1 && r <= 11;
+const homeFloorTile = (c, r) => c >= 0 && c <= 8 && r >= 1 && (r <= 11 || (r === 12 && c !== HOME_DOOR[0] && S && S.home && S.home.nook)) && !homeLadder(c, r);
+const homeLadder = (c, r) => c === 8 && r === 1 && atticOpen();
+const atticOpen = () => !!(S && S.quests && S.quests.attic);
 function homeWalkable(c, r, grid) {
   if (c === HOME_DOOR[0] && r === HOME_DOOR[1]) return true;
   if (!homeFloorTile(c, r) || inHomeBed(c, r) || inHearth(c, r)) return false;
@@ -5668,12 +5686,13 @@ function homeAway(i) {
   if (HOME_ITEMS[a.id].surf) for (const b of H.at) if (HOME_ITEMS[b.id].kind === 'top' && tilesOf(a).some(([x, y]) => x === b.c && y === b.r)) gone.push(b);
   H.at = H.at.filter(b => !gone.includes(b)); return gone;
 }
+const HOME_SELLERS = ['mara', 'rowan', 'isolde', 'zara'];
 const HOME_ONCE = ['paper', 'boards', 'bed', 'quilt', 'curtain'];
 const homeAt = (c, r) => { const g = homeGrid(); return ['top', 'piece', 'rug', 'wall'].map(k => g[k][c + ',' + r]).filter(i => i !== undefined); };
 function homeBuy(id) {
   const it = HOME_ITEMS[id]; if (!it || it.from === 'start' || S.coins < it.cost) return false;
   if (HOME_ONCE.includes(it.kind) && homeOwn(id)) return false;
-  if (it.from === 'pot' || it.from === 'gift' || it.from === 'fest') return false;
+  if (!HOME_SELLERS.includes(it.from)) return false;
   S.coins -= it.cost; const H = homeState(); H.own[id] = (H.own[id] || 0) + 1; return true;
 }
 // Pot one of her own plants: one crop from the basket and 40 coins.
@@ -5712,10 +5731,12 @@ function homeCosy() {
   const H = homeState(), seen = {}, styles = {}; let n = 0;
   for (const a of H.at) {
     const it = HOME_ITEMS[a.id], k = (seen[a.id] = (seen[a.id] || 0) + 1);
-    let p = { piece:2, rug:3, wall:2, top:1 }[it.kind] + (it.tall ? 1 : 0) + (it.light ? 1 : 0) + (it.from === 'gift' || it.from === 'fest' ? 1 : 0);
+    let p = { piece:2, rug:3, wall:2, top:1 }[it.kind] + (it.tall ? 1 : 0) + (it.light ? 1 : 0) + (['gift', 'fest', 'attic', 'hew'].includes(it.from) ? 1 : 0);
     if (k > 2) p /= 2; n += p; if (it.style && it.from !== 'start') styles[it.style] = (styles[it.style] || 0) + 1;
   }
   n += 5 * Object.values(styles).filter(x => x >= 4).length;
+  if (ATTIC_IDS.every(id => id === 'q_bramble' ? H.quilt === id : H.at.some(a => a.id === id))) n += 8; // all of Bramble's things out
+  if (H.nook) n += 4;
   n += (H.paper !== 'p_plum' ? 3 : 0) + (H.floor !== 'f_oak' ? 3 : 0) + (H.bed !== 'b_plain' ? 3 : 0) + (H.quilt !== 'q_none' ? 2 : 0) + (H.curtain !== 'c_none' ? 2 : 0);
   return Math.round(n);
 }
@@ -5824,6 +5845,7 @@ function homeVisit(k, q) {
   if (k === 'tohome') { enterHome(); return true; }
   if (k === 'homeout') { leaveHome(); return true; }
   if (k === 'homebed') { openSheet('sleep'); return true; }
+  if (k === 'homeattic') { openSheet('place', { p:'attic' }); return true; }
   if (k === 'homefire') { toast(HOME_FIRE_LINES[(S.day + S.season) % HOME_FIRE_LINES.length], 3600); return true; }
   return false;
 }
@@ -5841,7 +5863,8 @@ function enqueueHome(t, fromDrag) {
   const tg = teaGuest();
   if (tg && t.c === tg.c && (t.r === tg.r || t.r === tg.r - 1)) { if (S.tea.done) { openSheet('villager', { v:tg.v, from:'garden', mood:'happy' }); return; } const r = teaServe(); if (r) { SND.gift(); openSheet('villager', { v:r.v, from:'garden', mood:'happy', line:r.line, gifts:[`Tea together: +${r.fr} friendship.`] }); } return; }
   if (Math.hypot(cat.x - t.c, cat.y - t.r) < .7) { toast(['The cat purrs, and pretends not to.', 'The cat opens one eye. That will do.', 'The cat rolls over. It is a trap.'][(Math.random() * 3) | 0]); return; }
-  if (t.r >= 12) { if (t.c >= 3 && t.c <= 5) homeGo(HOME_DOOR[0], HOME_DOOR[1], { b:'homeout' }); return; }
+  if (t.r >= 12 && (t.c === HOME_DOOR[0] || !homeState().nook)) { if (t.c >= 3 && t.c <= 5) homeGo(HOME_DOOR[0], HOME_DOOR[1], { b:'homeout' }); return; }
+  if (homeLadder(t.c, t.r)) { homeGo(8, 2, { b:'homeattic' }); return; }
   if (t.r === 0) {
     if (t.c === HOME_WINDOW) { toast(homeWindowLine()); return; }
     if (t.c >= 3 && t.c <= 5) { homeGo(HOME_FIRESTAND[0], HOME_FIRESTAND[1], { b:'homefire' }); return; }
@@ -5871,7 +5894,7 @@ function decoTap(t) {
     return;
   }
   if (t.r === 0) { if (!WALL_SLOTS.includes(t.c)) { toast(t.c === HOME_WINDOW ? 'The window stays where it is.' : 'The fireplace stays where it is.'); return; } openSheet('deco', { c:t.c, r:0, p:'d' + t.c + ',0' }); return; }
-  if (t.r >= 12 || inHomeBed(t.c, t.r) || inHearth(t.c, t.r)) { toast(inHomeBed(t.c, t.r) ? 'Change the bed from "Walls, floor and bed".' : t.r >= 12 ? 'That\'s the door.' : 'The hearth stays where it is.'); return; }
+  if ((t.r >= 12 && !homeFloorTile(t.c, t.r)) || inHomeBed(t.c, t.r) || inHearth(t.c, t.r) || homeLadder(t.c, t.r)) { toast(inHomeBed(t.c, t.r) ? 'Change the bed from "Walls, floor and bed".' : homeLadder(t.c, t.r) ? 'The attic ladder stays where it is.' : t.r >= 12 ? 'That\'s the door.' : 'The hearth stays where it is.'); return; }
   openSheet('deco', { c:t.c, r:t.r, p:'d' + t.c + ',' + t.r });
 }
 // A little picture of a piece, for the sheets.
@@ -5931,6 +5954,8 @@ function homeSheet(kind, data) {
       for (const id of HIDS.filter(x => HOME_ITEMS[x].kind === k)) { const it = HOME_ITEMS[id], on = H.paper === id || H.floor === id || H.bed === id || H.quilt === id || H.curtain === id, own = homeOwn(id) > 0;
         h += hrow(id, it.name, own ? it.desc : `From ${HOME_MAKERS[it.from].name} · ${fmt(it.cost)} coins`, on ? '<span class="meta">In use</span>' : own ? `<button class="btn" data-act="decoset" data-id="${id}" type="button">Use</button>` : '', own ? (on ? 'sel' : '') : 'dim'); }
     }
+    h += nookBox();
+    h += `<h4 class="sec">Show someone</h4><p class="sub">Save a picture of the room, or send it to someone.</p><div class="cta-row"><button class="btn alt" data-act="homesnap" type="button">Share a picture of the room</button></div>`;
     h += `<div class="cta-row"><button class="btn alt" data-act="decoback" type="button">Back</button></div>`;
   } else if (kind === 'decoshop') {
     const m = data.shop, M = HOME_MAKERS[m], who = m;
@@ -5964,6 +5989,9 @@ function homeAct(act, b) {
     if (m === 'zara') { const cur = sheetOpen === 'curios'; if ((cur || zaraAtCart()) && zaraDeco().includes(id) && homeBuy(id)) { SND.coin(); updateHUD(); toast(`Zara: "${HOME_MAKERS.zara.bought}"`); } renderSheet(cur ? 'curios' : 'place', cur ? { p:'curio' } : { p:'cart' }); return true; }
     if (homeBuy(id)) { SND.coin(); updateHUD(); renderSheet('decoshop', { shop:m, p:'ds' + m, line:HOME_MAKERS[m].bought }); } return true; }
   if (act === 'decopot') { const c = +b.dataset.c, r = +b.dataset.r; if (homePot(id)) { SND.plant ? SND.plant() : SND.place(); updateHUD(); if (homePut('pot_' + id, c, r)) closeSheet(); else renderSheet('deco', { c, r, p:'d' + c + ',' + r }); } return true; }
+  if (act === 'atticmem') { const st = QUESTS.attic.steps[+id]; sheetOpen = 'qscene'; renderSheet('qscene', { id:'attic', who:[], text:st.text, lines:[], done:true }); return true; }
+  if (act === 'homenook') { if (homeNook()) { SND.gift(); updateHUD(); toast('Mara and Rowan push the wall out in a day and a half, arguing the whole time. There\'s a new row of floor by the door.', 5600); } renderSheet('decoroom', { p:'room' }); return true; }
+  if (act === 'homesnap') { closeSheet(); setTimeout(() => homeSnap(r => toast(r === 'shared' ? 'Sent!' : r === 'saved' ? 'Saved a picture of the room.' : r === 'declined' ? 'Not sent.' : "Couldn't make a picture here, sorry.")), 60); return true; }
   if (act === 'teainv') { const q = teaInvite(id); if (q) { SND.gift(); toast(`${VILLAGERS[id].name}: "Tea? I'd love to. I'll come up at ${fmtTime(q.from)}."`, 4200); } renderSheet('villager', { v:id }); return true; }
   return false;
 }
@@ -5987,6 +6015,45 @@ function zaraDecoBox() {
   for (const id of zaraDeco()) { const it = HOME_ITEMS[id], n = homeOwn(id);
     h += hrow(id, it.name, `${fmt(it.cost)} coins · ${sizeTxt(it)} · ${it.desc}${n ? `<span class="have">You have ${n}</span>` : ''}`, `<button class="btn" data-act="decobuy" data-id="${id}" data-shop="zara" type="button" ${S.coins < it.cost ? 'disabled' : ''}>Buy · ${fmt(it.cost)}</button>`); }
   return h;
+}
+function homeGive(id) {
+  const H = homeState(); H.own[id] = Math.max(1, H.own[id] || 0);
+  if (HOME_ITEMS[id].kind === 'quilt') { H.quilt = id; return `For the cottage: ${HOME_ITEMS[id].name}. It's on the bed already.`; }
+  return `For the cottage: ${HOME_ITEMS[id].name}. Tap Decor at home to put it out.`;
+}
+// The attic's place sheet, once the story is done: Bramble's things and their stories.
+function atticBox() {
+  const st = S.quests && S.quests.attic; if (!st) return '';
+  const Q = QUESTS.attic, got = Q.steps.map((x, i) => ({ x, i })).filter(o => o.x.piece && (st.done || st.s > o.i));
+  if (!got.length) return '';
+  let h = `<h4 class="sec">Bramble's things</h4>`;
+  for (const o of got) h += `<button class="vrow" data-act="atticmem" data-id="${o.i}" type="button"><div class="info"><span class="name">${HOME_ITEMS[o.x.piece].name}</span><span class="meta">The story of it</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+  if (st.done) h += `<button class="vrow" data-act="atticmem" data-id="${Q.steps.length - 1}" type="button"><div class="info"><span class="name">${HOME_ITEMS.barmchair.name}</span><span class="meta">The story of it</span></div><span class="chev" aria-hidden="true">›</span></button>`;
+  return h;
+}
+function nookBox() {
+  const H = homeState(); if (!S.quests || !S.quests.attic || !S.quests.attic.done) return '';
+  if (H.nook) return `<h4 class="sec">The cottage itself</h4><p class="sub">The front wall is pushed out into a nook: a whole new row of floor by the door.</p>`;
+  return `<h4 class="sec">The cottage itself</h4>${row('#8a6440', 'Open up a nook', `${fmt(NOOK_COST)} coins · Mara and Rowan push the front wall out: a whole new row of floor either side of the door.`, `<button class="btn" data-act="homenook" type="button" ${S.coins < NOOK_COST ? 'disabled' : ''}>Build · ${fmt(NOOK_COST)}</button>`)}`;
+}
+function homeNook() { const H = homeState(); if (H.nook || S.coins < NOOK_COST || !(S.quests && S.quests.attic && S.quests.attic.done)) return false; S.coins -= NOOK_COST; H.nook = true; return true; }
+// "Show someone": a picture of the room through the share sheet (or a download).
+function homeSnap(done) {
+  done = done || (() => {});
+  try {
+    const was = DECO; DECO = null; bgKey = ''; buildStatic(); draw();
+    const px = Math.round(ox * dpr), py = Math.round((oy - T * .45) * dpr), pw = Math.round(COLS * T * dpr), ph = Math.round((ROWS + .45) * T * dpr);
+    const cv = document.createElement('canvas'); cv.width = pw; cv.height = ph; cv.getContext('2d').drawImage(C, px, py, pw, ph, 0, 0, pw, ph);
+    DECO = was; bgKey = '';
+    if (!cv.toBlob) return done('unavailable');
+    cv.toBlob(b => {
+      if (!b) return done('unavailable');
+      const name = 'my-cottage.png'; let file = null; try { file = new File([b], name, { type:'image/png' }); } catch (e) {}
+      const download = () => { try { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000); done('saved'); } catch (e) { done('unavailable'); } };
+      if (file && navigator.share && navigator.canShare && navigator.canShare({ files:[file] })) navigator.share({ files:[file], title:'My cottage' }).then(() => done('shared'), e => (e && e.name === 'AbortError') ? done('declined') : download());
+      else download();
+    }, 'image/png');
+  } catch (e) { done('unavailable'); }
 }
 // The mill and the smithy sheets offer the catalogues.
 function decoShopRow(p) {
@@ -6118,6 +6185,15 @@ function drawPieceMore(g, id, x, y, T0, f, it, u, c, W0, cx) {
       if (tr.includes('cloak')) { g.fillStyle = '#3a2a5a'; g.beginPath(); g.moveTo(cx - 4.5 * u, y - 7 * u); g.lineTo(cx - 6 * u, y + 6 * u); g.lineTo(cx - 3 * u, y + 5 * u); g.fill(); }
       if (fw.length) { R(g, cx - 4 * u, y - 3 * u, 8 * u, 1.6 * u, FEST_WEAR[fw[0]].col); }
       if (tr.length) { R(g, cx - 2.4 * u, y - 12.5 * u, 4.8 * u, 1.2 * u, '#f2d36b'); for (const dx of [-1.6, 0, 1.6]) circ(g, cx + dx * u, y - 12.8 * u, .6 * u, '#ef9aac'); } } break;
+    case 'rocker': sh0(g, cx, y + 14 * u, 6 * u); g.strokeStyle = shade(c, -30); g.lineWidth = 1.2 * u; g.beginPath(); g.arc(cx, y + 5 * u, 9 * u, Math.PI * .3, Math.PI * .7); g.stroke();
+      R(g, cx - 4 * u, y + 8 * u, 1.2 * u, 5 * u, shade(c, -20)); R(g, cx + 3 * u, y + 8 * u, 1.2 * u, 5 * u, shade(c, -20)); R(g, cx - 4.5 * u, y + 7 * u, 9 * u, 2 * u, c); R(g, cx - 4.5 * u, y - 3 * u, 1.6 * u, 11 * u, shade(c, -10)); for (let k = 0; k < 4; k++) R(g, cx - 4.5 * u, y + (-2 + k * 2.5) * u, 3.5 * u, .8 * u, shade(c, -10)); R(g, cx - 4 * u, y + 6 * u, 7 * u, 1.4 * u, '#c87a8a'); break;
+    case 'kettle': g.fillStyle = c; g.beginPath(); g.ellipse(cx, y + 3 * u, 4 * u, 3 * u, 0, 0, 7); g.fill(); R(g, cx - 3 * u, y + 5 * u, 6 * u, u, shade(c, -25)); g.strokeStyle = shade(c, -30); g.lineWidth = .8 * u; g.beginPath(); g.arc(cx, y, 2.6 * u, Math.PI, 0); g.stroke(); R(g, cx + 3.5 * u, y + 1.5 * u, 3 * u, 1 * u, c); circ(g, cx - 1 * u, y + 2 * u, .8 * u, 'rgba(255,255,255,.5)'); break;
+    case 'chart': R(g, x + 2 * u, y - 4 * u, T - 4 * u, 10 * u, it.col); for (let k = 0; k < 9; k++) circ(g, x + (3.5 + hash(k, 3, 1) * 9) * u, y + (-3 + hash(k, 4, 1) * 8) * u, .55 * u, it.col2); g.strokeStyle = 'rgba(242,211,107,.6)'; g.lineWidth = .3 * u; g.beginPath(); for (let k = 0; k < 4; k++) g.lineTo(x + (3.5 + hash(k, 3, 1) * 9) * u, y + (-3 + hash(k, 4, 1) * 8) * u); g.stroke(); break;
+    case 'cclock': g.fillStyle = c; g.beginPath(); g.arc(cx, y + u, 4.5 * u, 0, Math.PI); g.lineTo(cx - 4.5 * u, y - u); g.lineTo(cx + 4.5 * u, y - u); g.fill(); R(g, cx - 5 * u, y - 2 * u, 10 * u, 1.4 * u, c); circ(g, cx, y + 1.5 * u, 2.6 * u, '#f4ead9'); R(g, cx - .3 * u, y - .4 * u, .6 * u, 2 * u, '#2a1d36'); R(g, cx, y + 1.3 * u, 1.6 * u, .5 * u, '#2a1d36'); for (const [dx, dy] of [[-2, -4], [1, -5], [3, -3.5]]) circ(g, cx + dx * u, y + dy * u, .8 * u, '#7fd39a'); break;
+    case 'lectern': sh0(g, cx, y + 14 * u, 4 * u); R(g, cx - .8 * u, y + 4 * u, 1.6 * u, 10 * u, c); R(g, cx - 3.5 * u, y + 13 * u, 7 * u, 1.2 * u, c); g.fillStyle = shade(c, 15); g.beginPath(); g.moveTo(cx - 5 * u, y + 5 * u); g.lineTo(cx + 5 * u, y + 5 * u); g.lineTo(cx + 4 * u, y); g.lineTo(cx - 4 * u, y); g.fill();
+      R(g, cx - 4 * u, y - .5 * u, 3.8 * u, 4.5 * u, '#f4ead9'); R(g, cx + .2 * u, y - .5 * u, 3.8 * u, 4.5 * u, '#f4ead9'); for (let k = 0; k < 3; k++) { R(g, cx - 3.4 * u, y + (.5 + k * 1.2) * u, 2.6 * u, .3 * u, '#8a7a8a'); R(g, cx + .8 * u, y + (.5 + k * 1.2) * u, 2.6 * u, .3 * u, '#8a7a8a'); } break;
+    case 'portrait': R(g, x + 3 * u, y - 5 * u, T - 6 * u, 11 * u, c); R(g, x + 4 * u, y - 4 * u, T - 8 * u, 9 * u, '#6a8aa0'); circ(g, cx, y - .5 * u, 2.2 * u, '#e8c8a8'); g.fillStyle = '#2a1d36'; g.beginPath(); g.moveTo(cx - 3.5 * u, y - 1.5 * u); g.lineTo(cx, y - 6 * u); g.lineTo(cx + 3.5 * u, y - 1.5 * u); g.fill(); R(g, cx - 2.5 * u, y + 1.6 * u, 5 * u, 3.4 * u, '#7a3a5a'); R(g, cx - .2 * u, y - 4 * u, .4 * u, 9 * u, 'rgba(244,234,217,.5)'); break;
+    case 'hewpic': R(g, x + 1.5 * u, y - 5 * u, T - 3 * u, 12 * u, c); R(g, x + 2.5 * u, y - 4 * u, T - 5 * u, 10 * u, '#4a2a3a'); for (const [dx, dy] of [[1.5, -5], [T / u - 1.5, -5], [1.5, 7], [T / u - 1.5, 7]]) circ(g, x + dx * u, y + dy * u, 1.2 * u, '#f2d36b'); break;
     case 'pot': { sh0(g, cx, y + 14 * u, 4 * u); g.fillStyle = '#b8653a'; g.beginPath(); g.moveTo(cx - 4 * u, y + 8 * u); g.lineTo(cx + 4 * u, y + 8 * u); g.lineTo(cx + 3 * u, y + 14 * u); g.lineTo(cx - 3 * u, y + 14 * u); g.fill(); R(g, cx - 4.5 * u, y + 7 * u, 9 * u, 2 * u, '#c8754a');
       for (let k = 0; k < 6; k++) { g.fillStyle = k % 2 ? '#4a8a4a' : '#5aa05a'; g.beginPath(); g.ellipse(cx + (k - 2.5) * 1.6 * u, y + (4 - Math.abs(k - 2.5) * .5) * u, 1.3 * u, 3.6 * u, (k - 2.5) * .35, 0, 7); g.fill(); }
       for (let k = 0; k < 4; k++) circ(g, cx + (k - 1.5) * 2.2 * u, y + (1 + (k % 2) * 1.5) * u, 1.5 * u, c); } break;
@@ -6146,9 +6222,12 @@ function buildHome(g, season) {
   // the mantel: a few of Bramble's things
   circ(g, fx + .6 * T, fy + T * .26, 2 * u, '#c8a24a'); R(g, fx + 2.2 * T, fy + T * .14, 3 * u, 4.5 * u, '#3a6a5a'); R(g, fx + 2.45 * T, fy + T * .1, 2.5 * u, 5 * u, '#7a3a4a');
   drawBed(g, HM.bed, ox + 6 * T, oy + T, T, HM.quilt);
+  if (atticOpen()) { const lx = ox + 8 * T, ly = oy - T * .35; R(g, lx + 3 * u, ly, 1.4 * u, T * 2.2, '#7a5638'); R(g, lx + T - 4.4 * u, ly, 1.4 * u, T * 2.2, '#7a5638'); for (let k = 0; k < 7; k++) R(g, lx + 3 * u, ly + (2 + k * 4.6) * u, T - 6 * u, 1.2 * u, '#a57a4f'); R(g, lx + 2 * u, ly - 2 * u, T - 4 * u, 2.5 * u, '#2a1d1a'); }
   // the door and its mat
   const dx = ox + HOME_DOOR[0] * T, dy = oy + HOME_DOOR[1] * T;
-  R(g, ox, dy + 4 * u, COLS * T, T - 4 * u, '#3a2430'); R(g, ox, dy + 4 * u, COLS * T, 1.5 * u, '#5a3d26'); // the front wall
+  if (HM.nook) { for (let c = 0; c < COLS; c++) if (c !== HOME_DOOR[0]) drawFloorTile(g, HM.floor, ox + c * T, dy, T, c, 12); R(g, ox, dy + T - 2.5 * u, COLS * T, 2.5 * u, '#3a2430'); R(g, ox, dy + T - 2.5 * u, COLS * T, .8 * u, '#5a3d26');
+    for (const wc of [1.2, 6.4]) { R(g, ox + wc * T, dy + T - 3 * u, 1.4 * T, 3 * u, '#bfe0f2'); R(g, ox + wc * T, dy + T - 3 * u, 1.4 * T, .8 * u, '#5a3d26'); } }
+  else { R(g, ox, dy + 4 * u, COLS * T, T - 4 * u, '#3a2430'); R(g, ox, dy + 4 * u, COLS * T, 1.5 * u, '#5a3d26'); } // the front wall
   R(g, dx - u, dy + 2 * u, T + 2 * u, T - 2 * u, '#5a3d26'); R(g, dx + u, dy + 3 * u, T - 2 * u, T - 3 * u, '#8a6440'); for (let i = 0; i < 3; i++) R(g, dx + (2.5 + i * 4) * u, dy + 4 * u, 3 * u, T - 5 * u, '#9a7450'); circ(g, dx + T - 3.5 * u, dy + 9 * u, .9 * u, '#c8a24a');
   R(g, dx - 2 * u, dy - 3 * u, T + 4 * u, 4 * u, '#7a5a3a'); for (let i = 0; i < 4; i++) R(g, dx - u, dy + (-2.4 + i) * u, T + 2 * u, .4 * u, '#5a3d26');
   // rugs, then everything else from the back of the room to the front, then what stands on top
@@ -6186,11 +6265,14 @@ function drawHomeDynamic() {
     if (HOME_ITEMS[a.id].d === 'candles') for (const dx of [-3.7, .2, 4.3]) circ(ctx, x + dx * u, y + (dx === .2 ? -.6 : 1.5) * u + ph, 1 * u, '#ffd06a');
     else if (HOME_ITEMS[a.id].d === 'sticks') for (const dx of [-3, 3]) circ(ctx, x + dx * u, y + ph, 1 * u, '#ffd06a');
     else if (HOME_ITEMS[a.id].d !== 'lamp') circ(ctx, x, y + ph, 1.3 * u, '#ffe08a'); }
+  { const hp = homeState().at.find(a => a.id === 'hewpic'); if (hp) { const img = hewPicImage(); if (img.complete && img.naturalWidth) { const s0 = 9 * u; ctx.drawImage(img, ox + hp.c * T + T / 2 - s0 / 2, oy + T * .05 - 4 * u, s0, s0); } } }
   const sp = homeSpouse(); if (sp) drawShopper({ v:sp.v, x:sp.c, y:sp.r, st:'helper' });
   const tg = teaGuest(); if (tg) drawShopper({ v:tg.v, x:tg.c, y:tg.r - (tg.seat ? .15 : 0), st:'helper' }); if (tg && !S.tea.done) { const bx = ox + (tg.c + .5) * T + 6 * u, by = oy + (tg.r - .45) * T - (reduceMotion ? 0 : Math.abs(Math.sin(clock * 3)) * u); circ(ctx, bx, by, 3.4 * u, '#f4ead9'); R(ctx, bx - 1.6 * u, by - .6 * u, 3.2 * u, 2.4 * u, '#c87a8a'); R(ctx, bx + 1.6 * u, by, .8 * u, 1.2 * u, '#c87a8a'); }
   if (DECO && DECO.lift !== null) { const a = homeState().at[DECO.lift]; if (a) { const it = HOME_ITEMS[a.id], y0 = it.kind === 'wall' ? oy - T * .3 : oy + a.r * T; ctx.strokeStyle = '#f2b84b'; ctx.lineWidth = Math.max(2, u); ctx.setLineDash([u * 2, u * 1.5]); ctx.strokeRect(ox + a.c * T + u, y0 + u, (it.w || 1) * T - 2 * u, (it.kind === 'wall' ? T * 1.1 : (it.h || 1) * T) - 2 * u); ctx.setLineDash([]); } }
 }
 function homeTopY(a) { const s = homeGrid().piece[a.c + ',' + a.r]; return s === undefined ? 0 : (SURF_Y[HOME_ITEMS[homeState().at[s].id].d] || 0); }
+let hewPicImg = null;
+function hewPicImage() { if (!hewPicImg) { hewPicImg = new Image(); hewPicImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(hewPortrait('smug', 80).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')); } return hewPicImg; }
 function homeGlows(glow, k) {
   glow(ox + 4.5 * T, oy + T * .8, T * 2.6, '255,150,60', .55 * k);
   for (const a of homeState().at) if (HOME_ITEMS[a.id].light) { const [x, y] = homeFlame(a); glow(x, y, T * 1.6, '255,200,110', .45 * k); }
@@ -7515,7 +7597,9 @@ function hewBreak() {
 }
 function hewTalk() {
   const H = HW(); if (H.talked === dayKey()) return null;
-  H.talked = dayKey(); addHew(10); return sayLine('hew', HEW_TALK[hewStage()]);
+  H.talked = dayKey(); addHew(10);
+  if (!H.picSaid && S.home && S.home.at.some(a => a.id === 'hewpic')) { H.picSaid = true; return S.home.at.some(a => a.id === 'hewpic' && a.c >= 6) ? "I hear my portrait hangs above your bed. ...That's fine. That's completely fine. I'm not blushing, it's the tower, it's warm." : 'Word reaches me that my portrait has pride of place in your cottage. As it should. Does it catch the light? It should catch the light.'; }
+  return sayLine('hew', HEW_TALK[hewStage()]);
 }
 function hewGift(id) {
   const H = HW(); if (!(S.inv[id] > 0)) return null;
@@ -8376,6 +8460,32 @@ QUESTS.shop = { title:'The shop on Old Market Row', host:'odile', cast:['odile',
    inspector: a Guild inspection; its last step uses the new `check` step kind (a function that returns why it can't be done yet).
    rowlife: the finale; Zara and Mara open the two empty shopfronts. All three are `shopq`, like the shop story. */
 QUESTS.shop.shopq = true;
+/* ---- the cottage, Part 3 (PLAN-cottage.md): Bramble's attic. Each mending step gives one of her things (step.piece). ---- */
+QUESTS.attic = { title:"Bramble's attic", host:'hettie', cast:['hettie', 'mara', 'rowan', 'isolde', 'bertram', 'theo', 'odile'], homeq:true, when:() => !!S.homeSeen && heartsOf('hettie') >= 3, unlock:'once you have been inside the cottage, and Hettie is at 3 hearts',
+  hook:'Hettie says there is an attic in the cottage. You have never seen a way up.',
+  steps:[
+    { v:'hettie', btn:'Ask about the attic', hint:'Hettie has something to tell you about the cottage. She is usually in her lane.',
+      text:`Hettie pats the bench beside her. "Has nobody told you about the attic, dear? No, of course not. There's a hatch above the bed, behind the beam. Bramble put everything she loved up there when her knees went, and then she couldn't get up to see it." She squeezes your hand. "It's all still there. Go and look. Take a candle. And a hanky, for the dust."` },
+    { at:'attic', btn:'Climb up', hint:'Go home and climb the ladder by the bed. (It is there now. It was always there, behind the beam.)',
+      text:`The hatch sticks, then gives in a shower of dust. Up under the eaves it is dim and warm and smells of lavender. There are shapes everywhere under old bedsheets: a chair, something round and brass, a frame, a folded quilt, a little stand with a book still open on it. You lift one sheet and find a note pinned underneath in Bramble's terrible handwriting: "To whoever comes next. Mend what you can. Love what you can't." You sit in the dust for a while. Then you start writing a list of who could help.` },
+    { v:'mara', give:{ pick:'forage', n:4 }, piece:'rocker', btn:'Bring the rocking chair to Mara', hint:'Bramble\'s rocking chair has a split runner. Mara could mend it with good wood from the Old Wood: bring 4 finds.',
+      text:`Mara turns the chair over on the mill floor and runs her thumb along the split. "This was my father's work. He made it for her the year I was born. She rocked me in it when Ma was ill." She glues and clamps and hums. "There. It'll creak on the third rock. It always did. Don't let anyone fix that."` },
+    { v:'rowan', pay:300, piece:'kettle', btn:'Pay Rowan to mend the kettle · 300', hint:'Bramble\'s brass kettle has lost its whistle. Rowan can mend it, for 300 coins of brass.',
+      text:`Rowan holds the kettle up to the light. "Brass. Good brass. Dented where someone threw it." He catches your look. "Not at a person. At a fox. She told me. Twice." By evening it shines, and when he puts it on the forge it whistles, clear and high. "E," he says, and nearly smiles. "Same as the shop bell. She liked things to match."` },
+    { v:'isolde', give:{ pick:'crop', n:3 }, piece:'q_bramble', btn:'Ask Isolde about the quilt', hint:'Bramble\'s patchwork quilt has holes. Isolde can mend it if you bring 3 crops for the inn kitchen.',
+      text:`Isolde unfolds the quilt across three tables and goes quiet. "Every patch is one of her dresses. This green was the Harvest Fair, the year she won with a gourd as big as Pip. This one she wore to my wedding. The first one." She threads a needle. "Leave it with me, love. I'll have it whole by morning. I might cry on it a bit. That's allowed."` },
+    { v:'bertram', piece:'starchart', btn:'Show Bertram the star chart', hint:'There\'s a hand-drawn star chart in the attic, half the names rubbed out. Bertram at the lighthouse knows the stars.',
+      text:`Bertram spreads the chart under the lamp. "She used to come up the lighthouse on clear nights. Said she could see further from here than from anywhere. She named her own." He traces a crooked shape. "That one is The Cat. That one is Hettie's Nose. Don't tell Hettie." He inks the faded names back in, one by one, with great care.` },
+    { v:'theo', give:{ pick:'potion', n:1 }, piece:'bclock', btn:'Take the clock to Theo', hint:'A clock shaped like a little cauldron has stopped. Theo might know how it works. Bring him a potion to trade.',
+      text:`Theo opens the back of the clock and gasps. "There's a potion in here. A real one, going round and round in a little glass coil. That's how it keeps time. That's impossible." He tops it up from your potion, very carefully, and it starts to tick. On the hour, it bubbles. "I'm going to spend years working out how she did this," he says happily.` },
+    { v:'odile', piece:'lectern', btn:'Show Odile the book stand', hint:'Bramble\'s little book stand is wobbling apart, and the book on it is in her handwriting. Odile looks after the village\'s old papers.',
+      text:`Odile reads the open page and laughs out loud. "It's a recipe for a potion to make cats come home. Underneath she's written: 'Does not work. Cat comes home anyway. Cat always comes home.'" She glues the wobbly leg and does not turn the page. "Leave it open there. It's the right page."` },
+    { v:'hettie', piece:'bportrait', btn:'Show Hettie the torn portrait', hint:'There is a painting of a young woman in the attic, torn down the middle. Hettie will know who it is.',
+      text:`Hettie takes the torn painting in both hands. "Oh. Oh, that's Bramble, at nineteen. Marigold painted it, and then they had a row about a cauldron and Marigold tore it in half. Each of them kept a half for sixty years. Too proud to give it back." She sniffs. "Marigold sent me her half last winter. 'For when Bramble's kin wants it,' she said." Together you stitch it to a new backing. Bramble is laughing at someone just out of the picture.` },
+    { at:'attic', btn:'Bring down the last thing', hint:'One last thing in the attic, by the window: the shape of an armchair.',
+      text:`The last sheet comes off Bramble's own armchair, the one from the photographs, its green worn pale on the arms. Mara's lads carry it down the ladder, swearing gently, and set it by the fire where the marks on the floor say it always stood. Hettie comes up from the lane with Wren's honey cake. You sit in the chair. The cat climbs onto your knee. Hettie looks round the room for a long time. "There," she says. "Now it's hers and yours."` }
+  ],
+  reward:{ piece:'barmchair', fr:{ hettie:100, mara:40, rowan:40, isolde:40, bertram:40, theo:40, odile:40 } }, rtext:"Bramble's things, mended and back in the cottage." };
 QUESTS.theoshop = { title:'Rival remedies', host:'theo', cast:['theo', 'isolde'], shopq:true, when:() => shopReady() && heartsOf('theo') >= 4 && (S.shop && S.shop.days || 0) >= 3, unlock:'Theo at 4 hearts, once your shop has been open three days',
   hook:'Theo has noticed his customers buying potions at your shop.',
   steps:[
@@ -8832,6 +8942,7 @@ function questReward(Q) {
   if (r.shopflag) { const st = shopState(); (st.flags = st.flags || {})[r.shopflag] = absDay(); if (r.rep) addRep(r.rep / (shopUp('sign') ? SIGN_REP : 1)); bgKey = ''; }
   if (r.shop) { shopState(); out.push('The shop is yours. Walk in, tap a shelf to stock it, and open up from the ledger on the counter. You can also go straight there from the garden gate.'); }
   if (r.match) { const at = matchWedAt(r.match), M = MATCHES[r.match]; (S.matched = S.matched || {})[r.match] = { wed:at, went:false }; out.push(`${VILLAGERS[M.a].name} and ${VILLAGERS[M.b].name} will be married on ${dateLabel(at)}, at ${VPLACES[M.place].name}. You're invited.`); }
+  if (r.piece) out.push(homeGive(r.piece), 'The attic is empty now, apart from the dust. Mara and Rowan say they could open it up into a little nook, if you ever want more room.');
   if (r.memento) { (S.mementos = S.mementos || {})[r.memento] = true; out.push(`A keepsake for your shelf: ${MEMENTOS[r.memento].name}.`); }
   if (r.fr) { const g = []; for (const [v, n] of Object.entries(r.fr)) { addFr(v, n); applyGifts(v, g); } out.push(`${nameList(Object.keys(r.fr))} ${Object.keys(r.fr).length > 1 ? 'are' : 'is'} much fonder of you.`, ...g); }
   checkStars();
@@ -8847,6 +8958,7 @@ function questDo(id, v) {
   for (const x of who) addFr(x, 20);
   st.s++;
   const lines = [];
+  if (step.piece) lines.push({ t:homeGive(step.piece), c:'gift' });
   if (st.s >= Q.steps.length) { st.done = true; st.at = absDay(); lines.push(...questReward(Q).map(t => ({ t, c:'gift' }))); }
   else lines.push({ t:'Next: ' + qHint(id) });
   updateHUD(); save(); SND.gift();
@@ -8883,7 +8995,7 @@ const questsFor = v => QIDS.filter(id => { const s = qStep(id); return s && s.v 
 const questsAt = p => QIDS.filter(id => { const s = qStep(id); return s && s.at === p; });
 // Walk her to a village place (from the farm, through the gate).
 function seekPlace(p) {
-  closeSheet(); if (S.scene === 'home') leaveHome(); if (rowPlace(p)) { seekRow(p); return; } const B = VB[p] || (p === 'square' ? VB.well : null); if (!B) return;
+  closeSheet(); if (p === 'attic') { if (S.scene === 'home') homeGo(8, 2, { b:'homeattic' }); else { goHome(); toast('The ladder is by the bed.'); } return; } if (S.scene === 'home') leaveHome(); if (rowPlace(p)) { seekRow(p); return; } const B = VB[p] || (p === 'square' ? VB.well : null); if (!B) return;
   if (S.scene === 'farm') { queue.push({ c:BUILD.gate.stand[0], r:BUILD.gate.stand[1], kind:'visit', b:'tovillage', place:p }); return; }
   if (S.scene === 'village') queue.push({ c:B.stand[0], r:B.stand[1], kind:'visit', b:'vplace', place:p });
 }
@@ -9274,7 +9386,7 @@ function renderSheet(kind, data) {
         if (st.done) { h += `<article class="card done"><div class="chead"><h4>${Q.title}</h4><span class="stars">Finished</span></div>${crowd}<p class="sub">${Q.rtext}</p></article>`; continue; }
         const step = qStep(id); let loc = '', btn = '';
         if (step.v) for (const v of [].concat(step.v)) { const mb = meetBox(v); loc += `<p class="sub where">${canMeet(v) ? `${VILLAGERS[v].name} is right here.` : `${VILLAGERS[v].name} is ${placeLabel(where(v))}.`}</p>`; if (!btn && !canMeet(v) && mb.seek) btn = `<button class="btn alt" data-act="seek" data-id="${v}" type="button">${mb.seek}</button>`; }
-        if (step.at) { const miss = (step.need || []).filter(v => where(v) !== step.at); loc += `<p class="sub where">${miss.length ? `${nameList(miss)} ${miss.length > 1 ? "aren't" : "isn't"} there right now.` : (step.need ? `${nameList(step.need)} ${step.need.length > 1 ? 'are' : 'is'} there now.` : '')}</p>`; if ((S.scene === 'farm' || S.scene === 'village' || S.scene === 'row') && !(S.scene === (VPLACES[step.at].scene || 'village') && !qBlock(id))) btn = `<button class="btn alt" data-act="goplace" data-id="${step.at}" type="button">Go to ${VPLACES[step.at].name}</button>`; }
+        if (step.at) { const miss = (step.need || []).filter(v => where(v) !== step.at); loc += `<p class="sub where">${miss.length ? `${nameList(miss)} ${miss.length > 1 ? "aren't" : "isn't"} there right now.` : (step.need ? `${nameList(step.need)} ${step.need.length > 1 ? 'are' : 'is'} there now.` : '')}</p>`; if ((S.scene === 'farm' || S.scene === 'village' || S.scene === 'row' || S.scene === 'home') && !(S.scene === (VPLACES[step.at].scene || 'village') && !qBlock(id))) btn = `<button class="btn alt" data-act="goplace" data-id="${step.at}" type="button">Go to ${VPLACES[step.at].name}</button>`; }
         h += `<article class="card quest"><h4>${Q.title}</h4>${crowd}<p class="sub">Step ${st.s + 1} of ${Q.steps.length}. ${qHint(id)}</p>${loc}${btn ? `<div class="cta-row">${btn}</div>` : ''}</article>`;
       }
     } else if (journalTab === 'village') {
@@ -9464,9 +9576,10 @@ function renderSheet(kind, data) {
     h += matchCard(p);
     for (const id of questsAt(p)) h += questCard(id);
     if (p === 'cart') { h += cartWares(); if (zaraAtCart()) h += zaraDecoBox(); }
+    if (p === 'attic') h += atticBox() + (S.quests && S.quests.attic ? '' : `<p class="sub">The hatch is stuck fast. Maybe someone in the village knows about it.</p>`);
     h += decoShopRow(p);
-    if (rowPlace(p)) h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
-    const here = rowPlace(p) ? null : folkAt(p);
+    if (rowPlace(p) || p === 'attic') h += `<button class="btn alt" data-act="close" type="button">Close</button>`;
+    const here = rowPlace(p) || p === 'attic' ? null : folkAt(p);
     if (here) {
     if (here.length) h += `<h4 class="sec">Here now</h4>`;
     else h += `<p class="sub">Nobody's here right now.</p>`;
@@ -9896,7 +10009,7 @@ function copyFallback(text) {
 }
 /* ================= cloud saves (website version only) ================= */
 const CLOUD = { apiKey:'AIzaSyCZmCr2tRRfi2lRDo2Qz3nE-r5mhjnaETs', projectId:'brambleroot-80f9e' };
-const BUILD_NO = 37, BUILD_DATE = 'Nov 12'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
+const BUILD_NO = 38, BUILD_DATE = 'Nov 12'; // stamped by build_site.py on a real (keyed) build; 0 = local test build
 const buildLabel = () => BUILD_NO ? `Build ${BUILD_NO}${BUILD_DATE ? ' · ' + BUILD_DATE : ''}` : 'Test build';
 const cloudOn = () => !!(CLOUD.apiKey && CLOUD.projectId) && !(window.claude && typeof window.claude.use === 'function');
 if ($('buildTag')) $('buildTag').textContent = buildLabel();

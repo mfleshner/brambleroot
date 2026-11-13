@@ -75,7 +75,8 @@ Pieces sit in **styles** (Rustic, Witchy, Cosy, Fancy, Seaside, Seasonal) for vi
 - Lights glow at night (`homeGlows`, like `rowGlows`).
 - Tests: `home2test.js`, `home2phone.js`; econ4 `{"cosy":4}` for the morning bonus.
 
-### Part 3: Bramble's attic
+### Part 3: Bramble's attic (shipped Nov 12, 2026)
+- As built: Hettie, Mara, Rowan, Isolde, Bertram, Theo and Odile mend the eight things (Marigold sent her half of the portrait by post, so the story works in year 1); the ladder stands by the bed; the extension became a nook (a new row of floor either side of the door, 4,000 coins) instead of a side bay, because the room keeps its 9 columns.
 - **The story** `QUESTS.attic` (host Hettie; cast Mara, Rowan, Isolde, Marigold from year 2): a ladder hatch above the bed that she's never noticed. Up there, eight of Bramble's things under dust sheets. Each is mended by someone: her rocking chair (Mara, 4 Wood finds), her brass kettle (Rowan, 300 coins), her patchwork quilt (Isolde, 3 crops), her star chart (Bertram), her cauldron-shaped clock, her spell-book stand, the portrait of Bramble young (Marigold, who has the other half), and her armchair (the last, a scene by the fire).
 - Each mended piece comes with a short memory, like the shop's ledger pages, and goes into storage to place.
 - **The extension** (Mara and Rowan, 4,000 coins, after the story): the room grows a nook on the left (an extra 2 columns of floor drawn as a bay with a window seat). Optional.

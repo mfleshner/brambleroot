@@ -25,6 +25,7 @@ t.enterHome(); close(); t.buildStatic(); t.draw(); ok(/q_stars/.test(t.bgKeyNow(
 const zd = t.zaraDeco(); ok(zd.length === 2 && zd.every(id => t.HOME_ITEMS[id].from === 'zara'), 'two of Zara\'s pieces a week');
 S.day = 12; const zd2 = t.zaraDeco(); S.day = 13; ok(JSON.stringify(t.zaraDeco()) === JSON.stringify(zd2), 'same all week');
 { const seen = new Set(); for (let y = 1; y <= 3; y++) for (let s = 0; s < 4; s++) for (const d of [1, 8, 15, 22]) { S.year = y; S.season = s; S.day = d; t.zaraDeco().forEach(i => seen.add(i)); } ok(seen.size === 8, 'every piece comes round'); S.year = 2; S.season = 1; S.day = 5; }
+{ const z = t.zaraDeco()[0], c1 = S.coins; ok(t.homeBuy(z) && S.coins === c1 - t.HOME_ITEMS[z].cost, "Zara's pieces can be bought"); }
 // festival prizes
 S.day = 14; S.tickets = 100; S.time = 700; { const st = t.prizeStock(), p = st.find(x => x.id === 'h:lstring'); ok(p && p.left === 1, 'summer prize stall has the lantern string');
   S.scene = 'village'; ok(t.prizeBuy('h:lstring') && t.homeOwn('lstring') === 1 && S.tickets === 80, 'bought with tickets'); ok(!t.prizeStock().find(x => x.id === 'h:lstring').left, 'once'); S.scene = 'home'; }

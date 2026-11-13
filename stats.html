@@ -236,6 +236,7 @@ function card(r, f) {
     <dt>Stories</dt><dd>${f.stories.length} of 6 finished${f.open ? `, ${f.open} open` : ''}</dd>
     <dt>Hollow</dt><dd>${!S.hollowMax ? 'not found yet' : S.hollowMax > 100 ? `floor ${S.hollowMax} (the Endless Below)` : `floor ${S.hollowMax} of 100`}</dd>
     <dt>Spells</dt><dd>${(S.spells || []).length}${S.ribbons && Object.keys(S.ribbons).length ? ` · ${Object.values(S.ribbons).reduce((n, y) => n + (y.length || 0), 0)} festival ribbons` : ''}${H.met ? ` · Hew ${Math.min(H.dating || H.wed ? 10 : 8, Math.floor((H.fr || 0) / 100))}♥` : ''}</dd>
+    ${S.home ? `<dt>Cottage</dt><dd>${(S.home.at || []).length} pieces out${S.quests && S.quests.attic ? (S.quests.attic.done ? ' · attic story done' : ` · attic story, step ${(S.quests.attic.s || 0) + 1}`) : ''}${S.home.nook ? ' · nook built' : ''}${S.tea && S.tea.v ? ` · last tea with ${NAMES[S.tea.v] || S.tea.v}` : ''}</dd>` : ''}
     <dt>Requests</dt><dd>${fmt(S.helped)} filled · ${fmt(S.fishCaught)} fish caught</dd>
     <dt>Pace</dt><dd>${f.perDay >= 10 ? Math.round(f.perDay) : f.perDay.toFixed(1)} in-game days per real day</dd>
   </dl>`;
